@@ -1,0 +1,41 @@
+# PR labeler configuration file
+ci:
+- any:
+  - changed-files:
+    - all-globs-to-any-file: [.github/**/*, '!.github/ISSUE_TEMPLATE/*', '!.github/pull_request_template.md']
+    - any-glob-to-any-file:
+      - .pre-commit-config.yaml
+      - .pre-commit-config
+      - .semrelrc
+
+gitignore:
+- changed-files:
+  - any-glob-to-any-file:
+    - .gitignore
+
+github_actions:
+- any:
+  - changed-files:
+    - all-globs-to-any-file: [.github/**/*, '!.github/ISSUE_TEMPLATE/*', '!.github/pull_request_template.md']
+
+documentation:
+- any:
+  - changed-files:
+    - any-glob-to-any-file:
+      - CHANGELOG.md
+      - CODE_OF_CONDUCT.md
+      - CONTRIBUTING.md
+      - LICENSE
+      - SECURITY.md
+      - .github/ISSUE_TEMPLATE/**/*
+      - .github/pull_request_template.md
+      - '**/README.md'
+
+configuration:
+- any:
+  - changed-files:
+    - any-glob-to-any-file:
+      - .devcontainer/**/*
+      - .pre-commit-config.yaml
+      - .editorconfig
+      - justfile
