@@ -1,0 +1,22 @@
+version: '3'
+networks:
+  homelab:
+    driver: bridge
+    external: true
+volumes:
+  portainer_data: {}
+services:
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    networks:
+      - homelab
+    labels:
+      caddy: portainer.localhost
+      caddy.reverse_proxy: "{{upstreams 9000}}"
