@@ -1,11 +1,11 @@
 # HomeLab
 
-### Startup
+## Startup
 ```bash
-docker compose -f ./admin/docker-compose.yml -f ./monitoring/docker-compose.yml -f ./reverse-proxy/docker-compose.yml -f up -d
+bash launch.sh
 ```
 
-### Shutdown
+## Shutdown
 ```bash
-docker compose -f ./admin/docker-compose.yml -f ./monitoring/docker-compose.yml -f ./reverse-proxy/docker-compose.yml -f down
+bash shutdown.sh
 ```
