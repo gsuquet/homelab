@@ -2,6 +2,7 @@ version: "3"
 networks:
   homelab:
     driver: bridge
+    external: true
 volumes:
   prometheus_data: {}
   grafana_data: {}
@@ -23,6 +24,9 @@ services:
       - '--web.console.templates=/etc/prometheus/consoles'
     networks:
       - homelab
+    labels:
+      caddy: prometheus.localhost
+      caddy.reverse_proxy: "{{upstreams 9090}}"
   node-exporter:
     image: prom/node-exporter:latest
     container_name: node-exporter
@@ -50,6 +54,9 @@ services:
       - /etc/machine-id:/etc/machine-id:ro
     networks:
       - homelab
+    labels:
+      caddy: cadvisor.localhost
+      caddy.reverse_proxy: "{{upstreams 8080}}"
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
@@ -60,5 +67,6 @@ services:
       - grafana_data:/var/lib/grafana
     networks:
       - homelab
-    depends_on:
-      - prometheus
+    labels:
+      caddy: grafana.localhost
+      caddy.reverse_proxy: "{{upstreams 3000}}"
