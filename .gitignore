@@ -1,1 +1,9 @@
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# VSCode
 .vscode

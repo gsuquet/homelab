@@ -1,6 +1,6 @@
 #!/bin/bash
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y git ca-certificates curl gnupg
+sudo apt install -y git ca-certificates curl gnupg libnss3-tools
 
 ## Add Docker’s official GPG key:
 sudo install -m 0755 -d /etc/apt/keyrings
@@ -23,57 +23,6 @@ sudo usermod -aG docker $USER
 
 ## Create network:
 sudo docker network create homelab
-
-## Install Portainer:
-sudo docker volume create portainer_data
-sudo docker run -d -p 9000:9000 --name=portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest
-
-## Install Prometheus:
-sudo echo "{"metrics-addr" : "127.0.0.1:9323"}" > /etc/docker/daemon.json
-sudo systemctl restart docker
-sudo echo '
-# my global config
-global:
-  scrape_interval:     15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
-  evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
-  # scrape_timeout is set to the global default (10s).
-
-  # Attach these labels to any time series or alerts when communicating with
-  # external systems (federation, remote storage, Alertmanager).
-  external_labels:
-      monitor: 'codelab-monitor'
-
-# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
-rule_files:
-  # - "first.rules"
-  # - "second.rules"
-
-# A scrape configuration containing exactly one endpoint to scrape:
-# Here its Prometheus itself.
-scrape_configs:
-  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
-  - job_name: 'prometheus'
-
-    # metrics_path defaults to '/metrics'
-    # scheme defaults to 'http'.
-
-    static_configs:
-      - targets: ['localhost:9090']
-
-  - job_name: 'node-exporter'
-    static_configs:
-      - targets: ['node-exporter:9100']
-' > /home/homelab/prometheus.yml
-
-sudo docker volume create prometheus_data
-sudo docker run --network=homelab -d -p 9090:9090 --name=prometheus --restart=always -v /home/homelab/prometheus.yml:/etc/prometheus/prometheus.yml -v prometheus_data:/prometheus prom/prometheus:latest
-
-#Install Node Exporter:
-sudo docker run --network=homelab -d -p 9100:9100 --name=node-exporter --restart=always -v "/:/host:ro,rslave" quay.io/prometheus/node-exporter:latest --path.rootfs=/host
-
-## Install Grafana:
-sudo docker volume create grafana_data
-sudo docker run --network=homelab -d -p 3000:3000 --name=grafana --restart=always -v grafana_data:/var/lib/grafana grafana/grafana:latest
 
 ## Install Pi-hole:
 # https://github.com/pi-hole/docker-pi-hole/blob/master/README.md
