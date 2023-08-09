@@ -3,14 +3,17 @@ networks:
   homelab:
     driver: bridge
     external: true
+
 volumes:
   prometheus_data: {}
   grafana_data: {}
+
 services:
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
-    restart: on-failure
+    hostname: prometheus
+    restart: unless-stopped
     ports:
       - 9090:9090
     volumes:
@@ -24,27 +27,44 @@ services:
       - '--web.console.templates=/etc/prometheus/consoles'
     networks:
       - homelab
+    links:
+      - node-exporter:node-exporter
+      - cadvisor:cadvisor
     labels:
       caddy: prometheus.localhost
       caddy.reverse_proxy: "{{upstreams 9090}}"
+
   node-exporter:
     image: prom/node-exporter:latest
     container_name: node-exporter
-    restart: on-failure
+    hostname: node-exporter
+    restart: unless-stopped
     ports:
       - 9100:9100
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/host
+      - --collector.filesystem.ignored-mount-points
+      - ^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
+      - /:/host:ro,rslave
     networks:
       - homelab
+
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
     container_name: cadvisor
+    hostname: cadvisor
     restart: unless-stopped
+    privileged: true
     ports:
       - 8080:8080
+    devices:
+      - /dev/kmsg
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:rw
@@ -57,14 +77,19 @@ services:
     labels:
       caddy: cadvisor.localhost
       caddy.reverse_proxy: "{{upstreams 8080}}"
+
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
+    hostname: grafana
     restart: unless-stopped
     ports:
       - 3000:3000
+    env_file:
+      - ./grafana/.env
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
     networks:
       - homelab
     labels:
