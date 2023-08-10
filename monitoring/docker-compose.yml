@@ -31,7 +31,8 @@ services:
       - node-exporter:node-exporter
       - cadvisor:cadvisor
     labels:
-      caddy: prometheus.localhost
+      caddy: http://prometheus.localhost http://prometheus.homelab.local
+      caddy.encode: gzip zstd
       caddy.reverse_proxy: "{{upstreams 9090}}"
 
   node-exporter:
@@ -75,7 +76,8 @@ services:
     networks:
       - homelab
     labels:
-      caddy: cadvisor.localhost
+      caddy: http://cadvisor.localhost http://cadvisor.homelab.local
+      caddy.encode: gzip zstd
       caddy.reverse_proxy: "{{upstreams 8080}}"
 
   grafana:
@@ -93,5 +95,6 @@ services:
     networks:
       - homelab
     labels:
-      caddy: grafana.localhost
+      caddy: http://grafana.localhost http://grafana.homelab.local
+      caddy.encode: gzip zstd
       caddy.reverse_proxy: "{{upstreams 3000}}"

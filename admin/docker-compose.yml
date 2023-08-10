@@ -18,5 +18,6 @@ services:
     networks:
       - homelab
     labels:
-      caddy: portainer.localhost
+      caddy: http://portainer.localhost http://portainer.homelab.local
+      caddy.encode: gzip zstd
       caddy.reverse_proxy: "{{upstreams 9000}}"
