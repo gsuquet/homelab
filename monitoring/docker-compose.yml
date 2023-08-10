@@ -57,18 +57,21 @@ services:
       - homelab
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
+    image: zcube/cadvisor:latest
     container_name: cadvisor
     hostname: cadvisor
     restart: unless-stopped
     privileged: true
     ports:
       - 8080:8080
+    command: 
+      - '--docker_only=true'
+      - '--housekeeping_interval=30s'
     devices:
       - /dev/kmsg
     volumes:
       - /:/rootfs:ro
-      - /var/run:/var/run:rw
+      - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
