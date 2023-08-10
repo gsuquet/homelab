@@ -1,0 +1,35 @@
+version: "3"
+networks:
+  homelab:
+    driver: bridge
+    external: true
+volumes:
+  pihole_data: {}
+  pihole_dnsmasq: {}
+services:
+  pihole:
+    container_name: pihole
+    hostname: pihole
+    image: pihole/pihole:latest
+    restart: unless-stopped
+    ports:
+      - '53:53/tcp'
+      - '53:53/udp'
+      - '67:67/udp'
+      - '8000:80/tcp'
+    environment:
+      TZ: 'Europe/Paris'
+      WEBPASSWORD: 'password'
+    volumes:
+      - './pihole/custom.list:/etc/pihole/custom.list'
+      - 'pihole_data:/etc/pihole'
+      - 'pihole_dnsmasq:/etc/dnsmasq.d'
+    cap_add:
+      - NET_ADMIN
+    networks:
+      - homelab
+    # labels:
+    #   caddy: http://pihole.homelab.lan
+    #   caddy.encode: gzip zstd
+    #   caddy.redir: '/ /admin{uri}'
+    #   caddy.reverse_proxy: '{{ 172.20.19.229:8000}}'

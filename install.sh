@@ -24,6 +24,14 @@ sudo usermod -aG docker $USER
 ## Create network:
 sudo docker network create homelab
 
+# Set Git config:
+git config --global pull.rebase true
+
+# Set backup static DNS:
+echo "
+static domain_name_servers=127.0.0.1
+" | sudo tee -a /etc/dhcpcd.conf
+
 ## Install Pi-hole:
 # https://github.com/pi-hole/docker-pi-hole/blob/master/README.md
 
