@@ -17,9 +17,15 @@ services:
       - '53:53/udp'
       - '67:67/udp'
       - '8000:80/tcp'
+    command:
+      - '--dns=127.0.0.1'
+      - '--dns=1.1.1.1'
     environment:
       TZ: 'Europe/Paris'
       WEBPASSWORD: 'password'
+      VIRTUAL_HOST: 'pihole.homelab.lan'
+      PROXY_LOCATION: 'pihole.homelab.lan'
+      FTTCONF_LOCAL: ${IP}
     volumes:
       - './pihole/custom.list:/etc/pihole/custom.list'
       - 'pihole_data:/etc/pihole'
