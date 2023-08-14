@@ -5,3 +5,5 @@ cd ../admin
 docker compose down
 cd ../monitoring
 docker compose down
+cd ../services
+docker compose down
