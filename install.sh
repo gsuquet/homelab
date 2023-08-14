@@ -32,6 +32,9 @@ echo "
 static domain_name_servers=127.0.0.1
 " | sudo tee -a /etc/dhcpcd.conf
 
+# Set IP as env variable:
+echo 'export IP=$(/sbin/ip -o -4 addr list eth0 | awk '{print $4}' | cut -d/ -f1)' >> ~/.bashrc
+
 ## Install Pi-hole:
 # https://github.com/pi-hole/docker-pi-hole/blob/master/README.md
 
