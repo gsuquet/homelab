@@ -1,5 +1,13 @@
 version: "3"
 
+networks:
+  pihole:
+    ipam:
+      config:
+        - subnet: 192.168.1.0/24
+  homelab:
+    external: true
+
 services:
   pihole:
     container_name: pihole
@@ -27,6 +35,8 @@ services:
     networks:
       pihole:
         ipv4_address: '192.168.1.0'
+      homelab: {}
+      
     # labels:
     #   caddy: http://pihole.homelab.lan
     #   caddy.encode: gzip zstd
