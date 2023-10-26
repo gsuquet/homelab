@@ -1,0 +1,54 @@
+default_stages: [commit]
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: check-merge-conflict
+      - id: no-commit-to-branch
+        args:
+          - --branch=main
+  
+  - repo: https://github.com/frnmst/md-toc
+    rev: 8.1.8
+    hooks:
+      - id: md-toc
+        language_version: python3
+
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.77.0
+    hooks:
+      - id: terraform_fmt
+      - id: terraform_tflint
+        args:
+          - 'args=--deep'
+      - id: terraform_tfsec
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.pre-commit-config/.secrets.baseline']
+        exclude: .*/tests/.*
+
+  - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
+    rev: v9.4.0
+    hooks:
+      - id: commitlint
+        args: ['--config', '.pre-commit-config/commitlint.config.js']
+        stages: [commit-msg]
+        additional_dependencies: ['@commitlint/config-conventional']
+  
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+        exclude: CHANGELOG.md # for better compatibility with the automatic release process
+      - id: check-json
+      - id: check-yaml
+
+  - repo: https://github.com/pre-commit/pre-commit
+    rev: v3.0.1
+    hooks:
+      - id: validate_manifest
+  
