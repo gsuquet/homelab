@@ -5,9 +5,9 @@ resource "docker_network" "monitoring" {
 
 module "cadvisor" {
   source = "./modules/container"
-  image = "zcube/cadvisor:latest"
-  name = "cadvisor"
-  hostname = "cadvisor"
+  image = var.images["cadvisor"]
+  name = var.container_names["cadvisor"]
+  hostname = var.container_hostnames["cadvisor"]
   privileged = true
   ports = [
     {
@@ -65,9 +65,9 @@ module "cadvisor" {
 
 module "grafana" {
   source = "./modules/container"
-  image = "grafana/grafana:latest"
-  name = "grafana"
-  hostname = "grafana"
+  image = var.images["grafana"]
+  name = var.container_names["grafana"]
+  hostname = var.container_hostnames["grafana"]
   env = split("\n", file("${path.cwd}/monitoring/grafana/.env"))
   ports = [
     {
@@ -98,9 +98,9 @@ module "grafana" {
 
 module "node_exporter" {
   source = "./modules/container"
-  image = "prom/node-exporter:latest"
-  name = "node_exporter"
-  hostname = "node_exporter"
+  image = var.images["node-exporter"]
+  name = var.container_names["node-exporter"]
+  hostname = var.container_hostnames["node-exporter"]
   ports = [
     {
       "host_port" = 9100
@@ -145,9 +145,9 @@ module "node_exporter" {
 
 module "prometheus" {
   source = "./modules/container"
-  image = "prom/prometheus:latest"
-  name = "prometheus"
-  hostname = "prometheus"
+  image = var.images["prometheus"]
+  name = var.container_names["prometheus"]
+  hostname = var.container_hostnames["prometheus"]
   ports = [
     {
       "host_port" = 9090
@@ -198,9 +198,9 @@ module "prometheus" {
 
 module "dashboard" {
   source = "./modules/container"
-  image = "lissy93/dashy:latest"
-  name = "dashboard"
-  hostname = "dashboard"
+  image = var.images["dashboard"]
+  name = var.container_names["dashboard"]
+  hostname = var.container_hostnames["dashboard"]
   ports = [
     {
       "host_port" = 4000
@@ -216,9 +216,9 @@ module "dashboard" {
 
 module "portainer" {
   source = "./modules/container"
-  image = "portainer/portainer-ce:alpine"
-  name = "portainer"
-  hostname = "portainer"
+  image = var.images["portainer"]
+  name = var.container_names["portainer"]
+  hostname = var.container_hostnames["portainer"]
   ports = [
     {
       "host_port" = 9000
@@ -263,17 +263,17 @@ module "portainer" {
 
 module "dhcphelper" {
   source = "./modules/container"
-  image = "homeall/dhcphelper:latest"
-  name = "dhcphelper"
-  hostname = "dhcphelper"
+  image = var.images["dhcphelper"]
+  name = var.container_names["dhcphelper"]
+  hostname = var.container_hostnames["dhcphelper"]
   env = [ "TZ=Europe/Berlin" ]
 }
 
 module "pihole" {
   source = "./modules/container"
-  image = "pihole/pihole:latest"
-  name = "pihole"
-  hostname = "pihole"
+  image = var.images["pihole"]
+  name = var.container_names["pihole"]
+  hostname = var.container_hostnames["pihole"]
   env = [
     "TZ=Europe/Berlin",
     "WEBPASSWORD=${var.pihole_password}",
@@ -314,9 +314,9 @@ module "pihole" {
 
 module "wireguard" {
   source = "./modules/container"
-  image = "linuxserver/wireguard:latest"
-  name = "wireguard"
-  hostname = "wireguard"
+  image = var.images["wireguard"]
+  name = var.container_names["wireguard"]
+  hostname = var.container_hostnames["wireguard"]
   ports = [
     {
       "host_port" = 51820
