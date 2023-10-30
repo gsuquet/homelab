@@ -1,0 +1,61 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/ubuntu
+{
+	"name": "Ubuntu Terraform Docker",
+
+	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+	"image": "mcr.microsoft.com/devcontainers/base:jammy",
+
+	// Features to add to the dev container. More info: https://containers.dev/features.
+    "features": {
+		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+			"moby": true,
+			"installDockerBuildx": true,
+			"version": "latest"
+		},
+		"ghcr.io/devcontainers/features/terraform:1": {
+			"installSentinel": true,
+			"installTFsec": true,
+			"installTerraformDocs": true,
+			"version": "1.5.7",
+			"tflint": "0.48.0",
+			"terragrunt": "0.53.0"
+		},
+		"ghcr.io/devcontainers/features/python:1": {
+			"installTools": true,
+			"optimize": true,
+			"version": "3.11"
+		},
+		"ghcr.io/devcontainers-contrib/features/ansible:2": {
+			"version": "latest"
+		},
+		"ghcr.io/devcontainers-contrib/features/pre-commit:2": {
+			"version": "latest"
+		}
+	},
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	"forwardPorts": [
+		8080, 3000, 9100, 9090, 4000, 9000, 53, 67, 80, 443, 51820
+	],
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	// "postCreateCommand": "uname -a",
+
+	// Configure tool-specific properties.
+	"customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-azuretools.vscode-docker",
+                "hashicorp.terraform",
+                "github.vscode-github-actions",
+                "editorconfig.editorconfig",
+				"seatonjiang.gitmoji-vscode",
+                "pkief.material-icon-theme"
+            ]
+        }
+    }
+
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
+}
