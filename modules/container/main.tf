@@ -20,6 +20,8 @@ resource "docker_container" "container" {
   privileged = var.privileged
   env        = var.env
 
+  command = var.command
+
   dynamic "healthcheck" {
     for_each = var.healthcheck_cmd != "" ? [] : var.healthcheck_cmd
     content {

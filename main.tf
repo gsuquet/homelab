@@ -68,7 +68,7 @@ module "grafana" {
   image    = var.images["grafana"]
   name     = var.container_names["grafana"]
   hostname = var.container_hostnames["grafana"]
-  env      = split("\n", file("${path.cwd}/monitoring/grafana/.env"))
+  env      = concat(split("\n", file("${path.cwd}/monitoring/grafana/.env")), ["GF_SECURITY_ADMIN_USER=admin", "GF_SECURITY_ADMIN_PASSWORD=admin"]) #pragma: allowlist secret
   ports = [
     {
       "host_port"      = 3000
