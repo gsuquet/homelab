@@ -1,6 +1,6 @@
 resource "docker_volume" "volume" {
-  name = var.name
-  driver = var.driver
+  name        = var.name
+  driver      = var.driver
   driver_opts = var.driver_opts
 
   dynamic "labels" {

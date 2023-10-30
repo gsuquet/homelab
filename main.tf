@@ -1,55 +1,55 @@
 resource "docker_network" "monitoring" {
-  name = var.network_names["monitoring"]
+  name   = var.network_names["monitoring"]
   driver = "bridge"
 }
 
 module "cadvisor" {
-  source = "./modules/container"
-  image = var.images["cadvisor"]
-  name = var.container_names["cadvisor"]
-  hostname = var.container_hostnames["cadvisor"]
+  source     = "./modules/container"
+  image      = var.images["cadvisor"]
+  name       = var.container_names["cadvisor"]
+  hostname   = var.container_hostnames["cadvisor"]
   privileged = true
   ports = [
     {
-      "host_port" = 8080
+      "host_port"      = 8080
       "container_port" = 8080
     }
   ]
   devices = [
     {
-      "host_path" = "/dev/kmsg"
+      "host_path"      = "/dev/kmsg"
       "container_path" = "/dev/kmsg"
     }
   ]
   volumes = [
     {
-      "host_path" = "/"
+      "host_path"      = "/"
       "container_path" = "/rootfs"
-      "read_only" = true
+      "read_only"      = true
     },
     {
-      "host_path" = "/var/run"
+      "host_path"      = "/var/run"
       "container_path" = "/var/run"
     },
     {
-      "host_path" = "/sys"
+      "host_path"      = "/sys"
       "container_path" = "/sys"
-      "read_only" = true
+      "read_only"      = true
     },
     {
-      "host_path" = "/var/lib/docker"
+      "host_path"      = "/var/lib/docker"
       "container_path" = "/var/lib/docker"
-      "read_only" = true
+      "read_only"      = true
     },
     {
-      "host_path" = "/dev/disk"
+      "host_path"      = "/dev/disk"
       "container_path" = "/dev/disk"
-      "read_only" = true
+      "read_only"      = true
     },
     {
-      "host_path" = "/etc/machine-id"
+      "host_path"      = "/etc/machine-id"
       "container_path" = "/etc/machine-id"
-      "read_only" = true
+      "read_only"      = true
     }
   ]
   networks = [
@@ -64,28 +64,28 @@ module "cadvisor" {
 }
 
 module "grafana" {
-  source = "./modules/container"
-  image = var.images["grafana"]
-  name = var.container_names["grafana"]
+  source   = "./modules/container"
+  image    = var.images["grafana"]
+  name     = var.container_names["grafana"]
   hostname = var.container_hostnames["grafana"]
-  env = split("\n", file("${path.cwd}/monitoring/grafana/.env"))
+  env      = split("\n", file("${path.cwd}/monitoring/grafana/.env"))
   ports = [
     {
-      "host_port" = 3000
+      "host_port"      = 3000
       "container_port" = 3000
     }
   ]
   volumes = [
     {
-      "host_path" = "${path.cwd}/monitoring/grafana/provisioning"
+      "host_path"      = "${path.cwd}/monitoring/grafana/provisioning"
       "container_path" = "/etc/grafana/provisioning"
     }
   ]
   persistent_volumes = {
     "grafana" = {
-      "driver" = "local"
-      "driver_opts" = {}
-      "labels" = {}
+      "driver"         = "local"
+      "driver_opts"    = {}
+      "labels"         = {}
       "container_path" = "/var/lib/grafana"
     }
   }
@@ -97,36 +97,36 @@ module "grafana" {
 }
 
 module "node_exporter" {
-  source = "./modules/container"
-  image = var.images["node-exporter"]
-  name = var.container_names["node-exporter"]
+  source   = "./modules/container"
+  image    = var.images["node-exporter"]
+  name     = var.container_names["node-exporter"]
   hostname = var.container_hostnames["node-exporter"]
   ports = [
     {
-      "host_port" = 9100
+      "host_port"      = 9100
       "container_port" = 9100
     }
   ]
   volumes = [
     {
-      "host_path" = "/proc"
+      "host_path"      = "/proc"
       "container_path" = "/host/proc"
-      "read_only" = true
+      "read_only"      = true
     },
     {
-      "host_path" = "/sys"
+      "host_path"      = "/sys"
       "container_path" = "/host/sys"
-      "read_only" = true
+      "read_only"      = true
     },
     {
-      "host_path" = "/"
+      "host_path"      = "/"
       "container_path" = "/rootfs"
-      "read_only" = true
+      "read_only"      = true
     },
     {
-      "host_path" = "/"
+      "host_path"      = "/"
       "container_path" = "/host"
-      "read_only" = true
+      "read_only"      = true
     }
   ]
   networks = [
@@ -144,27 +144,27 @@ module "node_exporter" {
 }
 
 module "prometheus" {
-  source = "./modules/container"
-  image = var.images["prometheus"]
-  name = var.container_names["prometheus"]
+  source   = "./modules/container"
+  image    = var.images["prometheus"]
+  name     = var.container_names["prometheus"]
   hostname = var.container_hostnames["prometheus"]
   ports = [
     {
-      "host_port" = 9090
+      "host_port"      = 9090
       "container_port" = 9090
     }
   ]
   volumes = [
     {
-      "host_path" = "${path.cwd}/monitoring/prometheus/prometheus.yml"
+      "host_path"      = "${path.cwd}/monitoring/prometheus/prometheus.yml"
       "container_path" = "/etc/prometheus/prometheus.yml"
     }
   ]
   persistent_volumes = {
     "prometheus" = {
-      "driver" = "local"
-      "driver_opts" = {}
-      "labels" = {}
+      "driver"         = "local"
+      "driver_opts"    = {}
+      "labels"         = {}
       "container_path" = "/prometheus"
     }
   }
@@ -182,9 +182,9 @@ module "prometheus" {
     "http://localhost:9090/"
   ]
   healthcheck_params = {
-    "interval" = "30s"
-    "timeout" = "30s"
-    "retries" = "3"
+    "interval"     = "30s"
+    "timeout"      = "30s"
+    "retries"      = "3"
     "start_period" = "30s"
   }
   command = [
@@ -197,13 +197,13 @@ module "prometheus" {
 }
 
 module "dashboard" {
-  source = "./modules/container"
-  image = var.images["dashboard"]
-  name = var.container_names["dashboard"]
+  source   = "./modules/container"
+  image    = var.images["dashboard"]
+  name     = var.container_names["dashboard"]
   hostname = var.container_hostnames["dashboard"]
   ports = [
     {
-      "host_port" = 4000
+      "host_port"      = 4000
       "container_port" = 80
     }
   ]
@@ -215,28 +215,28 @@ module "dashboard" {
 }
 
 module "portainer" {
-  source = "./modules/container"
-  image = var.images["portainer"]
-  name = var.container_names["portainer"]
+  source   = "./modules/container"
+  image    = var.images["portainer"]
+  name     = var.container_names["portainer"]
   hostname = var.container_hostnames["portainer"]
   ports = [
     {
-      "host_port" = 9000
+      "host_port"      = 9000
       "container_port" = 9000
     }
   ]
   volumes = [
     {
-      "host_path" = "/var/run/docker.sock"
+      "host_path"      = "/var/run/docker.sock"
       "container_path" = "/var/run/docker.sock"
-      "read_only" = true
+      "read_only"      = true
     }
   ]
   persistent_volumes = {
     "portainer" = {
-      "driver" = "local"
-      "driver_opts" = {}
-      "labels" = {}
+      "driver"         = "local"
+      "driver_opts"    = {}
+      "labels"         = {}
       "container_path" = "/data"
     }
   }
@@ -254,25 +254,25 @@ module "portainer" {
     "http://127.0.0.1:9000/api/system/status"
   ]
   healthcheck_params = {
-    "interval" = "30s"
-    "timeout" = "30s"
-    "retries" = "3"
+    "interval"     = "30s"
+    "timeout"      = "30s"
+    "retries"      = "3"
     "start_period" = "30s"
   }
 }
 
 module "dhcphelper" {
-  source = "./modules/container"
-  image = var.images["dhcphelper"]
-  name = var.container_names["dhcphelper"]
+  source   = "./modules/container"
+  image    = var.images["dhcphelper"]
+  name     = var.container_names["dhcphelper"]
   hostname = var.container_hostnames["dhcphelper"]
-  env = [ "TZ=Europe/Berlin" ]
+  env      = ["TZ=Europe/Berlin"]
 }
 
 module "pihole" {
-  source = "./modules/container"
-  image = var.images["pihole"]
-  name = var.container_names["pihole"]
+  source   = "./modules/container"
+  image    = var.images["pihole"]
+  name     = var.container_names["pihole"]
   hostname = var.container_hostnames["pihole"]
   env = [
     "TZ=Europe/Berlin",
@@ -282,26 +282,26 @@ module "pihole" {
   ]
   ports = [
     {
-      "host_port" = 53
+      "host_port"      = 53
       "container_port" = 53
-      "protocol" = "udp"
+      "protocol"       = "udp"
     },
     {
-      "host_port" = 53
+      "host_port"      = 53
       "container_port" = 53
-      "protocol" = "tcp"
+      "protocol"       = "tcp"
     },
     {
-      "host_port" = 67
+      "host_port"      = 67
       "container_port" = 67
-      "protocol" = "udp"
+      "protocol"       = "udp"
     },
     {
-      "host_port" = 80
+      "host_port"      = 80
       "container_port" = 80
     },
     {
-      "host_port" = 443
+      "host_port"      = 443
       "container_port" = 443
     }
   ]
@@ -313,20 +313,20 @@ module "pihole" {
 }
 
 module "wireguard" {
-  source = "./modules/container"
-  image = var.images["wireguard"]
-  name = var.container_names["wireguard"]
+  source   = "./modules/container"
+  image    = var.images["wireguard"]
+  name     = var.container_names["wireguard"]
   hostname = var.container_hostnames["wireguard"]
   ports = [
     {
-      "host_port" = 51820
+      "host_port"      = 51820
       "container_port" = 51820
-      "protocol" = "udp"
+      "protocol"       = "udp"
     }
   ]
   volumes = [
     {
-      "host_path" = "${path.cwd}/security/wireguard"
+      "host_path"      = "${path.cwd}/security/wireguard"
       "container_path" = "/config"
     }
   ]
