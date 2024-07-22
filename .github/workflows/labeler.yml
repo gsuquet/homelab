@@ -8,4 +8,4 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    uses: gsuquet/workflows/.github/workflows/automation-labeler.yml@0f7c5d8c6bdbc14386b308fb381b0611934f8482 # v1.2.5
+    uses: gsuquet/workflows/.github/workflows/automation-labeler.yml@43c68523c48e8f1b57e7ef87303e26abcf1e6e1b # v1.2.6
