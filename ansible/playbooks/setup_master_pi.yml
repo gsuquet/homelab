@@ -1,0 +1,12 @@
+---
+- name: Configure Kubernetes Master Pi
+  hosts: homepi_master
+  become: yes
+
+  vars:
+    k3s_opts: "K3S_KUBECONFIG_MODE=\"644\""
+
+  roles:
+    - k8s/tools
+    - k8s/k3s
+    - k8s/helm

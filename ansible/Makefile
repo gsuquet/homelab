@@ -1,4 +1,4 @@
-.PHONY: help install install-python install-ansible uninstall
+.PHONY: help install install-python install-ansible uninstall vault-encrypt vault-decrypt setup-master
 
 # Default target
 .DEFAULT_GOAL := help
@@ -16,6 +16,10 @@ help:
 	@echo "  install-python   - Install Python $(PYTHON_VERSION)"
 	@echo "  install-ansible  - Install Ansible $(ANSIBLE_VERSION) and Ansible Creator $(ANSIBLE_CREATOR_VERSION)"
 	@echo "  uninstall        - Clean up installed tools and dependencies"
+	@echo "  vault-encrypt    - Encrypt vault.yml file"
+	@echo "  vault-decrypt    - Decrypt vault.yml file"
+	@echo "  setup-homepies   - Setup all Raspberry Pis"
+	@echo "  setup-master     - Setup master Raspberry Pi"
 
 install: install-python install-ansible
 
@@ -50,3 +54,15 @@ else ifeq ($(PACKAGE_MANAGER),apt-get)
 else ifeq ($(PACKAGE_MANAGER),apk)
 	sudo apk del python3 py3-pip
 endif
+
+vault-encrypt:
+	ansible-vault encrypt vault.yml
+
+vault-decrypt:
+	ansible-vault decrypt vault.yml
+
+setup-homepies:
+	ansible-playbook playbooks/setup_homepies.yml --ask-vault-pass
+
+setup-master:
+	ansible-playbook playbooks/setup_master_pi.yml

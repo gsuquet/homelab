@@ -1,0 +1,22 @@
+---
+- name: Configure Pi
+  hosts: homepi_master
+  become: yes
+
+  vars_files:
+    - ../vault.yml
+
+  vars:
+    default_user: "pi"
+    user: "homepi"
+    timezone: "Europe/Paris"
+    firewall_k8s_allowed_incoming_ip: "192.168.1.0/24"
+    firewall_ssh_allowed_incoming_ip: "192.168.1.0/24"
+    firewall_http_allowed_incoming_ip: "192.168.1.0/24"
+
+  roles:
+    - common/system
+    - common/users
+    - common/ssh
+    - common/firewall
+    - common/fail2ban

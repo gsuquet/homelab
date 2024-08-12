@@ -1,0 +1,17 @@
+---
+- name: Install k3s server
+  shell: curl -sfL https://get.k3s.io | {{k3s_opts}} sh -
+  notify: Restart k3s
+
+- name: Get k3s version
+  command: k3s --version
+  register: k3s_version
+
+- name: Print k3s version
+  debug:
+    var: k3s_version
+
+- name: Export KUBECONFIG variable
+  lineinfile:
+    path: ~/.bashrc
+    line: 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml'

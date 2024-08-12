@@ -1,0 +1,17 @@
+---
+- name: Restart hostname service
+  service:
+    name: hostname
+    state: restarted
+
+- name: Restart timezone service
+  service:
+    name: systemd-timesyncd
+    state: restarted
+
+- name: Restart machine
+  reboot:
+    msg: "Rebooting the machine to apply changes"
+    pre_reboot_delay: 0
+    post_reboot_delay: 30
+    reboot_timeout: 600

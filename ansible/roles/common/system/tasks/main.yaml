@@ -1,0 +1,24 @@
+---
+- name: Update and upgrade apt packages
+  apt:
+    update_cache: yes
+    upgrade: dist
+    cache_valid_time: 3600
+
+- name: Set timezone
+  timezone:
+    name: "{{ timezone }}"
+  notify: Restart timezone service
+
+- name: Enable cgroups
+  lineinfile:
+    path: /boot/firmware/cmdline.txt
+    regexp: '^(.*)$'
+    line: '\1 cgroup_memory=1 cgroup_enable=memory'
+    backrefs: yes
+  notify: Restart machine
+
+- name: Install automatic upgrades
+  apt:
+    name: unattended-upgrades,apt-listchanges
+    state: present
