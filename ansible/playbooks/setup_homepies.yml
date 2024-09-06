@@ -1,6 +1,6 @@
 ---
 - name: Configure Pi
-  hosts: homepi_master
+  hosts: homepies
   become: yes
 
   vars_files:

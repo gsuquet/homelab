@@ -1,6 +1,6 @@
 ---
 - name: Configure Kubernetes Master Pi
-  hosts: homepi_master
+  hosts: homepie_master
   become: yes
 
   vars:
