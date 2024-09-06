@@ -11,7 +11,12 @@
   debug:
     var: k3s_version
 
-- name: Export KUBECONFIG variable
-  lineinfile:
-    path: ~/.bashrc
-    line: 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml'
+- name: Set KUBECONFIG variable
+  set_fact:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Copy KUBECONFIG to user home directory
+  copy:
+    src: "{{ KUBECONFIG }}"
+    dest: "{{ ansible_env.HOME }}/.kube/config"
+    remote_src: yes

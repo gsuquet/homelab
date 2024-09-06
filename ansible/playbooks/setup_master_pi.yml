@@ -10,3 +10,4 @@
     - k8s/tools
     - k8s/k3s
     - k8s/helm
+    - k8s/argocd
