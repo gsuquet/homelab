@@ -35,6 +35,8 @@ else ifeq ($(PACKAGE_MANAGER),apt-get)
 else ifeq ($(PACKAGE_MANAGER),apk)
 	sudo apk update
 	sudo apk add python3 py3-pip
+else ifeq ($(PACKAGE_MANAGER),choco)
+	choco install -y python312
 else
 	@echo "Unsupported package manager. Please install Python manually."
 	exit 1
@@ -53,6 +55,11 @@ else ifeq ($(PACKAGE_MANAGER),apt-get)
 	sudo apt-get remove -y python$(PYTHON_VERSION)
 else ifeq ($(PACKAGE_MANAGER),apk)
 	sudo apk del python3 py3-pip
+else ifeq ($(PACKAGE_MANAGER),choco)
+	choco uninstall -y python312
+else
+	@echo "Unsupported package manager. Please uninstall Python manually."
+	exit 1
 endif
 
 vault-encrypt:
