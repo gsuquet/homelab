@@ -1,0 +1,33 @@
+---
+- name: Add ArgoCD Helm repository
+  kubernetes.core.helm_repository:
+    name: argo
+    repo_url: https://argoproj.github.io/argo-helm
+
+- name: Create ArgoCD namespace
+  kubernetes.core.k8s:
+    api_version: v1
+    kind: Namespace
+    name: argocd
+
+- name: Install ArgoCD
+  kubernetes.core.helm:
+    name: argocd
+    chart_ref: argo/argo-cd
+    namespace: argocd
+    state: present
+
+- name: Wait for ArgoCD to be ready
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    namespace: argocd
+    label_selectors:
+      - app.kubernetes.io/name=argocd-server
+    wait: yes
+    wait_timeout: 300
+
+- name: Create Ingress Application
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('file', '../../../../argocd/ingress.yml') | from_yaml }}"

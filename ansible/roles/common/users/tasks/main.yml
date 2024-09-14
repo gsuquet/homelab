@@ -1,0 +1,20 @@
+---
+- name: Disable the default user
+  user:
+    name: "{{ default_user }}"
+    state: absent
+  ignore_errors: yes
+
+- name: Create ssh user group
+  group:
+    name: ssh
+    state: present
+
+- name: Create new user
+  user:
+    name: "{{ user }}"
+    password: "{{ user_password | password_hash('sha512') }}"
+    state: present
+    shell: /bin/bash
+    groups: sudo,ssh
+    append: yes
