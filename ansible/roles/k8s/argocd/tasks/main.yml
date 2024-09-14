@@ -26,3 +26,8 @@
       - app.kubernetes.io/name=argocd-server
     wait: yes
     wait_timeout: 300
+
+- name: Create Ingress Application
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('file', '../../../../argocd/ingress.yml') | from_yaml }}"
