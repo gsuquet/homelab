@@ -11,7 +11,7 @@ spec:
     path: services/ingress
   destination:
     server: 'https://kubernetes.default.svc'
-    namespace: kube-system
+    namespace: argocd
   syncPolicy:
     automated:
       prune: true
