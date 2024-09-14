@@ -27,7 +27,24 @@
     wait: yes
     wait_timeout: 300
 
+- name: Update argocd-cmd-params-cm ConfigMap to set server.insecure= "true"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: argocd-cmd-params-cm
+        namespace: argocd
+      data:
+        server.insecure: "true"
+
+- name: Create Network Project
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('file', '../../../../argocd/project-network.yml') | from_yaml }}"
+
 - name: Create Ingress Application
   kubernetes.core.k8s:
     state: present
-    definition: "{{ lookup('file', '../../../../argocd/ingress.yml') | from_yaml }}"
+    definition: "{{ lookup('file', '../../../../argocd/application-ingress.yml') | from_yaml }}"
