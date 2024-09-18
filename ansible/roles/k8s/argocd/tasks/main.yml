@@ -38,13 +38,19 @@
         namespace: argocd
       data:
         server.insecure: "true"
+  notify: Restart ArgoCD server deployment
 
-- name: Create Network Project
+- name: Create Project ArgoCD
   kubernetes.core.k8s:
     state: present
-    definition: "{{ lookup('file', '../../../../argocd/project-network.yml') | from_yaml }}"
+    definition: "{{ lookup('file', '../../../../argocd/settings/project-argocd.yml') | from_yaml }}"
 
-- name: Create Ingress Application
+- name: Create Application ArgoCD Apps
   kubernetes.core.k8s:
     state: present
-    definition: "{{ lookup('file', '../../../../argocd/application-ingress.yml') | from_yaml }}"
+    definition: "{{ lookup('file', '../../../../argocd/settings/application-argocd-apps.yml') | from_yaml }}"
+
+- name: Create Application ArgoCD Projects
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('file', '../../../../argocd/settings/application-argocd-projects.yml') | from_yaml }}"
