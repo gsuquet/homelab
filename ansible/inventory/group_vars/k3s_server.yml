@@ -1,0 +1,12 @@
+---
+agent_group: k3s_agent
+api_endpoint: "{{ hostvars[groups['k3s_server'][0]]['ansible_host'] | default(groups['k3s_server'][0]) }}"
+api_port: 6443
+cluster_context: k3s-ansible
+extra_server_args: ""
+k3s_server_location: "/var/lib/rancher/k3s"
+kubeconfig: ~/.kube/config.new
+server_group: k3s_server
+systemd_dir: "/etc/systemd/system"
+use_external_database: false
+user_kubectl: true

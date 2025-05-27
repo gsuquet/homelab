@@ -10,7 +10,7 @@
     state: started
     enabled: yes
 
-- name: Install UFW
+- name: Install ufw
   ansible.builtin.apt:
     name: ufw
     state: present
@@ -21,12 +21,12 @@
     direction: incoming
   notify: Restart ufw service
 
-- name: Allow SSH from ip range
+- name: Allow ssh from ip range
   community.general.ufw:
     rule: allow
     port: 22
     proto: tcp
-    from: "{{ firewall_ssh_allowed_incoming_ip }}"
+    from: "192.168.1.0/24"
   notify: Restart ufw service
 
 - name: Enable UFW

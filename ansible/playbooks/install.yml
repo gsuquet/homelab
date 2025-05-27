@@ -1,4 +1,10 @@
 ---
+- name: Raspberry Pi prerequisites
+  hosts: all
+  become: true
+  roles:
+    - role: os_raspberrypi
+
 - name: Harden the OS
   hosts: all
   become: true
