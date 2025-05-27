@@ -1,0 +1,32 @@
+---
+- name: Harden the OS
+  hosts: all
+  become: true
+  roles:
+    - role: os_hardening
+
+- name: K3S prerequisites
+  hosts:
+    - k3s_agent
+    - k3s_server
+  become: true
+  roles:
+    - role: k3s_common
+
+- name: Setup K3S server
+  hosts: k3s_server
+  become: true
+  roles:
+    - role: k3s_server
+
+- name: Setup K3S agent
+  hosts: k3s_agent
+  become: true
+  roles:
+    - role: k3s_agent
+
+# - name: Install ArgoCD
+#   hosts: k3s_server
+#   become: true
+#   roles:
+#     - role: k8s_argocd
