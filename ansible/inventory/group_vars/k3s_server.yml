@@ -10,3 +10,7 @@ server_group: k3s_server
 systemd_dir: "/etc/systemd/system"
 use_external_database: false
 user_kubectl: true
+
+server_config_yaml: |
+  tls-san:
+    - olympus.local

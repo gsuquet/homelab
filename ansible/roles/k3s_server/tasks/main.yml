@@ -160,6 +160,14 @@
           changed_when:
             - csa_result.rc == 0
 
+        - name: Fix certificate hostname in control node kubeconfig if needed
+          ansible.builtin.replace:
+            path: "{{ kubeconfig }}"
+            regexp: '(https://)(.*?)(\.local|\.lan|\.home|\.internal)(:\d+)'
+            replace: '\1\2\4'
+          delegate_to: 127.0.0.1
+          become: false
+
         - name: Setup kubeconfig context on control node - {{ cluster_context }}
           when: kubeconfig == "~/.kube/config.new"
           ansible.builtin.replace:
@@ -288,6 +296,13 @@
         remote_src: true
         owner: "{{ ansible_user }}"
         mode: "u=rw,g=,o="
+
+    - name: Fix certificate hostname in kubeconfig if needed
+      ansible.builtin.replace:
+        path: ~{{ ansible_user }}/.kube/config
+        regexp: '(https://)(.*?)(\.local|\.lan|\.home|\.internal)(:\d+)'
+        replace: '\1\2\4'
+      register: kubeconfig_hostname_fix
 
     - name: Configure default KUBECONFIG for user
       ansible.builtin.lineinfile:

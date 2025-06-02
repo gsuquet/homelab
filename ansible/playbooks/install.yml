@@ -31,8 +31,8 @@
   roles:
     - role: k3s_agent
 
-# - name: Install ArgoCD
-#   hosts: k3s_server
-#   become: true
-#   roles:
-#     - role: k8s_argocd
+- name: Install ArgoCD
+  hosts: olympus.local
+  become: true
+  roles:
+    - role: k8s_argocd

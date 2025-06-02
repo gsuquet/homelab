@@ -39,6 +39,7 @@
         path: "/etc/rancher/k3s"
         mode: "0755"
         state: directory
+
     - name: Copy config values
       ansible.builtin.copy:
         content: "{{ agent_config_yaml }}"
