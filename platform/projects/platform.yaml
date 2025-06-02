@@ -1,0 +1,34 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform
+  namespace: argocd
+spec:
+  description: Platform level infrastructure and tools
+
+  # Project sources - repositories that can be used for applications in this project
+  sourceRepos:
+  - https://github.com/gsuquet/homelab.git
+  - https://charts.bitnami.com/bitnami
+  - https://bitnami-labs.github.io/sealed-secrets
+
+  # Destination clusters and namespaces that applications can target
+  destinations:
+  - namespace: '*'
+    server: https://kubernetes.default.svc
+
+  # Allow all cluster-scoped resources to be created
+  clusterResourceWhitelist:
+  - group: '*'
+    kind: '*'
+
+  # Allow all namespace-scoped resources to be created
+  namespaceResourceWhitelist:
+  - group: '*'
+    kind: '*'
+
+  # Enables non-interactive project syncs
+  syncWindows:
+  - kind: allow
+    schedule: "* * * * *"
+    duration: 24h

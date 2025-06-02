@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: apps
+  namespace: argocd
+spec:
+  description: End user applications
+
+  # Project sources - repositories that can be used for applications in this project
+  sourceRepos:
+  - https://github.com/gsuquet/homelab.git
+
+  # Destination clusters and namespaces that applications can target
+  destinations:
+  - namespace: '*'
+    server: https://kubernetes.default.svc
+
+  # Namespace resource whitelist - resources that can be deployed in the allowed namespaces
+  namespaceResourceWhitelist:
+  - group: '*'
+    kind: '*'
+
+  # Enables non-interactive project syncs
+  syncWindows:
+  - kind: allow
+    schedule: "* * * * *"
+    duration: 24h
