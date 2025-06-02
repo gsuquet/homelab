@@ -6,12 +6,12 @@ metadata:
 spec:
   description: End user applications
 
-  # Project sources - repositories that can be used for applications in this project
   sourceRepos:
-  - https://github.com/gsuquet/homelab.git
+  - 'https://github.com/gsuquet/*'
 
-  # Destination clusters and namespaces that applications can target
   destinations:
+  - namespace: '!kube-system'
+    server: '*'
   - namespace: '*'
     server: https://kubernetes.default.svc
 
@@ -19,9 +19,3 @@ spec:
   namespaceResourceWhitelist:
   - group: '*'
     kind: '*'
-
-  # Enables non-interactive project syncs
-  syncWindows:
-  - kind: allow
-    schedule: "* * * * *"
-    duration: 24h
