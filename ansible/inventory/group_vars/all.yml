@@ -1,0 +1,7 @@
+---
+ansible_port: 22
+ansible_user: daedalus
+
+k3s_version: v1.33.1+k3s1
+
+timezone: Europe/Paris

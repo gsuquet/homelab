@@ -1,0 +1,64 @@
+# Pre-commit configuration for Ansible
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: check-illegal-windows-names
+      - id: check-json
+      - id: check-merge-conflict
+        args:
+          - --assume-in-merge
+      - id: check-shebang-scripts-are-executable
+      - id: check-symlinks
+      - id: check-toml
+      - id: destroyed-symlinks
+      - id: detect-private-key
+      - id: no-commit-to-branch
+      - id: pretty-format-json
+        args:
+          - --autofix
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.24.2
+    hooks:
+      - id: gitleaks
+
+  - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
+    rev: v9.22.0
+    hooks:
+      - id: commitlint
+        args: ['--config', '.config/commitlint.config.js']
+        stages: [commit-msg]
+        additional_dependencies: ['@commitlint/config-conventional']
+
+  - repo: https://github.com/lycheeverse/lychee.git
+    rev: lychee-v0.18.1
+    hooks:
+      - id: lychee
+        args: ["--no-progress", "."]
+        pass_filenames: false
+
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.31.0
+    hooks:
+      - id: typos
+
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint
+        args: ['--config', '.config/.hadolint.yaml']
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.37.0
+    hooks:
+      - id: yamllint
+        args:
+          - -c=.config/.yamllint.yaml

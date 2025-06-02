@@ -1,0 +1,13 @@
+---
+- name: Upgrade K3s Servers
+  hosts: k3s_server
+  become: true
+  serial: 1
+  roles:
+    - role: k3s_upgrade
+
+- name: Upgrade K3s Agents
+  hosts: k3s_agent
+  become: true
+  roles:
+    - role: k3s_upgrade
