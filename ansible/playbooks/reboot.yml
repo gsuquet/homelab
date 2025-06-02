@@ -17,3 +17,4 @@
   tasks:
     - name: Reboot
       ansible.builtin.reboot:
+        test_command: kubectl get nodes
