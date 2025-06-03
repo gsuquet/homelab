@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/managed-by: argocd
     app.kubernetes.io/name: homeassistant
     app.kubernetes.io/part-of: homeassistant
-    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/version: "1.0.1"
 spec:
   replicas: 1
   selector:
@@ -23,24 +23,53 @@ spec:
         app.kubernetes.io/managed-by: argocd
         app.kubernetes.io/name: homeassistant
         app.kubernetes.io/part-of: homeassistant
-        app.kubernetes.io/version: "1.0.0"
+        app.kubernetes.io/version: "1.0.1"
     spec:
       containers:
       - name: homeassistant
         image: ghcr.io/home-assistant/home-assistant:2025.5.3@sha256:8a99004ff832dbd535e6ac4d141042bc31141ff6a86b4d5bb288b3680fbceac1
+        imagePullPolicy: IfNotPresent
+        envFrom:
+        - configMapRef:
+            name: homeassistant-cm-environment
         ports:
-        - containerPort: 8123
+        - name: http
+          containerPort: 8123
           protocol: TCP
+        livenessProbe:
+          tcpSocket:
+            port: 8123
+          initialDelaySeconds: 0
+          failureThreshold: 3
+          timeoutSeconds: 1
+          periodSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: 8123
+          initialDelaySeconds: 0
+          failureThreshold: 3
+          timeoutSeconds: 1
+          periodSeconds: 10
+        startupProbe:
+          tcpSocket:
+            port: 8123
+          initialDelaySeconds: 0
+          failureThreshold: 30
+          timeoutSeconds: 1
+          periodSeconds: 5
         volumeMounts:
-        - mountPath: /config/
+        - mountPath: /config
           name: config
-        - mountPath: /etc/localtime/
-          name: time
+        - mountPath: /config/configuration.yaml
+          name: configuration-file
+          subPath: configuration.yaml
+      restartPolicy: Always
       volumes:
       - name: config
         persistentVolumeClaim:
           claimName: homeassistant-pvc-config
-      - name: time
-        persistentVolumeClaim:
-          claimName: homeassistant-pvc-time
-          readOnly: true
+      - name: configuration-file
+        configMap:
+          name: homeassistant-cm-config
+          items:
+          - key: configuration.yaml

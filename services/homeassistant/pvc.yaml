@@ -9,25 +9,7 @@ metadata:
     app.kubernetes.io/managed-by: argocd
     app.kubernetes.io/name: homeassistant
     app.kubernetes.io/part-of: homeassistant
-    app.kubernetes.io/version: "1.0.0"
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 10Gi
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: homeassistant-pvc-time
-  namespace: homeassistant
-  labels:
-    app.kubernetes.io/instance: homeassistant
-    app.kubernetes.io/managed-by: argocd
-    app.kubernetes.io/name: homeassistant
-    app.kubernetes.io/part-of: homeassistant
-    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/version: "1.0.1"
 spec:
   accessModes:
   - ReadWriteOnce
