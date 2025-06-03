@@ -1,0 +1,22 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: homeassistant
+  namespace: homeassistant
+  labels:
+    app.kubernetes.io/instance: homeassistant
+    app.kubernetes.io/managed-by: argocd
+    app.kubernetes.io/name: homeassistant
+    app.kubernetes.io/part-of: homeassistant
+    app.kubernetes.io/version: "1.0.0"
+spec:
+  type: ClusterIP
+  ports:
+  - name: homeassistant
+    port: 8123
+    targetPort: 8123
+    protocol: TCP
+  selector:
+    app.kubernetes.io/instance: homeassistant
+    app.kubernetes.io/name: homeassistant
