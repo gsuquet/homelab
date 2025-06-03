@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/managed-by: argocd
     app.kubernetes.io/name: homeassistant
     app.kubernetes.io/part-of: homeassistant
-    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/version: "1.0.1"
 spec:
   type: ClusterIP
   ports:
