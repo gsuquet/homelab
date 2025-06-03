@@ -1,0 +1,28 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: homeassistant
+
+labels:
+  - pairs:
+      app.kubernetes.io/instance: zigbee2mqtt
+      app.kubernetes.io/name: zigbee2mqtt
+    includeSelectors: true
+  - pairs:
+      app.kubernetes.io/instance: zigbee2mqtt
+      app.kubernetes.io/managed-by: argocd
+      app.kubernetes.io/name: zigbee2mqtt
+      app.kubernetes.io/part-of: zigbee2mqtt
+      app.kubernetes.io/version: "1.0.0"
+    includeTemplates: true
+
+resources:
+  - resources/deployment.yaml
+  - resources/pvc.yaml
+  - resources/sealed-secret.yaml
+  - resources/service.yaml
+
+configMapGenerator:
+  - name: zigbee2mqtt-cm-environment
+    files:
+      - environment.env=configs/environment.env
