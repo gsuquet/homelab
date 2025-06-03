@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: cloudflare
+  labels:
+    app: cloudflared
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cloudflared
+  template:
+    metadata:
+      labels:
+        app: cloudflared
+        app.kubernetes.io/managed-by: argocd
+        app.kubernetes.io/name: cloudflared
+        app.kubernetes.io/part-of: cloudflare
+        app.kubernetes.io/version: "2025.5.0"
+    spec:
+      containers:
+      - name: cloudflared
+        image: cloudflare/cloudflared:2025.5.0@sha256:f9d5c5b94cd7337c0c939a6dbf5537db34030828c243fca6b589fd85ab25d43b
+        args:
+        - tunnel
+        - --no-autoupdate
+        - run
+        - --token
+        - $(TOKEN)
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "10m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        env:
+        - name: TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: cloudflared-credentials
+              key: TOKEN
+        livenessProbe:
+          httpGet:
+            path: /ready
+            port: 2000
+          failureThreshold: 1
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 65532
