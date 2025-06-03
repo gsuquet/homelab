@@ -44,6 +44,7 @@ spec:
         - mountPath: /config/configuration.yaml
           name: configuration-file
           subPath: configuration.yaml
+      hostNetwork: true
       restartPolicy: Always
       volumes:
       - name: config

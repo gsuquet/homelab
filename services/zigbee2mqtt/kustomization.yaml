@@ -1,0 +1,32 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: homeassistant
+
+labels:
+  - pairs:
+      app.kubernetes.io/instance: zigbee2mqtt
+      app.kubernetes.io/name: zigbee2mqtt
+    includeSelectors: true
+  - pairs:
+      app.kubernetes.io/instance: zigbee2mqtt
+      app.kubernetes.io/managed-by: argocd
+      app.kubernetes.io/name: zigbee2mqtt
+      app.kubernetes.io/part-of: zigbee2mqtt
+      app.kubernetes.io/version: "1.0.0"
+    includeTemplates: true
+
+resources:
+  - resources/deployment.yaml
+  - resources/pvc.yaml
+  - resources/sealed-secret.yaml
+  - resources/service.yaml
+
+configMapGenerator:
+  - name: zigbee2mqtt-cm-environment
+    literals:
+      - TZ=Europe/Paris
+      - ZIGBEE2MQTT_CONFIG_ADVANCED_CHANNEL=15
+      - ZIGBEE2MQTT_CONFIG_FRONTEND_ENABLED=true
+      - ZIGBEE2MQTT_CONFIG_MQTT_SERVER=mqtt://mosquitto.homeassistant.svc.cluster.local:8883
+      - ZIGBEE2MQTT_CONFIG_MQTT_USER=zigbee2mqtt
