@@ -2,22 +2,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cloudflared
-  namespace: cloudflare
-  labels:
-    app: cloudflared
 spec:
   replicas: 1
-  selector:
-    matchLabels:
-      app: cloudflared
   template:
-    metadata:
-      labels:
-        app: cloudflared
-        app.kubernetes.io/managed-by: argocd
-        app.kubernetes.io/name: cloudflared
-        app.kubernetes.io/part-of: cloudflare
-        app.kubernetes.io/version: "2025.5.0"
     spec:
       containers:
       - name: cloudflared
