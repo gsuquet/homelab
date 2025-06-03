@@ -1,0 +1,21 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mosquitto-cm
+  namespace: homeassistant
+  labels:
+    app.kubernetes.io/instance: mosquitto
+    app.kubernetes.io/managed-by: argocd
+    app.kubernetes.io/name: mosquitto
+    app.kubernetes.io/part-of: homeassistant
+    app.kubernetes.io/version: "1.0.0"
+data:
+  mosquitto.conf: |
+    allow_anonymous false
+    listener 8883
+    log_dest stdout
+    password_file /mosquitto/passwords/passwords.txt
+    persistence true
+    persistence_location /mosquitto/data/
+    protocol mqtt
