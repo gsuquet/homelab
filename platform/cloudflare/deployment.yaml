@@ -41,13 +41,6 @@ spec:
             secretKeyRef:
               name: cloudflared-credentials
               key: TOKEN
-        livenessProbe:
-          httpGet:
-            path: /ready
-            port: 2000
-          failureThreshold: 1
-          initialDelaySeconds: 10
-          periodSeconds: 10
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
