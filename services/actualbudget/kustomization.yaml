@@ -1,0 +1,18 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: actualbudget
+
+labels:
+  - pairs:
+      app.kubernetes.io/instance: actualbudget
+      app.kubernetes.io/name: actualbudget
+    includeSelectors: true
+  - pairs:
+      app.kubernetes.io/instance: actualbudget
+      app.kubernetes.io/managed-by: argocd
+      app.kubernetes.io/name: actualbudget
+      app.kubernetes.io/part-of: actualbudget
+      app.kubernetes.io/version: "1.0.0"
+    includeTemplates: true
