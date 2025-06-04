@@ -1,0 +1,25 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: actualbudget
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+      - name: actualbudget
+        image: ghcr.io/actualbudget/actual:25.6.0-alpine@sha256:014f4ef0cb529b331c498a686b22b4cbeb19730748e5a85eee30659f6a2495cf
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 5006
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /data
+          name: data
+      restartPolicy: Always
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: actualbudget-pvc-data
