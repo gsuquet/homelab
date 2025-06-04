@@ -13,7 +13,7 @@ labels:
       app.kubernetes.io/managed-by: argocd
       app.kubernetes.io/name: zigbee2mqtt
       app.kubernetes.io/part-of: zigbee2mqtt
-      app.kubernetes.io/version: "1.0.0"
+      app.kubernetes.io/version: "1.0.1"
     includeTemplates: true
 
 resources:
@@ -27,6 +27,14 @@ configMapGenerator:
     literals:
       - TZ=Europe/Paris
       - ZIGBEE2MQTT_CONFIG_ADVANCED_CHANNEL=15
+      - ZIGBEE2MQTT_CONFIG_ADVANCED_TRANSMIT_POWER=20
       - ZIGBEE2MQTT_CONFIG_FRONTEND_ENABLED=true
+      - ZIGBEE2MQTT_CONFIG_FRONTEND_URL=http://zigbee2mqtt.homeassistant.svc.cluster.local:8080
+      - ZIGBEE2MQTT_CONFIG_HOMEASSISTANT_ENABLED=true
+      - ZIGBEE2MQTT_CONFIG_HOMEASSISTANT_DISCOVERY_TOPIC=homeassistant
+      - ZIGBEE2MQTT_CONFIG_HOMEASSISTANT_STATUS_TOPIC=homeassistant/status
       - ZIGBEE2MQTT_CONFIG_MQTT_SERVER=mqtt://mosquitto.homeassistant.svc.cluster.local:8883
       - ZIGBEE2MQTT_CONFIG_MQTT_USER=zigbee2mqtt
+      - ZIGBEE2MQTT_CONFIG_SERIAL_ADAPTER=ember
+      - ZIGBEE2MQTT_CONFIG_SERIAL_BAUDRATE=115200
+      - ZIGBEE2MQTT_CONFIG_SERIAL_PORT=tcp://192.168.1.28:6638
