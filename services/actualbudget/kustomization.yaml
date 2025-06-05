@@ -14,7 +14,7 @@ labels:
       app.kubernetes.io/managed-by: argocd
       app.kubernetes.io/name: actualbudget
       app.kubernetes.io/part-of: actualbudget
-      app.kubernetes.io/version: "1.0.0"
+      app.kubernetes.io/version: "25.6.1"
     includeTemplates: true
 
 resources:
