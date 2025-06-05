@@ -9,7 +9,7 @@ spec:
     spec:
       containers:
       - name: actualbudget
-        image: ghcr.io/actualbudget/actual:25.6.0-alpine@sha256:014f4ef0cb529b331c498a686b22b4cbeb19730748e5a85eee30659f6a2495cf
+        image: ghcr.io/actualbudget/actual:25.6.1-alpine@sha256:2c16d9e3a3651aaee102e6f4357d959e08ccee911afabc1b9c1d16a6eb9a854f
         imagePullPolicy: IfNotPresent
         ports:
         - name: http
