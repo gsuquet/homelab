@@ -1,3 +1,4 @@
+---
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
@@ -7,18 +8,18 @@ spec:
   description: Platform level infrastructure and tools
 
   sourceRepos:
-  - https://bitnami-labs.github.io/sealed-secrets
-  - https://charts.bitnami.com/bitnami
-  - https://github.com/gsuquet/homelab.git
+    - https://bitnami-labs.github.io/sealed-secrets
+    - https://charts.bitnami.com/bitnami
+    - https://github.com/gsuquet/homelab.git
 
   destinations:
-  - namespace: '*'
-    server: https://kubernetes.default.svc
+    - namespace: '*'
+      server: https://kubernetes.default.svc
 
   clusterResourceWhitelist:
-  - group: '*'
-    kind: '*'
+    - group: '*'
+      kind: '*'
 
   namespaceResourceWhitelist:
-  - group: '*'
-    kind: '*'
+    - group: '*'
+      kind: '*'

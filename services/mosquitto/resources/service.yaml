@@ -6,7 +6,7 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - name: mqtt
-    port: 8883
-    targetPort: 8883
-    protocol: TCP
+    - name: mqtt
+      port: 8883
+      targetPort: 8883
+      protocol: TCP

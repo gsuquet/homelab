@@ -8,21 +8,21 @@ spec:
   template:
     spec:
       containers:
-      - name: zigbee2mqtt
-        image: koenkk/zigbee2mqtt:2.4.0@sha256:dd7479e5416c4b95725333d0a69ff504bcbda9a7a3431e5d5dd1e27c16465cdd
-        ports:
-        - name: http
-          containerPort: 8080
-          protocol: TCP
-        envFrom:
-        - configMapRef:
-            name: zigbee2mqtt-cm-environment
-        - secretRef:
-            name: zigbee2mqtt-secrets
-        volumeMounts:
-        - mountPath: /app/data/
-          name: data
+        - name: zigbee2mqtt
+          image: koenkk/zigbee2mqtt:2.4.0@sha256:dd7479e5416c4b95725333d0a69ff504bcbda9a7a3431e5d5dd1e27c16465cdd
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: zigbee2mqtt-cm-environment
+            - secretRef:
+                name: zigbee2mqtt-secrets
+          volumeMounts:
+            - mountPath: /app/data/
+              name: data
       volumes:
-      - name: data
-        persistentVolumeClaim:
-          claimName: zigbee2mqtt-data
+        - name: data
+          persistentVolumeClaim:
+            claimName: zigbee2mqtt-data

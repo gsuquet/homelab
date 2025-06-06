@@ -6,7 +6,7 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - name: actualbudget
-    port: 5006
-    targetPort: 5006
-    protocol: TCP
+    - name: actualbudget
+      port: 5006
+      targetPort: 5006
+      protocol: TCP

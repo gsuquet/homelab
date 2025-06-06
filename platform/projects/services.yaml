@@ -1,3 +1,4 @@
+---
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
@@ -7,15 +8,15 @@ spec:
   description: End user applications
 
   sourceRepos:
-  - 'https://github.com/gsuquet/*'
+    - 'https://github.com/gsuquet/*'
 
   destinations:
-  - namespace: '!kube-system'
-    server: '*'
-  - namespace: '*'
-    server: https://kubernetes.default.svc
+    - namespace: '!kube-system'
+      server: '*'
+    - namespace: '*'
+      server: https://kubernetes.default.svc
 
   # Namespace resource whitelist - resources that can be deployed in the allowed namespaces
   namespaceResourceWhitelist:
-  - group: '*'
-    kind: '*'
+    - group: '*'
+      kind: '*'
