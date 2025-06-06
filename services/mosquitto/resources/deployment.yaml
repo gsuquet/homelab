@@ -8,27 +8,27 @@ spec:
   template:
     spec:
       containers:
-      - name: mosquitto
-        image: eclipse-mosquitto:2.0.21@sha256:94f5a3d7deafa59fa3440d227ddad558f59d293c612138de841eec61bfa4d353
-        ports:
-        - containerPort: 8883
-          protocol: TCP
-        - containerPort: 9001
-          protocol: TCP
-        volumeMounts:
-        - mountPath: /mosquitto/config/
-          name: config
-        - mountPath: /mosquitto/data/
-          name: data
-        - mountPath: /mosquitto/passwords/
-          name: passwords
+        - name: mosquitto
+          image: eclipse-mosquitto:2.0.21@sha256:94f5a3d7deafa59fa3440d227ddad558f59d293c612138de841eec61bfa4d353
+          ports:
+            - containerPort: 8883
+              protocol: TCP
+            - containerPort: 9001
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /mosquitto/config/
+              name: config
+            - mountPath: /mosquitto/data/
+              name: data
+            - mountPath: /mosquitto/passwords/
+              name: passwords
       volumes:
-      - name: config
-        configMap:
-          name: mosquitto-cm-config
-      - name: data
-        persistentVolumeClaim:
-          claimName: mosquitto-data
-      - name: passwords
-        configMap:
-          name: mosquitto-cm-passwords
+        - name: config
+          configMap:
+            name: mosquitto-cm-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: mosquitto-data
+        - name: passwords
+          configMap:
+            name: mosquitto-cm-passwords

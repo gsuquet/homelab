@@ -8,18 +8,18 @@ spec:
   template:
     spec:
       containers:
-      - name: actualbudget
-        image: ghcr.io/actualbudget/actual:25.6.1-alpine@sha256:2c16d9e3a3651aaee102e6f4357d959e08ccee911afabc1b9c1d16a6eb9a854f
-        imagePullPolicy: IfNotPresent
-        ports:
-        - name: http
-          containerPort: 5006
-          protocol: TCP
-        volumeMounts:
-        - mountPath: /data
-          name: data
+        - name: actualbudget
+          image: ghcr.io/actualbudget/actual:25.6.1-alpine@sha256:2c16d9e3a3651aaee102e6f4357d959e08ccee911afabc1b9c1d16a6eb9a854f
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 5006
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /data
+              name: data
       restartPolicy: Always
       volumes:
-      - name: data
-        persistentVolumeClaim:
-          claimName: actualbudget-pvc-data
+        - name: data
+          persistentVolumeClaim:
+            claimName: actualbudget-pvc-data
