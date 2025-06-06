@@ -12,7 +12,10 @@ spec:
           image: ghcr.io/home-assistant/home-assistant:2025.5.3@sha256:8a99004ff832dbd535e6ac4d141042bc31141ff6a86b4d5bb288b3680fbceac1
           imagePullPolicy: IfNotPresent
           securityContext:
-            privileged: true
+            capabilities:
+              add:
+                - NET_ADMIN
+                - SYS_ADMIN
           envFrom:
             - configMapRef:
                 name: homeassistant-cm-environment
