@@ -7,11 +7,11 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  project: services
+  project: platform
   source:
     repoURL: https://github.com/gsuquet/homelab.git
     targetRevision: main
-    path: services/homepage
+    path: platform/homepage
   destination:
     server: https://kubernetes.default.svc
     namespace: homepage
