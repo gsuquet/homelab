@@ -15,7 +15,9 @@ spec:
             capabilities:
               add:
                 - NET_ADMIN
+                - NET_RAW
                 - SYS_ADMIN
+            privileged: true
           envFrom:
             - configMapRef:
                 name: homeassistant-cm-environment
@@ -56,7 +58,7 @@ spec:
               name: bluetooth-lib
             - mountPath: /run/dbus
               name: dbus
-      hostNetwork: false
+      hostNetwork: true
       restartPolicy: Always
       volumes:
         - name: config
