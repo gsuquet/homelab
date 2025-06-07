@@ -58,7 +58,7 @@ spec:
               name: bluetooth-lib
             - mountPath: /run/dbus
               name: dbus
-      hostNetwork: true
+      hostNetwork: false
       restartPolicy: Always
       volumes:
         - name: config
