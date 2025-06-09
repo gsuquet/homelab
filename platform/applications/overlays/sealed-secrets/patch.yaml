@@ -3,9 +3,6 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: sealed-secrets
-  namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
 spec:
   project: platform
   source:
@@ -17,9 +14,3 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: sealed-secrets
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - CreateNamespace=true

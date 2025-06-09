@@ -1,0 +1,11 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mosquitto
+spec:
+  project: services
+  source:
+    path: services/mosquitto
+  destination:
+    namespace: homeassistant

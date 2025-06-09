@@ -1,0 +1,11 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: projects
+spec:
+  project: platform
+  source:
+    path: platform/projects
+  destination:
+    namespace: argocd
