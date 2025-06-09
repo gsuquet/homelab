@@ -5,9 +5,14 @@ kind: Kustomization
 resources:
   - ../../base
 
-namePrefix: ""
-
 patches:
   - path: patch.yaml
     target:
       kind: Application
+  - target:
+      kind: Application
+      name: application-name
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: homepage
