@@ -1,0 +1,11 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: zigbee2mqtt
+spec:
+  project: services
+  source:
+    path: services/zigbee2mqtt
+  destination:
+    namespace: homeassistant

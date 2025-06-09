@@ -2,19 +2,19 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: actualbudget
+  name: application-name # Will be replaced by kustomization
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  project: services
+  project: project-name # Will be replaced by kustomization
   source:
     repoURL: https://github.com/gsuquet/homelab.git
     targetRevision: main
-    path: services/actualbudget
+    path: path/to/application # Will be replaced by kustomization
   destination:
     server: https://kubernetes.default.svc
-    namespace: actualbudget
+    namespace: application-namespace # Will be replaced by kustomization
   syncPolicy:
     automated:
       prune: true
