@@ -1,0 +1,11 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: netalertx
+spec:
+  project: services
+  source:
+    path: services/netalertx
+  destination:
+    namespace: netalertx

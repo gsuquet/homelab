@@ -1,0 +1,55 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: netalertx
+spec:
+  replicas: 1
+  template:
+    spec:
+      hostNetwork: true
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: netalertx
+          image: ghcr.io/jokob-sk/netalertx:25.6.7@sha256:116b14b952801a467a81941e599895907e748e90145160ebb50d408c371f11d2
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: netalertx-cm-environment
+          securityContext:
+            runAsNonRoot: false  # NetAlertX may need root for network scanning
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              add:
+                - NET_ADMIN  # Required for ARP scanning
+                - NET_RAW    # Required for network scanning tools
+          ports:
+            - containerPort: 20211
+              hostPort: 20211
+              name: web
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+            - name: db
+              mountPath: /app/db
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 20211
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 20211
+            initialDelaySeconds: 30
+            periodSeconds: 10
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: netalertx-pvc-config
+        - name: db
+          persistentVolumeClaim:
+            claimName: netalertx-pvc-db
