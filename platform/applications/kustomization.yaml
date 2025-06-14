@@ -8,6 +8,7 @@ resources:
   - overlays/homepage
   - overlays/cloudflared
   - overlays/mosquitto
+  - overlays/netalertx
   - overlays/projects
   - overlays/sealed-secrets
   - overlays/zigbee2mqtt
