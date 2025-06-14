@@ -9,7 +9,7 @@ spec:
     spec:
       hostNetwork: true
       securityContext:
-        fsGroup: 1000
+        fsGroup: 0  # Using root group to prevent s6-overlay issues
       containers:
         - name: netalertx
           image: ghcr.io/jokob-sk/netalertx:25.6.7@sha256:116b14b952801a467a81941e599895907e748e90145160ebb50d408c371f11d2
@@ -19,7 +19,7 @@ spec:
                 name: netalertx-cm-environment
           securityContext:
             runAsNonRoot: false  # NetAlertX may need root for network scanning
-            runAsUser: 1000
+            runAsUser: 0         # Using root to allow s6-overlay to initialize
             allowPrivilegeEscalation: false
             capabilities:
               add:
