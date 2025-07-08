@@ -14,7 +14,7 @@ labels:
       app.kubernetes.io/managed-by: argocd
       app.kubernetes.io/name: homeassistant
       app.kubernetes.io/part-of: homeassistant
-      app.kubernetes.io/version: "2025.6.0"
+      app.kubernetes.io/version: "2025.7.1"
     includeTemplates: true
 
 resources:
