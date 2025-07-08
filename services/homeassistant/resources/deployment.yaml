@@ -9,7 +9,7 @@ spec:
     spec:
       containers:
         - name: homeassistant
-          image: ghcr.io/home-assistant/home-assistant:2025.6.0@sha256:d619229bc164e4d138463178c550f33d325f0529184f8264962b463a2ebbbc1a
+          image: ghcr.io/home-assistant/home-assistant:2025.7.1@sha256:9fe757fa8ceb305a28b72be0e70faf669677c20f217bba51c3a1ef0d2ad5341c
           imagePullPolicy: IfNotPresent
           envFrom:
             - configMapRef:
