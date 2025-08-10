@@ -13,7 +13,7 @@ labels:
       app.kubernetes.io/managed-by: argocd
       app.kubernetes.io/name: mosquitto
       app.kubernetes.io/part-of: mosquitto
-      app.kubernetes.io/version: "1.1.0"
+      app.kubernetes.io/version: "2.0.22"
     includeTemplates: true
 
 resources:
