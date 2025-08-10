@@ -9,7 +9,7 @@ spec:
     spec:
       containers:
         - name: cloudflared
-          image: cloudflare/cloudflared:2025.7.0@sha256:26c5e82254907a239d25d35905cf427d0adbc1d18e4c5885b1da2ebabbec3ddd
+          image: cloudflare/cloudflared:2025.8.0@sha256:eb5c9324efe3b8e8a48612423dd912f76fa93cf138923e7eda5d1a9805057757
           args:
             - tunnel
             - --no-autoupdate
