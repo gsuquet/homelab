@@ -5,4 +5,4 @@ ANSIBLE_CREATOR_VERSION = "25.3.1" # renovate: datasource=pypi depName=ansible-c
 [tools]
 node = "24.2.0"
 pre-commit = "4.2.0"
-python = "3.12.10"
+python = "3.13.7"
