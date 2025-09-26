@@ -13,7 +13,7 @@ labels:
       app.kubernetes.io/managed-by: argocd
       app.kubernetes.io/name: zigbee2mqtt
       app.kubernetes.io/part-of: zigbee2mqtt
-      app.kubernetes.io/version: "2.6.0" # renovate: datasource=docker depName=ghcr.io/koenkk/zigbee2mqtt
+      app.kubernetes.io/version: "2.6.1" # renovate: datasource=docker depName=ghcr.io/koenkk/zigbee2mqtt
     includeTemplates: true
 
 resources:
