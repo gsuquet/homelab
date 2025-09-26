@@ -7,16 +7,14 @@
   "customManagers": [
     {
       "customType": "regex",
-      "datasourceTemplate": "docker",
       "managerFilePatterns": [
         "**/deployment.yaml",
         "**/kustomization.yaml"
       ],
       "matchStrings": [
-        "app.kubernetes.io/version: \"(?<currentValue>.*?)\" # renovate: datasource=docker depName=(?<depName>.*?)$",
-        "image: (?<depName>[a-zA-Z0-9./:@\\-]+):(?<currentValue>[a-zA-Z0-9._\\-]+)"
-      ],
-      "versioningTemplate": "docker"
+        ".*version:\\s*['\"]?(?<currentValue>[^'\"\\s]+)['\"]?\\s*#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)",
+        "image:\\s*(?<depName>[a-zA-Z0-9./-]+):(?<currentValue>[a-zA-Z0-9._\\-]+)(?:@sha256:(?<digest>[a-fA-F0-9]{64}))?"
+      ]
     }
   ],
   "extends": [
@@ -29,16 +27,51 @@
     ":gitSignOff"
   ],
   "forkProcessing": "enabled",
+  "kubernetes": {
+    "managerFilePatterns": [
+      "/platform/**/*.yaml",
+      "/services/**/*.yaml"
+    ]
+  },
   "labels": [
     "renovate"
   ],
   "packageRules": [
+    {
+      "dependencyDashboardApproval": true,
+      "description": "Require approval for all major version updates",
+      "matchUpdateTypes": [
+        "major"
+      ]
+    },
+    {
+      "automerge": true,
+      "description": "Prefix all markdown files updates with 'docs'",
+      "matchFileNames": [
+        "**/*.md"
+      ],
+      "semanticCommitScope": null,
+      "semanticCommitType": "docs"
+    },
+    {
+      "description": "Pin Docker images with their SHA256 digest",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchManagers": [
+        "dockerfile",
+        "docker-compose"
+      ],
+      "pinDigests": true
+    },
     {
       "automerge": true,
       "description": "Automatically update dev tools",
       "extends": [
         ":semanticCommitScope(tools)"
       ],
+      "groupName": "dev tools",
+      "groupSlug": "dev-tools",
       "ignoreTests": true,
       "matchFileNames": [
         "**/mise/config.toml",
