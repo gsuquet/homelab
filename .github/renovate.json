@@ -54,17 +54,6 @@
       "semanticCommitType": "docs"
     },
     {
-      "description": "Pin Docker images with their SHA256 digest",
-      "matchDatasources": [
-        "docker"
-      ],
-      "matchManagers": [
-        "dockerfile",
-        "docker-compose"
-      ],
-      "pinDigests": true
-    },
-    {
       "automerge": true,
       "description": "Automatically update dev tools",
       "extends": [
