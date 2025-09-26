@@ -1,6 +1,49 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "automerge": false,
+  "automergeType": "pr",
+  "branchPrefix": "renovate/",
+  "configMigration": true,
+  "customManagers": [
+    {
+      "customType": "regex",
+      "datasourceTemplate": "docker",
+      "managerFilePatterns": [
+        "**/deployment.yaml",
+        "**/kustomization.yaml"
+      ],
+      "matchStrings": [
+        "app.kubernetes.io/version: \"(?<currentValue>.*?)\" # renovate: datasource=docker depName=(?<depName>.*?)$",
+        "image: (?<depName>[a-zA-Z0-9./:@\\-]+):(?<currentValue>[a-zA-Z0-9._\\-]+)"
+      ],
+      "versioningTemplate": "docker"
+    }
+  ],
   "extends": [
-    "github>gsuquet/renovate-config:renovate-default-github"
+    "config:best-practices",
+    ":maintainLockFilesWeekly",
+    ":rebaseStalePrs",
+    ":semanticCommits",
+    ":semanticCommitScope(deps)",
+    ":disableRateLimiting",
+    ":gitSignOff"
+  ],
+  "forkProcessing": "enabled",
+  "labels": [
+    "renovate"
+  ],
+  "packageRules": [
+    {
+      "automerge": true,
+      "description": "Automatically update dev tools",
+      "extends": [
+        ":semanticCommitScope(tools)"
+      ],
+      "ignoreTests": true,
+      "matchFileNames": [
+        "**/mise/config.toml",
+        ".pre-commit-config.yaml"
+      ]
+    }
   ]
 }
