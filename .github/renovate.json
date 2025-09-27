@@ -8,6 +8,7 @@
   "customManagers": [
     {
       "customType": "regex",
+      "datasourceTemplate": "docker",
       "managerFilePatterns": [
         "**/deployment.yaml",
         "**/kustomization.yaml"
