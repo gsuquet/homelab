@@ -14,7 +14,7 @@
       ],
       "matchStrings": [
         ".*version:\\s*['\"]?(?<currentValue>[^'\"\\s]+)['\"]?\\s*#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)",
-        "\\s*image:\\s*\"?(?<depName>\\S*):(?<currentValue>.+?)\"? # renovate: datasource=(?<datasource>.+?)(?: (?:packageName|lookupName)=(?<packageName>.+?))?(?: versioning=(?<versioning>.+?))?\\s*"
+        "\\s*image:\\s*\"?(?<depName>\\S*):(?<currentValue>.+?)\"?\\s*#\\s*renovate:\\s*datasource=(?<datasource>\\S+)(?: (?:packageName|lookupName)=(?<packageName>.+?))?(?: versioning=(?<versioning>.+?))?\\s*"
       ]
     }
   ],
