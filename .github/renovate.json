@@ -3,6 +3,7 @@
   "automerge": false,
   "automergeType": "pr",
   "branchPrefix": "renovate/",
+  "commitBodyTable": true,
   "configMigration": true,
   "customManagers": [
     {
@@ -13,12 +14,16 @@
       ],
       "matchStrings": [
         ".*version:\\s*['\"]?(?<currentValue>[^'\"\\s]+)['\"]?\\s*#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)",
-        "image:\\s*(?<depName>[a-zA-Z0-9./-]+):(?<currentValue>[a-zA-Z0-9._\\-]+)(?:@sha256:(?<digest>[a-fA-F0-9]{64}))?"
+        "\\s*image:\\s*(?<depName>[a-zA-Z0-9./-]+):(?<currentValue>[a-zA-Z0-9._\\-]+)(?:@(?<digest>sha256:[a-fA-F0-9]{64}))?"
       ]
     }
   ],
   "extends": [
     "config:best-practices",
+    "customManagers:githubActionsVersions",
+    "helpers:pinGitHubActionDigestsToSemver",
+    "npm:unpublishSafe",
+    ":enablePreCommit",
     ":maintainLockFilesWeekly",
     ":rebaseStalePrs",
     ":semanticCommits",
@@ -65,6 +70,9 @@
       "matchFileNames": [
         "**/mise/config.toml",
         ".pre-commit-config.yaml"
+      ],
+      "schedule": [
+        "* * * * 5"
       ]
     }
   ]
