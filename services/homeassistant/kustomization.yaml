@@ -14,7 +14,7 @@ labels:
       app.kubernetes.io/managed-by: argocd
       app.kubernetes.io/name: homeassistant
       app.kubernetes.io/part-of: homeassistant
-      app.kubernetes.io/version: "2025.8.0" # renovate: datasource=docker depName=ghcr.io/home-assistant/home-assistant
+      app.kubernetes.io/version: "2025.9.4" # renovate: datasource=docker depName=ghcr.io/home-assistant/home-assistant
     includeTemplates: true
 
 resources:
