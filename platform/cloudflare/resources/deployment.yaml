@@ -9,7 +9,7 @@ spec:
     spec:
       containers:
         - name: cloudflared
-          image: cloudflare/cloudflared:2025.8.0@sha256:eb5c9324efe3b8e8a48612423dd912f76fa93cf138923e7eda5d1a9805057757
+          image: cloudflare/cloudflared:2025.8.0@sha256:eb5c9324efe3b8e8a48612423dd912f76fa93cf138923e7eda5d1a9805057757 # renovate: datasource=docker
           args:
             - tunnel
             - --no-autoupdate

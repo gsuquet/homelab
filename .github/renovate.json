@@ -8,14 +8,13 @@
   "customManagers": [
     {
       "customType": "regex",
-      "datasourceTemplate": "docker",
       "managerFilePatterns": [
         "**/deployment.yaml",
         "**/kustomization.yaml"
       ],
       "matchStrings": [
         ".*version:\\s*['\"]?(?<currentValue>[^'\"\\s]+)['\"]?\\s*#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)",
-        "\\s*image:\\s*(?<depName>[a-zA-Z0-9./-]+):(?<currentValue>[a-zA-Z0-9._\\-]+)(?:@sha256:(?<digest>[a-fA-F0-9]{64}))?"
+        "\\s*image:\\s*\"?(?<depName>\\S*):(?<currentValue>.+?)\"?\\s*#\\s*renovate:\\s*datasource=(?<datasource>\\S+)(?: (?:packageName|lookupName)=(?<packageName>.+?))?(?: versioning=(?<versioning>.+?))?\\s*"
       ]
     }
   ],
