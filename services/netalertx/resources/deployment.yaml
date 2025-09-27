@@ -12,7 +12,7 @@ spec:
         fsGroup: 0  # Using root group to prevent s6-overlay issues
       containers:
         - name: netalertx
-          image: ghcr.io/jokob-sk/netalertx:25.6.7@sha256:116b14b952801a467a81941e599895907e748e90145160ebb50d408c371f11d2
+          image: ghcr.io/jokob-sk/netalertx:25.6.7@sha256:116b14b952801a467a81941e599895907e748e90145160ebb50d408c371f11d2 # renovate: datasource=docker
           imagePullPolicy: IfNotPresent
           envFrom:
             - configMapRef:
