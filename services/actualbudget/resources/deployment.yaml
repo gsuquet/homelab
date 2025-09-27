@@ -9,7 +9,7 @@ spec:
     spec:
       containers:
         - name: actualbudget
-          image: ghcr.io/actualbudget/actual:25.8.0-alpine@sha256:c849e732f9209a4fdb75cfb3003ccf24ea1c02f9a9fe7450233cc32fb2c3c64a
+          image: ghcr.io/actualbudget/actual:25.8.0-alpine@sha256:c849e732f9209a4fdb75cfb3003ccf24ea1c02f9a9fe7450233cc32fb2c3c64a # renovate: datasource=docker
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
