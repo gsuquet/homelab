@@ -23,7 +23,7 @@
     "config:best-practices",
     "customManagers:githubActionsVersions",
     "helpers:pinGitHubActionDigestsToSemver",
-    "npm:unpublishSafe",
+    "security:minimumReleaseAgeNpm",
     ":enablePreCommit",
     ":maintainLockFilesWeekly",
     ":rebaseStalePrs",
