@@ -5,7 +5,6 @@ kind: Kustomization
 resources:
   - overlays/actualbudget
   - overlays/cloudflared
-  - overlays/grafana
   - overlays/homeassistant
   - overlays/homepage
   - overlays/mosquitto
