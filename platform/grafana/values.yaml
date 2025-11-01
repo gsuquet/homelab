@@ -1,0 +1,78 @@
+k8s-monitoring:
+  cluster:
+    name: homelab-k3s
+  destinations:
+    - name: grafana-cloud-logs
+      type: loki
+      url: https://logs-prod-012.grafana.net./loki/api/v1/push
+      auth:
+        type: basic
+        usernameFrom:
+          secretKeyRef:
+            name: grafana-cloud-loki-credentials
+            key: username
+        passwordFrom:
+          secretKeyRef:
+            name: grafana-cloud-loki-credentials
+            key: password
+    - name: grafana-cloud-metrics
+      type: prometheus
+      url: https://prometheus-prod-65-prod-eu-west-2.grafana.net./api/prom/push
+      auth:
+        type: basic
+        usernameFrom:
+          secretKeyRef:
+            name: grafana-cloud-prometheus-credentials
+            key: username
+        passwordFrom:
+          secretKeyRef:
+            name: grafana-cloud-prometheus-credentials
+            key: password
+    - name: grafana-cloud-profiles
+      type: pyroscope
+      url: https://profiles-prod-002.grafana.net.:443
+      auth:
+        type: basic
+        usernameFrom:
+          secretKeyRef:
+            name: grafana-cloud-pyroscope-credentials
+            key: username
+        passwordFrom:
+          secretKeyRef:
+            name: grafana-cloud-pyroscope-credentials
+            key: password
+  clusterMetrics:
+    enabled: true
+    opencost:
+      enabled: true
+      metricsSource: grafana-cloud-metrics
+      opencost:
+        exporter:
+          defaultClusterId: homelab-k3s
+        prometheus:
+          existingSecretName: grafana-cloud-metrics-grafana-k8s-monitoring
+          external:
+            url: https://prometheus-prod-65-prod-eu-west-2.grafana.net./api/prom
+    kepler:
+      enabled: true
+  clusterEvents:
+    enabled: true
+  autoInstrumentation:
+    enabled: true
+  profiling:
+    enabled: true
+  integrations:
+    alloy:
+      instances:
+        - name: alloy
+          labelSelectors:
+            app.kubernetes.io/name:
+              - alloy-metrics
+              - alloy-profiles
+              - alloy-singleton
+  alloy-metrics:
+    enabled: true
+  alloy-profiles:
+    enabled: true
+  alloy-singleton:
+    enabled: true
