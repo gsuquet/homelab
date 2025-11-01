@@ -7,40 +7,46 @@ k8s-monitoring:
       url: https://logs-prod-012.grafana.net./loki/api/v1/push
       auth:
         type: basic
-        usernameFrom:
-          secretKeyRef:
-            name: grafana-cloud-loki-credentials
-            key: username
-        passwordFrom:
-          secretKeyRef:
-            name: grafana-cloud-loki-credentials
-            key: password
+        username:
+          valueFrom:
+            secretKeyRef:
+              name: grafana-cloud-loki-credentials
+              key: username
+        password:
+          valueFrom:
+            secretKeyRef:
+              name: grafana-cloud-loki-credentials
+              key: password
     - name: grafana-cloud-metrics
       type: prometheus
       url: https://prometheus-prod-65-prod-eu-west-2.grafana.net./api/prom/push
       auth:
         type: basic
-        usernameFrom:
-          secretKeyRef:
-            name: grafana-cloud-prometheus-credentials
-            key: username
-        passwordFrom:
-          secretKeyRef:
-            name: grafana-cloud-prometheus-credentials
-            key: password
+        username:
+          valueFrom:
+            secretKeyRef:
+              name: grafana-cloud-prometheus-credentials
+              key: username
+        password:
+          valueFrom:
+            secretKeyRef:
+              name: grafana-cloud-prometheus-credentials
+              key: password
     - name: grafana-cloud-profiles
       type: pyroscope
       url: https://profiles-prod-002.grafana.net.:443
       auth:
         type: basic
-        usernameFrom:
-          secretKeyRef:
-            name: grafana-cloud-pyroscope-credentials
-            key: username
-        passwordFrom:
-          secretKeyRef:
-            name: grafana-cloud-pyroscope-credentials
-            key: password
+        username:
+          valueFrom:
+            secretKeyRef:
+              name: grafana-cloud-pyroscope-credentials
+              key: username
+        password:
+          valueFrom:
+            secretKeyRef:
+              name: grafana-cloud-pyroscope-credentials
+              key: password
   clusterMetrics:
     enabled: true
     opencost:
