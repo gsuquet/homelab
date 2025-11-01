@@ -9,8 +9,8 @@ keywords:
   - monitoring
   - observability
 
-dependencies:
-  - name: k8s-monitoring
-    version: 3.5.6
-    repository: "https://grafana.github.io/helm-charts"
-    alias: k8s-monitoring
+# dependencies:
+#   - name: k8s-monitoring
+#     version: 3.5.6
+#     repository: "https://grafana.github.io/helm-charts"
+#     alias: k8s-monitoring
