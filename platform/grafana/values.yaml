@@ -44,15 +44,7 @@ k8s-monitoring:
   clusterMetrics:
     enabled: true
     opencost:
-      enabled: true
-      metricsSource: grafana-cloud-metrics
-      opencost:
-        exporter:
-          defaultClusterId: homelab-k3s
-        prometheus:
-          existingSecretName: grafana-cloud-metrics-grafana-k8s-monitoring
-          external:
-            url: https://prometheus-prod-65-prod-eu-west-2.grafana.net./api/prom
+      enabled: false
     kepler:
       enabled: true
   clusterEvents:
