@@ -52,11 +52,11 @@ k8s-monitoring:
     opencost:
       enabled: false
     kepler:
-      enabled: true
+      enabled: false
   clusterEvents:
     enabled: true
   autoInstrumentation:
-    enabled: true
+    enabled: false
   profiling:
     enabled: true
   integrations:
