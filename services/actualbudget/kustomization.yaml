@@ -14,7 +14,7 @@ labels:
       app.kubernetes.io/managed-by: argocd
       app.kubernetes.io/name: actualbudget
       app.kubernetes.io/part-of: actualbudget
-      app.kubernetes.io/version: "25.10.0" # renovate: datasource=docker depName=ghcr.io/actualbudget/actual
+      app.kubernetes.io/version: "25.12.0" # renovate: datasource=docker depName=ghcr.io/actualbudget/actual
     includeTemplates: true
 
 resources:
