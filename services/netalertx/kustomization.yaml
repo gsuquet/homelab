@@ -14,7 +14,7 @@ labels:
       app.kubernetes.io/managed-by: argocd
       app.kubernetes.io/name: netalertx
       app.kubernetes.io/part-of: netalertx
-      app.kubernetes.io/version: "25.8.6" # renovate: datasource=docker depName=ghcr.io/jokob-sk/netalertx
+      app.kubernetes.io/version: "25.11.29" # renovate: datasource=docker depName=ghcr.io/jokob-sk/netalertx
     includeTemplates: true
 
 resources:
