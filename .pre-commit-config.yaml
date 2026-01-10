@@ -29,7 +29,6 @@ repos:
     rev: v9.23.0
     hooks:
       - id: commitlint
-        args: ['--config', '.config/commitlint.config.js']
         stages: [commit-msg]
         additional_dependencies: ['@commitlint/config-conventional']
 
@@ -38,18 +37,10 @@ repos:
     hooks:
       - id: typos
 
-  - repo: https://github.com/hadolint/hadolint
-    rev: v2.14.0
-    hooks:
-      - id: hadolint
-        args: ['--config', '.config/.hadolint.yaml']
-
   - repo: https://github.com/adrienverge/yamllint.git
     rev: v1.37.1
     hooks:
       - id: yamllint
-        args:
-          - -c=.config/.yamllint.yaml
 
   - repo: https://github.com/renovatebot/pre-commit-hooks
     rev: 41.173.1

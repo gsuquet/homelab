@@ -68,6 +68,7 @@
       "groupSlug": "dev-tools",
       "ignoreTests": true,
       "matchFileNames": [
+        ".mise/config.toml",
         "**/mise/config.toml",
         ".pre-commit-config.yaml"
       ],
