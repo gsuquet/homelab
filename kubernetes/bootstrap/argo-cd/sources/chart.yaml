@@ -1,0 +1,13 @@
+# ArgoCD Helm Chart Configuration
+
+# Chart source configuration for rendering manifests
+chart: argo-cd
+repo: https://argoproj.github.io/argo-helm
+namespace: argocd
+release: argocd
+
+# Helm values
+values:
+  server:
+    extraArgs:
+      - "--insecure"
