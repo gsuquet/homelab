@@ -33,7 +33,7 @@ repos:
         additional_dependencies: ['@commitlint/config-conventional']
 
   - repo: https://github.com/crate-ci/typos
-    rev: v1.43.2
+    rev: v1.43.4
     hooks:
       - id: typos
 
