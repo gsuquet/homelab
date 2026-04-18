@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: applications
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+    - git:
+        repoURL: https://github.com/gsuquet/homelab.git
+        revision: HEAD
+        directories:
+          - path: kubernetes/applications/*
+  template:
+    metadata:
+      name: "{{.path.basename}}"
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      destination:
+        namespace: "{{.path.basename}}"
+        server: https://kubernetes.default.svc
+      project: applications
+      source:
+        path: "{{.path.path}}"
+        repoURL: https://github.com/gsuquet/homelab.git
+        targetRevision: HEAD
+      syncPolicy:
+        automated:
+          allowEmpty: true
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - ServerSideApply=true
+          - CreateNamespace=true

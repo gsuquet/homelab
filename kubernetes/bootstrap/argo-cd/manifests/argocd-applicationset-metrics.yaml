@@ -1,12 +1,12 @@
-# Source: argo-cd/charts/argo-cd/templates/argocd-applicationset/service.yaml
+# Source: argo-cd/charts/argo-cd/templates/argocd-applicationset/metrics.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: argocd-applicationset-controller
+  name: argocd-applicationset-controller-metrics
   namespace: argocd
   labels:
     helm.sh/chart: argo-cd-9.5.2
-    app.kubernetes.io/name: argocd-applicationset-controller
+    app.kubernetes.io/name: argocd-metrics
     app.kubernetes.io/instance: argo-cd
     app.kubernetes.io/component: applicationset-controller
     app.kubernetes.io/managed-by: Helm
@@ -15,9 +15,10 @@ metadata:
 spec:
   type: ClusterIP  
   ports:
-  - name: http-webhook
-    port: 7000
-    targetPort: webhook
+  - name:  http-metrics
+    protocol: TCP
+    port: 8080
+    targetPort: metrics
   selector:
     app.kubernetes.io/name: argocd-applicationset-controller
     app.kubernetes.io/instance: argo-cd

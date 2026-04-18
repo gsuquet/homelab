@@ -1,0 +1,82 @@
+---
+name: Validate Kubernetes Manifests
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/manifests.yml'
+      - '.mise/tasks/manifests/**'
+      - 'kubernetes/**/sources/**'
+      - 'kubernetes/**/manifests/**'
+      - 'scripts/render-manifests.sh'
+  push:
+    branches:
+      - main
+    paths:
+      - 'kubernetes/**/sources/**'
+      - 'kubernetes/**/manifests/**'
+
+jobs:
+  validate-manifests:
+    name: Validate rendered manifests are up-to-date
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'latest'
+
+      - name: Install yq
+        run: |
+          wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          chmod +x /usr/local/bin/yq
+
+      - name: Render manifests
+        run: bash scripts/render-manifests.sh
+
+      - name: Check for changes
+        id: check
+        run: |
+          if git diff --exit-code kubernetes/**/manifests/; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "✅ All manifests are up to date"
+          else
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "❌ Manifests are out of date"
+            echo "::error::Rendered manifests are not up to date. Please run 'mise run render' and commit the changes."
+          fi
+
+      - name: Show diff if manifests are out of date
+        if: steps.check.outputs.status == 'failed'
+        run: |
+          echo "## Manifest Changes" >> $GITHUB_STEP_SUMMARY
+          echo "The following manifests are out of date:" >> $GITHUB_STEP_SUMMARY
+          echo '```diff' >> $GITHUB_STEP_SUMMARY
+          git diff kubernetes/**/manifests/ >> $GITHUB_STEP_SUMMARY || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          exit 1
+
+      - name: Validate Kubernetes manifests
+        if: steps.check.outputs.status == 'success'
+        run: |
+          # Install kubeconform for manifest validation
+          wget -qO- https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz
+          chmod +x kubeconform
+          sudo mv kubeconform /usr/local/bin/
+
+          # Validate all manifest files
+          echo "Validating Kubernetes manifests..."
+          find kubernetes -type f -path "*/manifests/*.yaml" -print0 | \
+            xargs -0 kubeconform -summary -output json -ignore-missing-schemas
+
+      - name: Success summary
+        if: steps.check.outputs.status == 'success'
+        run: |
+          echo "## ✅ Validation Successful" >> $GITHUB_STEP_SUMMARY
+          echo "All rendered manifests are up to date and valid." >> $GITHUB_STEP_SUMMARY

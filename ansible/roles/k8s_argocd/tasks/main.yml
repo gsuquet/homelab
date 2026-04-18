@@ -1,54 +1,19 @@
 ---
 - name: Set ArgoCD deployment variables
   ansible.builtin.set_fact:
-    argocd_chart_name: argo-cd
-    argocd_chart_repo: https://argoproj.github.io/argo-helm
     argocd_namespace: argocd
-    argocd_release_name: argocd
-    helm_script_url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+    argocd_server_deployment: argocd-server
     kubeconfig_path: /etc/rancher/k3s/k3s.yaml
-    temp_manifest_path: /tmp/root-app.yaml
+    manifests_path: "{{ playbook_dir }}/../../kubernetes/bootstrap/argo-cd/manifests"
+    bootstrap_app: "{{ playbook_dir }}/../../kubernetes/bootstrap/argo-cd/bootstrap-application.yaml"
 
-- name: Check if Helm is already installed
-  ansible.builtin.shell: command -v helm && helm version
-  register: helm_check
-  ignore_errors: true
+- name: Check if ArgoCD is already installed
+  ansible.builtin.shell: >
+    kubectl get deployment {{ argocd_server_deployment }} -n {{ argocd_namespace }}
+    --kubeconfig {{ kubeconfig_path }} 2>&1
+  register: argocd_status
   changed_when: false
-  check_mode: false
-
-- name: Install Helm if not present
-  when: helm_check is failed
-  block:
-    - name: Download Helm installation script
-      ansible.builtin.get_url:
-        url: "{{ helm_script_url }}"
-        dest: /tmp/get_helm.sh
-        mode: '0755'
-        force: true
-
-    - name: Install Helm
-      ansible.builtin.shell: /tmp/get_helm.sh
-      register: helm_installation
-      changed_when: helm_installation.rc == 0
-
-    - name: Clean up Helm installation script
-      ansible.builtin.file:
-        path: /tmp/get_helm.sh
-        state: absent
-
-- name: Update Helm repositories
-  ansible.builtin.shell: helm repo update
-  changed_when: false
-
-- name: Add stable Helm repository
-  ansible.builtin.shell: helm repo add stable https://charts.helm.sh/stable 2>&1 || true
-  register: helm_repo_add
-  changed_when: '"has been added" in helm_repo_add.stdout'
-
-- name: Add ArgoCD Helm repository
-  ansible.builtin.shell: helm repo add argo {{ argocd_chart_repo }} 2>&1 || true
-  register: argocd_repo_add
-  changed_when: '"has been added" in argocd_repo_add.stdout'
+  failed_when: false
 
 - name: Ensure ArgoCD namespace exists
   ansible.builtin.shell: >
@@ -57,70 +22,49 @@
   register: create_namespace
   changed_when: '"created" in create_namespace.stdout'
 
-- name: Check if ArgoCD is already installed
-  ansible.builtin.shell: >
-    helm status {{ argocd_release_name }} -n {{ argocd_namespace }} --kubeconfig {{ kubeconfig_path }} 2>&1 || true
-  register: argocd_status
-  changed_when: false
+- name: Copy ArgoCD manifests to remote host
+  ansible.builtin.copy:
+    src: "{{ manifests_path }}/"
+    dest: /tmp/argocd-manifests/
+    mode: "0644"
 
-- name: Install ArgoCD using Helm
+- name: Copy ArgoCD bootstrap application to remote host
+  ansible.builtin.copy:
+    src: "{{ bootstrap_app }}"
+    dest: /tmp/argocd-bootstrap.yaml
+    mode: "0644"
+
+- name: Apply ArgoCD rendered manifests
   ansible.builtin.shell: >
-    helm install {{ argocd_release_name }} argo/{{ argocd_chart_name }}
-    --namespace {{ argocd_namespace }}
-    --set server.extraArgs[0]="--insecure"
-    --wait
+    kubectl apply -f /tmp/argocd-manifests
+    --server-side
+    --force-conflicts
     --kubeconfig {{ kubeconfig_path }}
-  register: argocd_install
-  changed_when: argocd_install.rc == 0
-  failed_when:
-    - argocd_install.rc != 0
-    - '"already exists" not in argocd_install.stderr | default("")'
-  when: '"deployed" not in argocd_status.stdout'
+  register: argocd_apply
+  changed_when: '"configured" in argocd_apply.stdout or "created" in argocd_apply.stdout'
 
 - name: Wait for ArgoCD server deployment to be ready
   ansible.builtin.shell: >
-    kubectl get deployment {{ argocd_release_name }}-server -n {{ argocd_namespace }}
-    -o jsonpath='{.status.availableReplicas}'
+    kubectl rollout status deployment/{{ argocd_server_deployment }}
+    -n {{ argocd_namespace }}
     --kubeconfig {{ kubeconfig_path }}
+    --timeout=300s
   register: argocd_ready
-  until: argocd_ready.stdout|int > 0
-  retries: 30
-  delay: 10
   changed_when: false
 
-- name: Create root application manifest
-  ansible.builtin.template:
-    src: root-app.yaml.j2
-    dest: "{{ temp_manifest_path }}"
-    mode: '0644'
-
-- name: Check if root application already exists
+- name: Apply ArgoCD bootstrap application (app of apps)
+  when: argocd_status.rc != 0
   ansible.builtin.shell: >
-    kubectl get application applications -n {{ argocd_namespace }} --kubeconfig {{ kubeconfig_path }} 2>&1 || true
-  register: app_exists
-  changed_when: false
-
-- name: Apply root application manifest
-  ansible.builtin.shell: >
-    kubectl apply -f {{ temp_manifest_path }} -n {{ argocd_namespace }}
+    kubectl apply -f /tmp/argocd-bootstrap.yaml
+    --server-side
     --kubeconfig {{ kubeconfig_path }}
-  register: apply_manifest
-  changed_when: apply_manifest.rc == 0
-  when: '"not found" in app_exists.stderr | default("") or "applications" not in app_exists.stdout | default("")'
+  register: argocd_bootstrap
+  changed_when: '"configured" in argocd_bootstrap.stdout or "created" in argocd_bootstrap.stdout'
 
-- name: Wait for root application to be processed
-  ansible.builtin.shell: >
-    kubectl get application applications -n {{ argocd_namespace }}
-    -o jsonpath='{.status.sync.status}'
-    --kubeconfig {{ kubeconfig_path }}
-  register: app_status
-  until: app_status.stdout == "Synced" or app_status.stdout == "OutOfSync"
-  retries: 12
-  delay: 5
-  changed_when: false
-  failed_when: app_status.rc != 0
-
-- name: Cleanup temporary application manifests
+- name: Clean up temporary ArgoCD files
   ansible.builtin.file:
-    path: "{{ temp_manifest_path }}"
+    path: "{{ item }}"
     state: absent
+  loop:
+    - /tmp/argocd-manifests
+    - /tmp/argocd-bootstrap.yaml

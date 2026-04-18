@@ -1,29 +1,24 @@
-# Source: argo-cd/charts/argo-cd/templates/argocd-server/service.yaml
+# Source: argo-cd/charts/argo-cd/templates/argocd-application-controller/metrics.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: argocd-server
+  name: argocd-application-controller-metrics
   namespace: argocd
   labels:
     helm.sh/chart: argo-cd-9.5.2
-    app.kubernetes.io/name: argocd-server
+    app.kubernetes.io/name: argocd-metrics
     app.kubernetes.io/instance: argo-cd
-    app.kubernetes.io/component: server
+    app.kubernetes.io/component: application-controller
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: argocd
     app.kubernetes.io/version: "v3.3.7"
 spec:
   type: ClusterIP  
-  sessionAffinity: None
   ports:
-  - name: http
+  - name: http-metrics
     protocol: TCP
-    port: 80
-    targetPort: 8080
-  - name: https
-    protocol: TCP
-    port: 443
-    targetPort: 8080
+    port: 8082
+    targetPort: metrics
   selector:
-    app.kubernetes.io/name: argocd-server
+    app.kubernetes.io/name: argocd-application-controller
     app.kubernetes.io/instance: argo-cd

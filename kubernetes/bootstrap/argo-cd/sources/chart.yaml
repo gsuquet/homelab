@@ -1,13 +1,10 @@
-# ArgoCD Helm Chart Configuration
+apiVersion: v2
+name: argo-cd
+description: Umbrella chart for self-managed Argo CD installation
+type: application
+version: 1.0.0
 
-# Chart source configuration for rendering manifests
-chart: argo-cd
-repo: https://argoproj.github.io/argo-helm
-namespace: argocd
-release: argocd
-
-# Helm values
-values:
-  server:
-    extraArgs:
-      - "--insecure"
+dependencies:
+  - name: argo-cd
+    version: "9.5.2"
+    repository: https://argoproj.github.io/argo-helm

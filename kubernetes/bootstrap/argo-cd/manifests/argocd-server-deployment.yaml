@@ -1,44 +1,48 @@
-# Source: argo-cd/templates/argocd-server/deployment.yaml
+# Source: argo-cd/charts/argo-cd/templates/argocd-server/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: argocd-server
   namespace: argocd
   labels:
-    helm.sh/chart: argo-cd-9.2.4
+    helm.sh/chart: argo-cd-9.5.2
     app.kubernetes.io/name: argocd-server
-    app.kubernetes.io/instance: argocd
+    app.kubernetes.io/instance: argo-cd
     app.kubernetes.io/component: server
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: argocd
-    app.kubernetes.io/version: "v3.2.3"
+    app.kubernetes.io/version: "v3.3.7"
 spec:
   replicas: 1
   revisionHistoryLimit: 3
   selector:
     matchLabels:
       app.kubernetes.io/name: argocd-server
-      app.kubernetes.io/instance: argocd
+      app.kubernetes.io/instance: argo-cd
   template:
     metadata:
       annotations:
-        checksum/cmd-params: e90bbb89b5b5a5de27bf5ef5f0a0b32f8f2b688ce6111b0198aeeb127e77448a
-        checksum/cm: 64de8f40078ec66582854b135528d4195946c52bf3abec399c63c218d765e99c
+        checksum/cmd-params: 1055e78080b17917939212fa33d270c23248a5ec8b05515e1bd509f01c22db8e
+        checksum/cm: 7212ed91eb1dd4cb92d1629572e866548941b90eaf3c0b05c7dbed13b75b6fa3
       labels:
-        helm.sh/chart: argo-cd-9.2.4
+        helm.sh/chart: argo-cd-9.5.2
         app.kubernetes.io/name: argocd-server
-        app.kubernetes.io/instance: argocd
+        app.kubernetes.io/instance: argo-cd
         app.kubernetes.io/component: server
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/part-of: argocd
-        app.kubernetes.io/version: "v3.2.3"
+        app.kubernetes.io/version: "v3.3.7"
     spec:
+      securityContext:
+        fsGroup: 10001
+        runAsGroup: 10001
+        runAsUser: 10001
       terminationGracePeriodSeconds: 30
       serviceAccountName: argocd-server
       automountServiceAccountToken: true
       containers:
       - name: server
-        image: quay.io/argoproj/argocd:v3.2.3
+        image: quay.io/argoproj/argocd:v3.3.7
         imagePullPolicy: IfNotPresent
         args:
         - /usr/local/bin/argocd-server

@@ -47,3 +47,14 @@ repos:
     hooks:
       - id: renovate-config-validator
         args: [--strict]
+
+  - repo: local
+    hooks:
+      - id: render-manifests
+        name: Render and split Kubernetes manifests
+        entry: bash -c 'bash scripts/render-manifests.sh && bash scripts/split-manifests.sh && bash scripts/generate-kustomization.sh && git add kubernetes/**/manifests/'
+        language: system
+        files: 'kubernetes/.*/sources/.*\.yaml$'
+        pass_filenames: false
+        stages: [commit]
+

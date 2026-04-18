@@ -1,0 +1,37 @@
+argo-cd:
+  fullnameOverride: "argocd"
+  namespaceOverride: "argocd"
+  global:
+    logging:
+      format: json
+      level: warn
+    revisionHistoryLimit: 3
+    securityContext:
+      runAsUser: 10001
+      runAsGroup: 10001
+      fsGroup: 10001
+  configs:
+    cm:
+      admin.enabled: true
+      exec.enabled: false
+  controller:
+    revisionHistoryLimit: 3
+    metrics:
+      enabled: true
+  dex:
+    enabled: false
+  redis:
+    enabled: true
+  server:
+    extraArgs:
+      - "--insecure"
+    metrics:
+      enabled: true
+  repoServer:
+    metrics:
+      enabled: true
+  applicationSet:
+    metrics:
+      enabled: true
+  notifications:
+    enabled: false
