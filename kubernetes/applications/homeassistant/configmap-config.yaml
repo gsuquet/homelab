@@ -6,7 +6,7 @@ metadata:
     app.kubernetes.io/managed-by: argocd
     app.kubernetes.io/name: homeassistant
     app.kubernetes.io/part-of: homeassistant
-    app.kubernetes.io/version: "2026.2.3" # renovate: datasource=github-tags packageName=home-assistant/core
+    app.kubernetes.io/version: "2026.3.4" # renovate: datasource=github-tags packageName=home-assistant/core
   name: homeassistant-cm-config
   namespace: homeassistant
 data:
