@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: homeassistant
+    app.kubernetes.io/managed-by: argocd
+    app.kubernetes.io/name: homeassistant
+    app.kubernetes.io/part-of: homeassistant
+    app.kubernetes.io/version: "2025.12.0" # renovate: datasource=github-tags packageName=home-assistant/core
+  name: homeassistant
+  namespace: homeassistant
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: homeassistant
+      app.kubernetes.io/name: homeassistant
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: homeassistant
+        app.kubernetes.io/managed-by: argocd
+        app.kubernetes.io/name: homeassistant
+        app.kubernetes.io/part-of: homeassistant
+        app.kubernetes.io/version: "2025.12.0" # renovate: datasource=github-tags packageName=home-assistant/core
+    spec:
+      containers:
+        - envFrom:
+            - configMapRef:
+                name: homeassistant-cm-environment
+          image: >-
+            ghcr.io/home-assistant/home-assistant:2025.12.0@sha256:8951fcbb794da8f261e1639c668639bc90f9520b48099b5715f6d5fbfef08a0e
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            tcpSocket:
+              port: 8123
+            timeoutSeconds: 1
+          name: homeassistant
+          ports:
+            - containerPort: 8123
+              name: http
+              protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            tcpSocket:
+              port: 8123
+            timeoutSeconds: 1
+          startupProbe:
+            failureThreshold: 30
+            initialDelaySeconds: 0
+            periodSeconds: 5
+            tcpSocket:
+              port: 8123
+            timeoutSeconds: 1
+          volumeMounts:
+            - mountPath: /config
+              name: config
+            - mountPath: /config/configuration.yaml
+              name: configuration-file
+              subPath: configuration.yaml
+      hostNetwork: false
+      restartPolicy: Always
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: homeassistant-pvc-config
+        - configMap:
+            items:
+              - key: configuration.yaml
+                path: configuration.yaml
+            name: homeassistant-cm-config
+          name: configuration-file

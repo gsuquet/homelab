@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: cloudflared
+    app.kubernetes.io/managed-by: argocd
+    app.kubernetes.io/name: cloudflared
+    app.kubernetes.io/part-of: cloudflare
+    app.kubernetes.io/version: "2025.11.1" # renovate: datasource=github-tags packageName=cloudflare/cloudflared
+  name: cloudflared
+  namespace: cloudflare
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: cloudflared
+      app.kubernetes.io/name: cloudflared
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: cloudflared
+        app.kubernetes.io/managed-by: argocd
+        app.kubernetes.io/name: cloudflared
+        app.kubernetes.io/part-of: cloudflare
+        app.kubernetes.io/version: "2025.11.1" # renovate: datasource=github-tags packageName=cloudflare/cloudflared
+    spec:
+      containers:
+        - args:
+            - tunnel
+            - '--no-autoupdate'
+            - run
+            - '--token'
+            - $(TOKEN)
+          env:
+            - name: TOKEN
+              valueFrom:
+                secretKeyRef:
+                  key: TOKEN
+                  name: cloudflared-credentials
+          image: >-
+            cloudflare/cloudflared:2025.11.1@sha256:89ee50efb1e9cb2ae30281a8a404fed95eb8f02f0a972617526f8c5b417acae2
+          name: cloudflared
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 10m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65532

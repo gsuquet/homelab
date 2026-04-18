@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app.kubernetes.io/instance: homeassistant
+    app.kubernetes.io/managed-by: argocd
+    app.kubernetes.io/name: homeassistant
+    app.kubernetes.io/part-of: homeassistant
+    app.kubernetes.io/version: "2025.12.0" # renovate: datasource=github-tags packageName=home-assistant/core
+  name: homeassistant-pvc-config
+  namespace: homeassistant
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi

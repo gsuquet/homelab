@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: mosquitto
+    app.kubernetes.io/managed-by: argocd
+    app.kubernetes.io/name: mosquitto
+    app.kubernetes.io/part-of: mosquitto
+    app.kubernetes.io/version: "2.0.22" # renovate: datasource=github-tags packageName=eclipse-mosquitto/mosquitto
+  name: mosquitto
+  namespace: homeassistant
+spec:
+  ports:
+    - name: mqtt
+      port: 8883
+      protocol: TCP
+      targetPort: 8883
+  selector:
+    app.kubernetes.io/instance: mosquitto
+    app.kubernetes.io/name: mosquitto
+  type: ClusterIP

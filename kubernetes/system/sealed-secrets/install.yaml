@@ -1,0 +1,41 @@
+---
+# Source: sealed-secrets/templates/service-account.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sealed-secrets
+  namespace: sealed-secrets
+  labels:
+    app.kubernetes.io/name: sealed-secrets
+    helm.sh/chart: sealed-secrets-2.17.3
+    app.kubernetes.io/instance: sealed-secrets
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: 0.30.0
+    app.kubernetes.io/part-of: sealed-secrets
+---
+# Source: sealed-secrets/templates/cluster-role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: secrets-unsealer
+  labels:
+    app.kubernetes.io/name: sealed-secrets
+    helm.sh/chart: sealed-secrets-2.17.3
+    app.kubernetes.io/instance: sealed-secrets
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: 0.30.0
+    app.kubernetes.io/part-of: sealed-secrets
+  annotations:
+rules:
+  - apiGroups:
+      - bitnami.com
+    resources:
+      - sealedsecrets
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - bitnami.com
+    resources:
+... (289 lines truncated)
