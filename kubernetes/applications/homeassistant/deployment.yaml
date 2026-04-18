@@ -6,7 +6,7 @@ metadata:
     app.kubernetes.io/managed-by: argocd
     app.kubernetes.io/name: homeassistant
     app.kubernetes.io/part-of: homeassistant
-    app.kubernetes.io/version: "2026.3.4" # renovate: datasource=github-tags packageName=home-assistant/core
+    app.kubernetes.io/version: "2026.4.3" # renovate: datasource=github-tags packageName=home-assistant/core
   name: homeassistant
   namespace: homeassistant
 spec:
@@ -22,14 +22,14 @@ spec:
         app.kubernetes.io/managed-by: argocd
         app.kubernetes.io/name: homeassistant
         app.kubernetes.io/part-of: homeassistant
-        app.kubernetes.io/version: "2026.3.4" # renovate: datasource=github-tags packageName=home-assistant/core
+        app.kubernetes.io/version: "2026.4.3" # renovate: datasource=github-tags packageName=home-assistant/core
     spec:
       containers:
         - envFrom:
             - configMapRef:
                 name: homeassistant-cm-environment
           image: >-
-            ghcr.io/home-assistant/home-assistant:2026.3.4@sha256:916682086154a7390114a9788782b8efb199852d4f7d47066722c2bc5d1829e6
+            ghcr.io/home-assistant/home-assistant:2026.4.3@sha256:ae0800c81fea16bc1241ce03bddb9c6260566e90f58b09d3e5a629e4f68bdc0b
           imagePullPolicy: IfNotPresent
           livenessProbe:
             failureThreshold: 3
