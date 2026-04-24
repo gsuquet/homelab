@@ -3,7 +3,7 @@ ANSIBLE_VERSION = "11.4.0" # renovate: datasource=pypi depName=ansible
 ANSIBLE_CREATOR_VERSION = "25.3.1" # renovate: datasource=pypi depName=ansible-creator
 
 [tools]
-helm = '4.0.4'
-pre-commit = '4.5.1'
+helm = '4.1.4'
+pre-commit = '4.6.0'
 python = '3.14.4'
-yq = '4.50.1'
+yq = '4.53.2'
