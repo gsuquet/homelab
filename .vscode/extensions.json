@@ -1,9 +1,18 @@
 {
   "recommendations": [
+    "aquasecurityofficial.trivy-vulnerability-scanner",
+    "eamodio.gitlens",
     "editorconfig.editorconfig",
-    "github.copilot",
-    "github.copilot-chat",
+    "exiasr.hadolint",
+    "davidanson.vscode-markdownlint",
     "github.vscode-github-actions",
-    "redhat.ansible"
+    "github.vscode-pull-request-github",
+    "hashicorp.terraform",
+    "ms-azuretools.vscode-containers",
+    "ms-kubernetes-tools.vscode-kubernetes-tools",
+    "pomdtr.excalidraw-editor",
+    "redhat.ansible",
+    "redhat.vscode-yaml",
+    "tekumara.typos-vscode"
   ]
 }
