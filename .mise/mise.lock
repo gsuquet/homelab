@@ -117,49 +117,49 @@ url = "https://github.com/orhun/git-cliff/releases/download/v2.8.0/git-cliff-2.8
 url_api = "https://api.github.com/repos/orhun/git-cliff/releases/assets/223133798"
 
 [[tools.github-cli]]
-version = "2.96.0"
+version = "2.97.0"
 backend = "aqua:cli/cli"
 
 [tools.github-cli."platforms.linux-arm64"]
-checksum = "sha256:06f86ec7103d41993b76cd78072f43595c34aaa56506d971d9860e67140bf909"
-url = "https://github.com/cli/cli/releases/download/v2.96.0/gh_2.96.0_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/cli/cli/releases/assets/464728549"
+checksum = "sha256:73ea440ecad9c9e284429997ee6f93577bc6f7bc6fba357ef62c53ad8fb641a5"
+url = "https://github.com/cli/cli/releases/download/v2.97.0/gh_2.97.0_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/cli/cli/releases/assets/496108278"
 provenance = "github-attestations"
 
 [tools.github-cli."platforms.linux-arm64-musl"]
-checksum = "sha256:06f86ec7103d41993b76cd78072f43595c34aaa56506d971d9860e67140bf909"
-url = "https://github.com/cli/cli/releases/download/v2.96.0/gh_2.96.0_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/cli/cli/releases/assets/464728549"
+checksum = "sha256:73ea440ecad9c9e284429997ee6f93577bc6f7bc6fba357ef62c53ad8fb641a5"
+url = "https://github.com/cli/cli/releases/download/v2.97.0/gh_2.97.0_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/cli/cli/releases/assets/496108278"
 provenance = "github-attestations"
 
 [tools.github-cli."platforms.linux-x64"]
-checksum = "sha256:83d5c2ccad5498f58bf6368acb1ab32588cf43ab3a4b1c301bf36328b1c8bd60"
-url = "https://github.com/cli/cli/releases/download/v2.96.0/gh_2.96.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/cli/cli/releases/assets/464728543"
+checksum = "sha256:a2c9b8497e1f85b1ad0dfcb78b5a622e098801b8e461e459e88e1ee12f018112"
+url = "https://github.com/cli/cli/releases/download/v2.97.0/gh_2.97.0_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/cli/cli/releases/assets/496108269"
 provenance = "github-attestations"
 
 [tools.github-cli."platforms.linux-x64-musl"]
-checksum = "sha256:83d5c2ccad5498f58bf6368acb1ab32588cf43ab3a4b1c301bf36328b1c8bd60"
-url = "https://github.com/cli/cli/releases/download/v2.96.0/gh_2.96.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/cli/cli/releases/assets/464728543"
+checksum = "sha256:a2c9b8497e1f85b1ad0dfcb78b5a622e098801b8e461e459e88e1ee12f018112"
+url = "https://github.com/cli/cli/releases/download/v2.97.0/gh_2.97.0_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/cli/cli/releases/assets/496108269"
 provenance = "github-attestations"
 
 [tools.github-cli."platforms.macos-arm64"]
-checksum = "sha256:f23a0c37d963aacc3bed703ccbd59b41c5ca22101fab7f00eb2b7cad23aba463"
-url = "https://github.com/cli/cli/releases/download/v2.96.0/gh_2.96.0_macOS_arm64.zip"
-url_api = "https://api.github.com/repos/cli/cli/releases/assets/464728562"
+checksum = "sha256:a58b8fd77b417a38f47a0b54d1370c59b0fcdb324ccc9ca002b0998f7c4c999e"
+url = "https://github.com/cli/cli/releases/download/v2.97.0/gh_2.97.0_macOS_arm64.zip"
+url_api = "https://api.github.com/repos/cli/cli/releases/assets/496108298"
 provenance = "github-attestations"
 
 [tools.github-cli."platforms.macos-x64"]
-checksum = "sha256:4bd449df9ad639391bc62b8032546f0fe9edcd8526e06682a4f88abd8c5d163c"
-url = "https://github.com/cli/cli/releases/download/v2.96.0/gh_2.96.0_macOS_amd64.zip"
-url_api = "https://api.github.com/repos/cli/cli/releases/assets/464728560"
+checksum = "sha256:63298c998cc2a924c9e254c6af6a1caad6ece281122687a91f079bc0a462700e"
+url = "https://github.com/cli/cli/releases/download/v2.97.0/gh_2.97.0_macOS_amd64.zip"
+url_api = "https://api.github.com/repos/cli/cli/releases/assets/496108300"
 provenance = "github-attestations"
 
 [tools.github-cli."platforms.windows-x64"]
-checksum = "sha256:c2d6acc935cd2f00e2144d7e036d5cd82e6b6bd5594e8c75aa75ef2a4ed6aac3"
-url = "https://github.com/cli/cli/releases/download/v2.96.0/gh_2.96.0_windows_amd64.zip"
-url_api = "https://api.github.com/repos/cli/cli/releases/assets/464728577"
+checksum = "sha256:35d7fe05c4dd1411ffda1e73dfc7c6f44b75c936ca51fa6595c657fdc0350cec"
+url = "https://github.com/cli/cli/releases/download/v2.97.0/gh_2.97.0_windows_amd64.zip"
+url_api = "https://api.github.com/repos/cli/cli/releases/assets/496108319"
 provenance = "github-attestations"
 
 [[tools.gitleaks]]
@@ -280,38 +280,38 @@ url_api = "https://api.github.com/repos/kyverno/kyverno/releases/assets/42320102
 provenance = "cosign"
 
 [[tools.pre-commit]]
-version = "4.6.0"
+version = "4.6.1"
 backend = "aqua:pre-commit/pre-commit"
 
 [tools.pre-commit."platforms.linux-arm64"]
-checksum = "sha256:ea8a0c84902e48c1875558f2f362ed8476773aa5fc8c16c5d8f2acc2a2830a65"
-url = "https://github.com/pre-commit/pre-commit/releases/download/v4.6.0/pre-commit-4.6.0.pyz"
-url_api = "https://api.github.com/repos/pre-commit/pre-commit/releases/assets/401888770"
+checksum = "sha256:6768cc8f4f810509b9272211c70ef7bb405c52da2ba81b673b2c361a72f1815d"
+url = "https://github.com/pre-commit/pre-commit/releases/download/v4.6.1/pre-commit-4.6.1.pyz"
+url_api = "https://api.github.com/repos/pre-commit/pre-commit/releases/assets/485150759"
 
 [tools.pre-commit."platforms.linux-arm64-musl"]
-checksum = "sha256:ea8a0c84902e48c1875558f2f362ed8476773aa5fc8c16c5d8f2acc2a2830a65"
-url = "https://github.com/pre-commit/pre-commit/releases/download/v4.6.0/pre-commit-4.6.0.pyz"
-url_api = "https://api.github.com/repos/pre-commit/pre-commit/releases/assets/401888770"
+checksum = "sha256:6768cc8f4f810509b9272211c70ef7bb405c52da2ba81b673b2c361a72f1815d"
+url = "https://github.com/pre-commit/pre-commit/releases/download/v4.6.1/pre-commit-4.6.1.pyz"
+url_api = "https://api.github.com/repos/pre-commit/pre-commit/releases/assets/485150759"
 
 [tools.pre-commit."platforms.linux-x64"]
-checksum = "sha256:ea8a0c84902e48c1875558f2f362ed8476773aa5fc8c16c5d8f2acc2a2830a65"
-url = "https://github.com/pre-commit/pre-commit/releases/download/v4.6.0/pre-commit-4.6.0.pyz"
-url_api = "https://api.github.com/repos/pre-commit/pre-commit/releases/assets/401888770"
+checksum = "sha256:6768cc8f4f810509b9272211c70ef7bb405c52da2ba81b673b2c361a72f1815d"
+url = "https://github.com/pre-commit/pre-commit/releases/download/v4.6.1/pre-commit-4.6.1.pyz"
+url_api = "https://api.github.com/repos/pre-commit/pre-commit/releases/assets/485150759"
 
 [tools.pre-commit."platforms.linux-x64-musl"]
-checksum = "sha256:ea8a0c84902e48c1875558f2f362ed8476773aa5fc8c16c5d8f2acc2a2830a65"
-url = "https://github.com/pre-commit/pre-commit/releases/download/v4.6.0/pre-commit-4.6.0.pyz"
-url_api = "https://api.github.com/repos/pre-commit/pre-commit/releases/assets/401888770"
+checksum = "sha256:6768cc8f4f810509b9272211c70ef7bb405c52da2ba81b673b2c361a72f1815d"
+url = "https://github.com/pre-commit/pre-commit/releases/download/v4.6.1/pre-commit-4.6.1.pyz"
+url_api = "https://api.github.com/repos/pre-commit/pre-commit/releases/assets/485150759"
 
 [tools.pre-commit."platforms.macos-arm64"]
-checksum = "sha256:ea8a0c84902e48c1875558f2f362ed8476773aa5fc8c16c5d8f2acc2a2830a65"
-url = "https://github.com/pre-commit/pre-commit/releases/download/v4.6.0/pre-commit-4.6.0.pyz"
-url_api = "https://api.github.com/repos/pre-commit/pre-commit/releases/assets/401888770"
+checksum = "sha256:6768cc8f4f810509b9272211c70ef7bb405c52da2ba81b673b2c361a72f1815d"
+url = "https://github.com/pre-commit/pre-commit/releases/download/v4.6.1/pre-commit-4.6.1.pyz"
+url_api = "https://api.github.com/repos/pre-commit/pre-commit/releases/assets/485150759"
 
 [tools.pre-commit."platforms.macos-x64"]
-checksum = "sha256:ea8a0c84902e48c1875558f2f362ed8476773aa5fc8c16c5d8f2acc2a2830a65"
-url = "https://github.com/pre-commit/pre-commit/releases/download/v4.6.0/pre-commit-4.6.0.pyz"
-url_api = "https://api.github.com/repos/pre-commit/pre-commit/releases/assets/401888770"
+checksum = "sha256:6768cc8f4f810509b9272211c70ef7bb405c52da2ba81b673b2c361a72f1815d"
+url = "https://github.com/pre-commit/pre-commit/releases/download/v4.6.1/pre-commit-4.6.1.pyz"
+url_api = "https://api.github.com/repos/pre-commit/pre-commit/releases/assets/485150759"
 
 [[tools.python]]
 version = "3.14.6"
@@ -424,49 +424,49 @@ url = "https://github.com/terraform-docs/terraform-docs/releases/download/v0.24.
 url_api = "https://api.github.com/repos/terraform-docs/terraform-docs/releases/assets/416956245"
 
 [[tools.tflint]]
-version = "0.63.1"
+version = "0.64.0"
 backend = "aqua:terraform-linters/tflint"
 
 [tools.tflint."platforms.linux-arm64"]
-checksum = "sha256:6d858ca7f11858c3fe3c5e29cc746823abccb55e2d2e2da130fa7ad7ea4eecb8"
-url = "https://github.com/terraform-linters/tflint/releases/download/v0.63.1/tflint_linux_arm64.zip"
-url_api = "https://api.github.com/repos/terraform-linters/tflint/releases/assets/437446187"
+checksum = "sha256:560da89aacf59389d4eb029730dd5b109b7288096c32f2726a0d9e783a5ea8eb"
+url = "https://github.com/terraform-linters/tflint/releases/download/v0.64.0/tflint_linux_arm64.zip"
+url_api = "https://api.github.com/repos/terraform-linters/tflint/releases/assets/480528325"
 provenance = "github-attestations"
 
 [tools.tflint."platforms.linux-arm64-musl"]
-checksum = "sha256:6d858ca7f11858c3fe3c5e29cc746823abccb55e2d2e2da130fa7ad7ea4eecb8"
-url = "https://github.com/terraform-linters/tflint/releases/download/v0.63.1/tflint_linux_arm64.zip"
-url_api = "https://api.github.com/repos/terraform-linters/tflint/releases/assets/437446187"
+checksum = "sha256:560da89aacf59389d4eb029730dd5b109b7288096c32f2726a0d9e783a5ea8eb"
+url = "https://github.com/terraform-linters/tflint/releases/download/v0.64.0/tflint_linux_arm64.zip"
+url_api = "https://api.github.com/repos/terraform-linters/tflint/releases/assets/480528325"
 provenance = "github-attestations"
 
 [tools.tflint."platforms.linux-x64"]
-checksum = "sha256:8441a7d97df20431f19c9b9d27ff4c63e308c964e86660bc7cc0cf7bbe0725e8"
-url = "https://github.com/terraform-linters/tflint/releases/download/v0.63.1/tflint_linux_amd64.zip"
-url_api = "https://api.github.com/repos/terraform-linters/tflint/releases/assets/437446150"
+checksum = "sha256:cca9d13e2e1d7a2c627af60ff899a3c9b74212899416aeb96ec764d2ef954537"
+url = "https://github.com/terraform-linters/tflint/releases/download/v0.64.0/tflint_linux_amd64.zip"
+url_api = "https://api.github.com/repos/terraform-linters/tflint/releases/assets/480528344"
 provenance = "github-attestations"
 
 [tools.tflint."platforms.linux-x64-musl"]
-checksum = "sha256:8441a7d97df20431f19c9b9d27ff4c63e308c964e86660bc7cc0cf7bbe0725e8"
-url = "https://github.com/terraform-linters/tflint/releases/download/v0.63.1/tflint_linux_amd64.zip"
-url_api = "https://api.github.com/repos/terraform-linters/tflint/releases/assets/437446150"
+checksum = "sha256:cca9d13e2e1d7a2c627af60ff899a3c9b74212899416aeb96ec764d2ef954537"
+url = "https://github.com/terraform-linters/tflint/releases/download/v0.64.0/tflint_linux_amd64.zip"
+url_api = "https://api.github.com/repos/terraform-linters/tflint/releases/assets/480528344"
 provenance = "github-attestations"
 
 [tools.tflint."platforms.macos-arm64"]
-checksum = "sha256:6aab157b22367dcab1635b370e98d6e791d9b40b021d4f9baef010d88f53e16b"
-url = "https://github.com/terraform-linters/tflint/releases/download/v0.63.1/tflint_darwin_arm64.zip"
-url_api = "https://api.github.com/repos/terraform-linters/tflint/releases/assets/437446148"
+checksum = "sha256:2496e9cb3d24992d553b45e7c87a0fdc9449ca975233876247a9bfeda857e6c0"
+url = "https://github.com/terraform-linters/tflint/releases/download/v0.64.0/tflint_darwin_arm64.zip"
+url_api = "https://api.github.com/repos/terraform-linters/tflint/releases/assets/480528349"
 provenance = "github-attestations"
 
 [tools.tflint."platforms.macos-x64"]
-checksum = "sha256:1a22782473e4a01f0dd23edc649bed4420655a9e3459ffc06951e698eed7ad01"
-url = "https://github.com/terraform-linters/tflint/releases/download/v0.63.1/tflint_darwin_amd64.zip"
-url_api = "https://api.github.com/repos/terraform-linters/tflint/releases/assets/437446152"
+checksum = "sha256:0f3a9fd17526014646a2dfc3f9122f7b4161abe3d6b0f0f03f9014483ddf4d19"
+url = "https://github.com/terraform-linters/tflint/releases/download/v0.64.0/tflint_darwin_amd64.zip"
+url_api = "https://api.github.com/repos/terraform-linters/tflint/releases/assets/480528324"
 provenance = "github-attestations"
 
 [tools.tflint."platforms.windows-x64"]
-checksum = "sha256:5fbfb643b83c4ad489bde15a0e0d46e53dc9aa8dfa76d25da3c4bd2698a41a19"
-url = "https://github.com/terraform-linters/tflint/releases/download/v0.63.1/tflint_windows_amd64.zip"
-url_api = "https://api.github.com/repos/terraform-linters/tflint/releases/assets/437446181"
+checksum = "sha256:fb42fb859d844b156a8ea9d3363078c4d8b85ca78782e60876b08c9b8e59f303"
+url = "https://github.com/terraform-linters/tflint/releases/download/v0.64.0/tflint_windows_amd64.zip"
+url_api = "https://api.github.com/repos/terraform-linters/tflint/releases/assets/480528323"
 provenance = "github-attestations"
 
 [[tools.trivy]]

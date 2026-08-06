@@ -46,7 +46,7 @@ homelab/
 │   │
 │   ├── applications/                 # User-facing self-hosted applications
 │   │   ├── actualbudget/             # Personal finance (ActualBudget 25.12.0, port 5006)
-│   │   ├── homeassistant/            # Home automation (HA 2026.4.3, port 8123)
+│   │   ├── homeassistant/            # Home automation (HA 2026.5.4, port 8123)
 │   │   ├── mosquitto/                # MQTT broker (Mosquitto 2.0.22, port 8883)
 │   │   └── zigbee2mqtt/              # Zigbee bridge (Z2M 2.7.0, port 8080)
 │   │

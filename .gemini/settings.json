@@ -1,0 +1,141 @@
+{
+  "hooks": {
+    "AfterAgent": [
+      {
+        "hooks": [
+          {
+            "command": "sh -c 'if ! command -v entire >/dev/null 2>&1; then exit 0; fi; exec entire hooks gemini after-agent'",
+            "name": "entire-after-agent",
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "AfterModel": [
+      {
+        "hooks": [
+          {
+            "command": "sh -c 'if ! command -v entire >/dev/null 2>&1; then exit 0; fi; exec entire hooks gemini after-model'",
+            "name": "entire-after-model",
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "AfterTool": [
+      {
+        "hooks": [
+          {
+            "command": "sh -c 'if ! command -v entire >/dev/null 2>&1; then exit 0; fi; exec entire hooks gemini after-tool'",
+            "name": "entire-after-tool",
+            "type": "command"
+          }
+        ],
+        "matcher": "*"
+      }
+    ],
+    "BeforeAgent": [
+      {
+        "hooks": [
+          {
+            "command": "sh -c 'if ! command -v entire >/dev/null 2>&1; then exit 0; fi; exec entire hooks gemini before-agent'",
+            "name": "entire-before-agent",
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "BeforeModel": [
+      {
+        "hooks": [
+          {
+            "command": "sh -c 'if ! command -v entire >/dev/null 2>&1; then exit 0; fi; exec entire hooks gemini before-model'",
+            "name": "entire-before-model",
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "BeforeTool": [
+      {
+        "hooks": [
+          {
+            "command": "sh -c 'if ! command -v entire >/dev/null 2>&1; then exit 0; fi; exec entire hooks gemini before-tool'",
+            "name": "entire-before-tool",
+            "type": "command"
+          }
+        ],
+        "matcher": "*"
+      }
+    ],
+    "BeforeToolSelection": [
+      {
+        "hooks": [
+          {
+            "command": "sh -c 'if ! command -v entire >/dev/null 2>&1; then exit 0; fi; exec entire hooks gemini before-tool-selection'",
+            "name": "entire-before-tool-selection",
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "command": "sh -c 'if ! command -v entire >/dev/null 2>&1; then exit 0; fi; exec entire hooks gemini notification'",
+            "name": "entire-notification",
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "PreCompress": [
+      {
+        "hooks": [
+          {
+            "command": "sh -c 'if ! command -v entire >/dev/null 2>&1; then exit 0; fi; exec entire hooks gemini pre-compress'",
+            "name": "entire-pre-compress",
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "command": "sh -c 'if ! command -v entire >/dev/null 2>&1; then exit 0; fi; exec entire hooks gemini session-end'",
+            "name": "entire-session-end-exit",
+            "type": "command"
+          }
+        ],
+        "matcher": "exit"
+      },
+      {
+        "hooks": [
+          {
+            "command": "sh -c 'if ! command -v entire >/dev/null 2>&1; then exit 0; fi; exec entire hooks gemini session-end'",
+            "name": "entire-session-end-logout",
+            "type": "command"
+          }
+        ],
+        "matcher": "logout"
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "sh -c 'if ! command -v entire >/dev/null 2>&1; then printf \"%s\\n\" \"{\\\"systemMessage\\\":\\\"Entire CLI is enabled but not installed or not on PATH. Installation guide: https://docs.entire.io/cli/installation#installation-methods\\\"}\"; exit 0; fi; exec entire hooks gemini session-start'",
+            "name": "entire-session-start",
+            "type": "command"
+          }
+        ]
+      }
+    ]
+  },
+  "hooksConfig": {
+    "enabled": true
+  }
+}
