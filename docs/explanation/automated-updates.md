@@ -57,7 +57,7 @@ Renovate uses a regex-based custom manager to detect container image versions in
 }
 ```
 
-This allows Renovate to detect image tag bumps like `ghcr.io/home-assistant/home-assistant:2026.7.4` and open PRs with the next release.
+This allows Renovate to detect image tag bumps like `ghcr.io/home-assistant/home-assistant:2026.8.0` and open PRs with the next release.
 
 ---
 
