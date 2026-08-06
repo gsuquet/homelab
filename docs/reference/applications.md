@@ -8,7 +8,7 @@ All applications are deployed to the cluster via ArgoCD. Each application lives 
 
 | Application | Version | Namespace | Port | Storage | Purpose |
 | ----------- | ------- | --------- | ---- | ------- | ------- |
-| Home Assistant | 2026.5.4 | `homeassistant` | 8123 | 10 Gi | Smart home automation hub |
+| Home Assistant | 2026.6.4 | `homeassistant` | 8123 | 10 Gi | Smart home automation hub |
 | Mosquitto | 2.0.22 | `homeassistant` | 8883 | 5 Gi | MQTT message broker |
 | Zigbee2MQTT | 2.7.0 | `homeassistant` | 8080 | 1 Gi | Zigbee-to-MQTT bridge |
 | ActualBudget | 25.12.0 | `actualbudget` | 5006 | 1 Gi | Personal finance manager |
@@ -18,7 +18,7 @@ All applications are deployed to the cluster via ArgoCD. Each application lives 
 ## Home Assistant
 
 **Path**: `kubernetes/applications/homeassistant/`
-**Image**: `ghcr.io/home-assistant/home-assistant:2026.5.4`
+**Image**: `ghcr.io/home-assistant/home-assistant:2026.6.4`
 **Namespace**: `homeassistant`
 
 ### Ports
