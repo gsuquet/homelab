@@ -12,6 +12,7 @@ resource "kind_cluster" "this" {
       pod_subnet          = var.pod_subnet != "" ? var.pod_subnet : null
       service_subnet      = var.service_subnet != "" ? var.service_subnet : null
       disable_default_cni = var.disable_default_cni
+      kube_proxy_mode     = var.kube_proxy_mode != "" ? var.kube_proxy_mode : null
       api_server_address  = var.api_server_address != "" ? var.api_server_address : null
       api_server_port     = var.api_server_port != 0 ? var.api_server_port : null
     }

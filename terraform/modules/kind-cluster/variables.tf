@@ -103,6 +103,12 @@ variable "disable_default_cni" {
   default     = false
 }
 
+variable "kube_proxy_mode" {
+  description = "Kube-proxy mode ('iptables', 'ipvs', or 'none'). Set to 'none' when using Cilium in kube-proxy replacement mode."
+  type        = string
+  default     = "none"
+}
+
 variable "api_server_address" {
   description = "Address on which the API server will listen. Leave empty to use the Kind default (127.0.0.1)."
   type        = string
