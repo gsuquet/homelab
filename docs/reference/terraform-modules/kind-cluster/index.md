@@ -11,6 +11,7 @@
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_kind"></a> [kind](#provider\_kind) | 0.11.0 |
+| <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
 
 ## Inputs
 
@@ -21,6 +22,7 @@
 | <a name="input_control_plane_count"></a> [control\_plane\_count](#input\_control\_plane\_count) | Number of control-plane nodes. Must be 1 for a standard cluster (HA control-plane is experimental in Kind). | `number` | `1` | no |
 | <a name="input_control_plane_kubeadm_config_patches"></a> [control\_plane\_kubeadm\_config\_patches](#input\_control\_plane\_kubeadm\_config\_patches) | List of kubeadm InitConfiguration/ClusterConfiguration YAML patches applied to each control-plane node. Useful for adding node labels, taints, or kubelet arguments. | `list(string)` | `[]` | no |
 | <a name="input_disable_default_cni"></a> [disable\_default\_cni](#input\_disable\_default\_cni) | Disable the default CNI plugin (kindnet). Set to true when installing a custom CNI such as Cilium or Calico. | `bool` | `false` | no |
+| <a name="input_enable_bpf_sysctls"></a> [enable\_bpf\_sysctls](#input\_enable\_bpf\_sysctls) | Workaround for Cilium Bandwidth Manager and BBR in Kind clusters. Installs a systemd service inside each Kind node to bind-mount fake /proc/sys/net/core with default\_qdisc and netdev\_max\_backlog. | `bool` | `true` | no |
 | <a name="input_extra_port_mappings"></a> [extra\_port\_mappings](#input\_extra\_port\_mappings) | Extra port mappings to expose from the control-plane node to the host. Commonly used to expose an ingress controller (e.g., host\_port=80 → container\_port=80). | <pre>list(object({<br/>    container_port = number<br/>    host_port      = number<br/>    protocol       = optional(string, "TCP")<br/>  }))</pre> | `[]` | no |
 | <a name="input_kubeconfig_path"></a> [kubeconfig\_path](#input\_kubeconfig\_path) | Path where the kubeconfig will be written. Defaults to ~/.kube/kind-<name> to avoid polluting the default kubeconfig. | `string` | `""` | no |
 | <a name="input_name"></a> [name](#input\_name) | Name of the Kind cluster. Must be lowercase alphanumeric and hyphens only. | `string` | n/a | yes |

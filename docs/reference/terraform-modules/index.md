@@ -7,6 +7,7 @@ Technical documentation for Terraform modules provided in `terraform/modules/`.
 | Module | Description | Location |
 |--------|-------------|----------|
 | [`kind-cluster`](kind-cluster/index.md) | Provision local Kind (Kubernetes in Docker) development clusters | `terraform/modules/kind-cluster/` |
+| [`cilium`](cilium/index.md) | Install Cilium as the cluster CNI (pure networking baseline, no mesh) | `terraform/modules/cilium/` |
 
 ---
 
