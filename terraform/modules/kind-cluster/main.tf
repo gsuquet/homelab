@@ -44,3 +44,37 @@ resource "kind_cluster" "this" {
     }
   }
 }
+
+resource "terraform_data" "kind_bpf_sysctls" {
+  count = var.enable_bpf_sysctls ? 1 : 0
+
+  triggers_replace = [
+    kind_cluster.this.id
+  ]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      set -e
+      for node in $(docker ps --filter "label=io.x-k8s.kind.cluster=${var.name}" --format '{{.Names}}'); do
+        echo "Installing BPF sysctl service on Kind node: $node"
+        docker exec "$node" bash -c '
+          cat <<EOF > /etc/systemd/system/kind-bpf-sysctl.service
+[Unit]
+Description=Inject root-netns sysctls for Cilium BPF Bandwidth Manager
+Before=kubelet.service cilium.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c "if [ ! -f /proc/sys/net/core/default_qdisc ]; then mkdir -p /tmp/fake-core && cp -a /proc/sys/net/core/* /tmp/fake-core/ && echo fq > /tmp/fake-core/default_qdisc && echo 1000 > /tmp/fake-core/netdev_max_backlog && mount --bind /tmp/fake-core /proc/sys/net/core; fi"
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+          systemctl daemon-reload
+          systemctl enable --now kind-bpf-sysctl.service
+        '
+      done
+    EOT
+  }
+}

@@ -114,3 +114,13 @@ variable "api_server_port" {
   type        = number
   default     = 0
 }
+
+# ─────────────────────────────────────────────
+# Workarounds & Compatibility
+# ─────────────────────────────────────────────
+
+variable "enable_bpf_sysctls" {
+  description = "Workaround for Cilium Bandwidth Manager and BBR in Kind clusters. Installs a systemd service inside each Kind node to bind-mount fake /proc/sys/net/core with default_qdisc and netdev_max_backlog."
+  type        = bool
+  default     = true
+}

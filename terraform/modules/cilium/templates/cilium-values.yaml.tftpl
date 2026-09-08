@@ -54,10 +54,10 @@ k8sServiceHostRef:
   key:
 
 # Kubernetes service host - use "auto" for automatic lookup from the cluster-info ConfigMap
-k8sServiceHost: ""
+k8sServiceHost: "${K8S_SERVICE_HOST}"
 
 # Kubernetes service port
-k8sServicePort: ""
+k8sServicePort: "${K8S_SERVICE_PORT}"
 
 # When `k8sServiceHost=auto`, allows to customize the configMap name. It defaults to `cluster-info`.
 k8sServiceLookupConfigMapName: ""
@@ -92,7 +92,7 @@ k8sClientExponentialBackoff:
 
 cluster:
   # Name of the cluster. Required for Cluster Mesh and mutual authentication with SPIRE.
-  name: ${CLUSTER_NAME}
+  name: "${CLUSTER_NAME}"
   # Unique ID of the cluster. Must be unique across all connected
   # clusters and in the range of 1 to 255. Only required for Cluster Mesh,
   # may be 0 if Cluster Mesh is not used.
@@ -403,7 +403,7 @@ aksbyocni:
   # -- Enable AKS BYOCNI integration.
   # Note that this is incompatible with AKS clusters not created in BYOCNI mode:
   # use Azure integration (`azure.enabled`) instead.
-  enabled: false
+  enabled: ${AKS_BYOCNI_ENABLED}
 # @schema
 # type: [boolean, string]
 # @schema
@@ -442,9 +442,9 @@ alibabacloud:
 # Time) through the "kubernetes.io/egress-bandwidth" Pod annotation.
 bandwidthManager:
   # -- Enable bandwidth manager infrastructure (also prerequirement for BBR)
-  enabled: false
+  enabled: ${BANDWIDTH_MANAGER_ENABLED}
   # -- Activate BBR TCP congestion control for Pods
-  bbr: false
+  bbr: ${BANDWIDTH_MANAGER_BBR}
   # -- Activate BBR TCP congestion control for Pods in the host namespace only.
   bbrHostNamespaceOnly: false
 # -- Configure standalone NAT46/NAT64 gateway
@@ -763,7 +763,7 @@ cni:
   # -- Configure the path to the CNI configuration directory on the host.
   confPath: /etc/cni/net.d
   # -- Configure the path to the CNI binary directory on the host.
-  binPath: /opt/cni/bin
+  binPath: "${CNI_BIN_PATH}"
   # -- Specify the path to a CNI config to read from on agent start.
   # This can be useful if you want to manage your CNI
   # configuration outside of a Kubernetes environment. This parameter is
@@ -1106,9 +1106,9 @@ gatewayAPI:
 enableXTSocketFallback: true
 encryption:
   # -- Enable transparent network encryption.
-  enabled: false
+  enabled: ${ENCRYPTION_ENABLED}
   # -- Encryption method. Can be one of ipsec, wireguard or ztunnel.
-  type: ipsec
+  type: "${ENCRYPTION_TYPE}"
   # -- Enable encryption for pure node to node traffic.
   # This option is only effective when encryption.type is set to "wireguard".
   nodeEncryption: false
@@ -1254,7 +1254,7 @@ k8sClusterNetworkPolicy:
 endpointLockdownOnMapOverflow: false
 eni:
   # -- Enable Elastic Network Interface (ENI) integration.
-  enabled: false
+  enabled: ${EKS_ENI_ENABLED}
   # -- Release IPs not used from the ENI
   awsReleaseExcessIPs: false
   # -- Enable ENI prefix delegation
@@ -1318,7 +1318,7 @@ eni:
 # fragmentTracking: true
 gke:
   # -- Enable Google Kubernetes Engine integration
-  enabled: false
+  enabled: ${GKE_ENABLED}
 # -- Prefer IPv6 addresses over IPv4 when both are available for health probes
 # and Hubble peer communication.
 preferIpv6: false
@@ -1403,7 +1403,7 @@ certgen:
     failedJobsHistoryLimit: 1
 hubble:
   # -- Enable Hubble (true by default).
-  enabled: true
+  enabled: ${HUBBLE_ENABLED}
   # @schema
   # type: [null, boolean]
   # @schema
@@ -1512,7 +1512,7 @@ hubble:
             - __meta_kubernetes_pod_node_name
           targetLabel: node
           action: replace
-          replacement: ${1}
+          replacement: $${1}
       # @schema
       # type: [null, array]
       # @schema
@@ -1712,7 +1712,7 @@ hubble:
       extraIpAddresses: []
   relay:
     # -- Enable Hubble Relay (requires hubble.enabled=true)
-    enabled: false
+    enabled: ${HUBBLE_RELAY_ENABLED}
     # -- Roll out Hubble Relay pods automatically when configmap is updated.
     rollOutPods: false
     # -- Hubble-relay container image.
@@ -1955,7 +1955,7 @@ hubble:
       level: ~
   ui:
     # -- Whether to enable the Hubble UI.
-    enabled: false
+    enabled: ${HUBBLE_UI_ENABLED}
     standalone:
       # -- When true, it will allow installing the Hubble UI only, without checking dependencies.
       # It is useful if a cluster already has cilium and Hubble relay installed and you just
@@ -2248,7 +2248,7 @@ installNoConntrackIptablesRules: false
 ipam:
   # -- Configure IP Address Management mode.
   # ref: https://docs.cilium.io/en/stable/network/concepts/ipam/
-  mode: "cluster-pool"
+  mode: "${IPAM_MODE}"
   # -- Maximum rate at which the CiliumNode custom resource is updated.
   ciliumNodeUpdateRate: "15s"
   # -- Pre-allocation settings for IPAM in Multi-Pool mode
@@ -2392,7 +2392,7 @@ readinessProbe:
 # @schema@
 # type: [string, boolean]
 # @schema@
-kubeProxyReplacement: "false"
+kubeProxyReplacement: ${KUBE_PROXY_REPLACEMENT}
 # -- healthz server bind address for the kube-proxy replacement.
 # To enable set the value to '0.0.0.0:10256' for all ipv4
 # addresses and this '[::]:10256' for all ipv6 addresses.
@@ -2481,7 +2481,7 @@ vtep:
 # direct routing and the Kubernetes CIDR is included in the native routing CIDR,
 # the user must configure the routes to reach pods, either manually or by
 # setting the auto-direct-node-routes flag.
-ipv4NativeRoutingCIDR: ""
+ipv4NativeRoutingCIDR: "${IPV4_NATIVE_ROUTING_CIDR}"
 # -- (string) Allows to explicitly specify the IPv6 CIDR for native routing.
 # When specified, Cilium assumes networking for this CIDR is preconfigured and
 # hands traffic destined for that range to the Linux network stack without
@@ -2588,7 +2588,7 @@ nodePort:
 # -- The agent can be put into one of the three policy enforcement modes:
 # default, always and never.
 # ref: https://docs.cilium.io/en/stable/security/policy/intro/#policy-enforcement-modes
-policyEnforcementMode: "default"
+policyEnforcementMode: "${POLICY_ENFORCEMENT_MODE}"
 # @schema
 # type: [null, string, array]
 # @schema
@@ -2637,7 +2637,7 @@ prometheus:
           - __meta_kubernetes_pod_node_name
         targetLabel: node
         action: replace
-        replacement: ${1}
+        replacement: $${1}
     # @schema
     # type: [null, array]
     # @schema
@@ -3015,7 +3015,7 @@ envoy:
             - __meta_kubernetes_pod_node_name
           targetLabel: node
           action: replace
-          replacement: ${1}
+          replacement: $${1}
       # @schema
       # type: [null, array]
       # @schema
@@ -3146,7 +3146,7 @@ underlayProtocol: ""
 #   - native
 #   - tunnel
 # @default -- `"tunnel"`
-routingMode: ""
+routingMode: "${ROUTING_MODE}"
 # -- Configure VXLAN and Geneve tunnel port.
 # @default -- Port 8472 for VXLAN, Port 6081 for Geneve
 tunnelPort: 0
@@ -3431,7 +3431,9 @@ operator:
     selector: ~
 nodeinit:
   # -- Enable the node initialization DaemonSet
-  enabled: false
+  enabled: ${GKE_NODE_INIT_ENABLED}
+  reconfigureKubelet: ${GKE_NODE_INIT_ENABLED}
+  removeCbrBridge: ${GKE_NODE_INIT_ENABLED}
   # -- node-init image.
   image:
     # @schema
