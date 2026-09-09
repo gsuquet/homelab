@@ -1,74 +1,69 @@
-# Tower Defense: The eBPF Fortress
+# Chaos Citadel: The Cloud-Native Defense Game
 
 > **Status:** Architecture & Technical Specification  
 > **Target Platform:** Kubernetes (`kind-dev-01`, extensible to cloud/GKE)  
-> **Core Technologies:** Go (Golang), Cilium CNI, Hubble, eBPF, Kubernetes CRDs  
+> **Core Technologies:** Go (Golang), Cilium CNI, Hubble, Tetragon, Chaos Mesh, Falco, Kubernetes CRDs  
+> **Ecosystem Alignment:** [Zero Trust & Chaos Lab](zero-trust-chaos-lab.md)
 
 ---
 
 ## 1. Executive Summary & Purpose
 
-"Tower Defense: The eBPF Fortress" is an interactive, participatory multiplayer game designed to demonstrate the power of **Cilium eBPF networking, security, and Hubble observability** to a cross-functional audience:
+**Chaos Citadel** is an interactive, participatory multiplayer defense game designed to demonstrate cloud-native resilience, **Cilium eBPF networking, runtime security, and Chaos Engineering** to a cross-functional audience:
 
-- **Developers & DevOps:** Real-time visibility into L3/L4/L7 traffic, zero-code network troubleshooting, and automated topology discovery.
-- **Platform & Security Engineers:** Instant Zero-Trust enforcement, kernel-level packet drops, eBPF Host Firewall node hardening, and deterministic Egress Gateway routing.
+- **Developers & DevOps:** Real-time visibility into L3/L4/L7 traffic, zero-code network troubleshooting, automated topology discovery, and resilience against fault injection.
+- **Platform & Security Engineers:** Instant Zero-Trust enforcement, kernel-level packet drops, eBPF Host Firewall node hardening, automated pod quarantine, and cryptographic workload identity.
 - **Data Engineers:** High-throughput data transfer visualization, wire encryption, and congestion monitoring.
-- **Product Owners & Managers:** Direct visual link between platform security/reliability (Fortress HP) and business continuity/revenue (Treasury Gold).
+- **Product Owners & Managers:** Direct visual link between platform security/reliability (Citadel HP) and business continuity/revenue (Treasury Gold).
 
-Audience members participate from their smartphones or laptops, taking actions that generate real network packets and trigger dynamic Kubernetes resources, while Hubble UI serves as the real-time "Battlefield Radar" on the main display.
+Audience members participate from their smartphones or laptops, taking actions that generate real network packets, trigger dynamic Kubernetes security policies, or unleash infrastructure chaos—while Hubble UI and live event dashboards serve as the real-time "Battlefield Radar" on the presentation display.
 
 ---
 
-## 2. Repository Restructuring: Home Services vs. Labs
+## 2. Lab Isolation: Production Services vs. Experimental Labs
 
-### The Challenge with Current Structure
+### The Challenge: Preventing Production Contamination
 
-Currently, the repository layout under `kubernetes/` directly conflates physical homelab production with the root:
-
-```ascii
-kubernetes/
-├── applications/        # Home Assistant, Mosquitto, Zigbee2MQTT, ActualBudget
-├── bootstrap/           # ArgoCD self-managed deployment
-├── projects/            # ArgoCD AppProject definitions
-└── system/              # Cloudflare Tunnel, Sealed Secrets
-```
-
-In `kubernetes/bootstrap/argo-cd/applications-applicationset.yaml`:
+In `kubernetes/bootstrap/argo-cd/applications-applicationset.yaml`, ArgoCD dynamically watches subdirectories:
 
 ```yaml
 directories:
   - path: kubernetes/applications/*
 ```
 
-Because ArgoCD uses a git generator matching `kubernetes/applications/*`, any new folder added under `kubernetes/applications/` is **automatically discovered and deployed to the production Raspberry Pi cluster (`olympus.local`)**.
+Because ArgoCD uses a git generator matching `kubernetes/applications/*`, any new folder placed directly inside `kubernetes/applications/` is **automatically discovered and deployed to the production Raspberry Pi cluster (`olympus.local`)**.
 
-### Target Multi-Environment Architecture
+### Non-Disruptive Architecture: Introducing `kubernetes/labs/`
 
-To isolate production home services from experimental labs, benchmarks, and interactive games, we partition `kubernetes/` into distinct domains:
+Instead of relocating existing production directories (`applications/`, `bootstrap/`, `system/`)—which would invalidate existing tutorials, operational playbooks, and GitOps application paths—we cleanly isolate workshop and demo workloads under a dedicated `kubernetes/labs/` namespace:
 
 ```ascii
 kubernetes/
-├── homelab/                     # Production smart-home workloads (olympus.local)
-│   ├── bootstrap/               # ArgoCD root bootstrap for Olympus
-│   ├── projects/                # ArgoCD AppProjects (applications, system)
-│   ├── applications/            # User applications (actualbudget, homeassistant, etc.)
-│   └── system/                  # Core infrastructure (cloudflare, sealed-secrets)
+├── applications/                # Production smart-home workloads (olympus.local)
+│   ├── actualbudget/
+│   ├── homeassistant/
+│   ├── mosquitto/
+│   └── zigbee2mqtt/
+├── bootstrap/                   # ArgoCD root bootstrap for Olympus
+├── projects/                    # ArgoCD AppProjects (applications, system)
+├── system/                      # Core infrastructure (cloudflare, sealed-secrets)
 │
 └── labs/                        # Experimental, training, and demo workloads (Kind, GKE)
-    └── tower-defense/           # The eBPF Tower Defense Game
-        ├── manifests/           # Core deployments, services, RBAC
+    └── chaos-citadel/           # Chaos Citadel Game
+        ├── backend/             # Go microservices & controller
+        ├── manifests/           # Deployments, Services, RBAC
         ├── policies/            # Pre-defined CiliumNetworkPolicy templates
         └── README.md            # Lab deployment & presenter guide
 ```
 
-### Transition & ArgoCD Adjustments
+### GitOps Safety & Cluster Targeting
 
-1. **ApplicationSet Generator Update:**
-   Update `kubernetes/homelab/bootstrap/argo-cd/applications-applicationset.yaml` to target `kubernetes/homelab/applications/*` and `kubernetes/homelab/system/*`.
-2. **Cluster Targeting:**
-   Workloads in `kubernetes/labs/` can be applied either directly via `kubectl` / Kustomize during local workshops, or via a dedicated `labs` ArgoCD ApplicationSet on dev clusters.
-3. **No Cross-Contamination:**
-   Changes to game rules or test applications will never trigger ArgoCD syncs on the production home server.
+1. **Zero Production Cross-Contamination:**
+   Because production ApplicationSets strictly target `kubernetes/applications/*` and `kubernetes/system/*`, any folder placed under `kubernetes/labs/` is ignored by the production cluster.
+2. **Local Workshop Deployment:**
+   During local development or live presentations on `kind-dev-01`, workloads in `kubernetes/labs/chaos-citadel/` are deployed directly via `kubectl` / Kustomize or an optional dev-only ArgoCD Application.
+3. **No Migration Overhead:**
+   Existing documentation, Ansible tasks, and bootstrap manifests remain 100% intact.
 
 ---
 
@@ -138,6 +133,7 @@ When joining via QR code on mobile, players select or are assigned to one of thr
   - 🏰 **Shield Spell: Fortify Foundations (Host Firewall):** Applies a `CiliumClusterwideNetworkPolicy` with `nodeSelector`. Instantly blocks sapper attacks on node NICs (SSH / Kubelet / host-ports) via eBPF.
   - 🛣️ **Shield Spell: Royal Treaty Route (Egress Gateway):** Deploys a `CiliumEgressGatewayPolicy` routing merchant deposits through a dedicated gateway node with a static egress IP.
   - ⚡ **Shield Spell: eBPF Quarantine:** Automatically isolates any pod tagged with suspicious labels without killing the container.
+  - ⚔️ **Shield Spell: In-Kernel Smite (Tetragon Enforcement):** Applies a Tetragon `TracingPolicy` that terminates unauthorized binary execution (e.g. `/bin/sh` or crypto-miners) with an immediate in-kernel `SIGKILL` before userspace processes even start.
 
 #### 3. The Royal Merchants (Business / POs / Data) — *PO & Data Mindset*
 
@@ -164,7 +160,7 @@ Strictly written in **Go (Golang)** and standard cloud-native tooling. Single st
 ### Microservices Stack (All Written in Go)
 
 ```ascii
-kubernetes/labs/tower-defense/
+kubernetes/labs/chaos-citadel/
 ├── backend/
 │   ├── cmd/
 │   │   ├── controller/      # Game engine, WebSockets, K8s client-go controller
@@ -193,8 +189,10 @@ kubernetes/labs/tower-defense/
 1. **`game-controller` (Go):**
    - Serves the mobile-friendly web UI using Go's `embed.FS` (single binary).
    - Manages real-time player sessions and state broadcasting via WebSockets.
-   - Holds the game loop (HP, Gold, match timer).
-   - Uses `client-go` and Cilium's typed client to dynamically apply, toggle, and remove `CiliumNetworkPolicy` CRDs in the cluster when defenders cast spells.
+   - Holds the authoritative game loop (Fortress HP, Treasury Gold, match timer).
+   - **Kubernetes Client & RBAC:** Uses `client-go` and Cilium's typed client under a dedicated `ServiceAccount` granted CRUD permissions over `cilium.io` resources (`ciliumnetworkpolicies`, `ciliumclusterwidenetworkpolicies`, `ciliumegressgatewaypolicies`).
+   - **Concurrency & Idempotency:** Implements spell cooldowns and idempotent CRD management (e.g. ignoring `AlreadyExists` or using server-side apply) so simultaneous spell casts from multiple defenders do not cause race conditions.
+   - **Match Lifecycle & Teardown:** Automatically cleans up dynamically applied Cilium policies and resets game metrics at match conclusion to prepare for consecutive rounds.
 
 2. **`outer-gate` (Go):**
    - Frontline service receiving traffic from the game controller and audience requests.
@@ -223,7 +221,7 @@ apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
   name: spell-royal-curfew
-  namespace: tower-defense
+  namespace: chaos-citadel
 spec:
   endpointSelector:
     matchLabels:
@@ -246,14 +244,16 @@ spec:
 
 1. When unshielded: `outer-gate` successfully sends `GET /v1/vault/loot` to `treasury-vault`. HP drops.
 2. When `spell-royal-curfew` is active:
-   - Cilium compiles the rule into eBPF socket and datapath programs.
-   - Packets from `outer-gate` are **instantly rejected in the kernel** at the socket layer.
-   - `outer-gate` receives `403 Forbidden` / connection reset.
+   - Cilium compiles the L7 policy into eBPF socket-level programs.
+   - Traffic targeting L7 rules is redirected in the kernel via eBPF sockops to Cilium's internal node-level Envoy proxy (**without injecting pod sidecars**).
+   - Unauthorized requests from `outer-gate` are **instantly rejected in the kernel/proxy layer** with a `403 Forbidden` or connection reset.
    - **Hubble UI** displays glowing red dropped flows in real time with the verdict `DROPPED (Policy denied)`.
 
 ### Spell 2: Fortify the Foundations (Cilium Host Firewall)
 
-Protects the underlying Kubernetes node physical/virtual network interfaces directly from sapper attacks attempting to probe SSH (22) or the Kubelet API (10250):
+Protects the underlying Kubernetes node physical/virtual network interfaces directly from sapper attacks attempting to probe sensitive host ports (e.g. Kubelet API 10250 or simulated node daemons):
+
+> **Prerequisite:** Cilium Host Firewall must be enabled in the Terraform module (`host_firewall_enabled = true`).
 
 ```yaml
 apiVersion: cilium.io/v2
@@ -265,14 +265,23 @@ spec:
     matchLabels:
       kubernetes.io/os: linux
   ingress:
+    # Essential: allow cluster control plane and node-to-node health checks
     - fromEntities:
         - cluster
+        - host
       toPorts:
         - ports:
             - port: "6443"
               protocol: TCP
-    # Reject raw sapper probes to port 22 or 10250 from untrusted sources
+            - port: "4240"     # Cilium health check
+              protocol: TCP
+        - icmp:
+            - type: 8          # Echo request (Ping)
+    # Reject raw sapper probes to port 10250 / SSH from non-cluster entities
 ```
+
+> [!NOTE]
+> **Kind Environment Consideration:** Standard Kind nodes do not run an SSH daemon (port 22) out of the box. Sapper probes simulate host attacks by hitting Kubelet (`10250`) or a lightweight daemon deployed with `hostNetwork: true`. Safe rule definitions ensure essential node communication (such as Cilium health probes on port 4240 and ICMP) are never blocked.
 
 **Kernel Effect:** When active, eBPF programs attached to the host's NIC (`eth0`) drop non-whitelisted node packets before the Linux network stack even processes them.
 
@@ -280,19 +289,23 @@ spec:
 
 Routes high-value merchant deposits headed for the external **Allied Realm Bank** through a dedicated gateway node that SNATs the packets with a predictable, static egress IP:
 
+> **Prerequisites:**
+> - Cilium Egress Gateway must be enabled in Terraform (`egress_gateway_enabled = true` and `bpf.masquerade = true`).
+> - The cluster topology must have at least 2 worker nodes (`worker_count = 2` in `kind-dev-01`) so one node can be labeled `node.kubernetes.io/role: egress-gateway` while merchant pods run on the other worker.
+
 ```yaml
 apiVersion: cilium.io/v2
 kind: CiliumEgressGatewayPolicy
 metadata:
   name: spell-royal-treaty-route
-  namespace: tower-defense
+  namespace: chaos-citadel
 spec:
   selectors:
     - podSelector:
         matchLabels:
           app.kubernetes.io/name: market-square
   destinationCIDRs:
-    - "198.51.100.100/32"    # External Allied Realm Bank IP
+    - "198.51.100.100/32"    # External Allied Realm Bank IP (or mock service)
   egressGateway:
     nodeSelector:
       matchLabels:
@@ -330,20 +343,54 @@ spec:
 4. **Round 2 — The Goblin Siege (4 min):** Raiders smash attack buttons; red flows appear, Treasury HP starts dropping rapidly. Panic ensues.
 5. **Round 3 — The eBPF Defense (4 min):** SREs cast the eBPF Curfew spell; big screen Hubble UI shows every goblin packet getting dropped at kernel speed. Treasury stabilizes and reaches 10,000 Gold.
 6. **Wrap-up & Debrief (3 min):**
-   - Explain how eBPF accomplished this with zero Envoy sidecars and zero application code changes.
+   - Explain how eBPF accomplished this with zero pod sidecars (using kernel-level socket redirection to node proxies for L7) and zero application code changes.
    - Show how the Terraform module automated the entire infrastructure.
 
 ---
 
 ## 7. Implementation Roadmap
 
-1. **Step 1: Structural Reorganization:**
-   - Partition `kubernetes/` into `kubernetes/homelab/` (production smart home) and `kubernetes/labs/` (sandbox, experiments, games).
-   - Update `applications-applicationset.yaml` and verify ArgoCD paths.
-2. **Step 2: Go Microservices & Controller:**
-   - Scaffold Go project in `kubernetes/labs/tower-defense/backend/`.
-   - Implement `outer-gate`, `market`, `treasury`, and `game-controller` with embedded mobile UI.
-3. **Step 3: Manifests & Policies:**
-   - Package Kubernetes manifests (Deployments, Services, RBAC, NetworkPolicies).
-4. **Step 4: Local Deployment on `kind-dev-01`:**
-   - Deploy into `kind-dev-01`, port-forward game controller and Hubble UI, and run end-to-end playtest.
+1. **Step 1: Lab Directory Setup:**
+   - Scaffold `kubernetes/labs/chaos-citadel/` structure without modifying existing production `kubernetes/applications/` paths.
+2. **Step 2: Infrastructure Configuration (`kind-dev-01`):**
+   - Update [terraform/kind-dev-01/main.tf](file:///Users/gsuquet/perso/github/homelab/terraform/kind-dev-01/main.tf) to enable `host_firewall_enabled = true`, `egress_gateway_enabled = true`, and set `worker_count = 2` (to separate gateway and workload nodes).
+3. **Step 3: Go Microservices & Controller:**
+   - Scaffold Go backend in `kubernetes/labs/chaos-citadel/backend/` (or dedicated standalone repo `chaos-citadel`).
+   - Implement `outer-gate`, `market`, `treasury`, and `game-controller` with embedded mobile UI, RBAC definitions, concurrent cast cooldowns, and automatic match reset.
+4. **Step 4: Manifests & Policies:**
+   - Package Kubernetes manifests (Deployments, Services, RBAC, CiliumNetworkPolicy, node-safe CCNP, and EgressGatewayPolicy with mock external bank service).
+5. **Step 5: Local Deployment & Playtesting on `kind-dev-01`:**
+   - Deploy into `kind-dev-01`, label the designated egress gateway worker node, port-forward game controller and Hubble UI, and run end-to-end playtest.
+
+---
+
+## 8. Long-Term Evolution: The Zero-Trust & Chaos Campaign
+
+As the infrastructure expands alongside the [Zero Trust & Chaos Lab](zero-trust-chaos-lab.md), Chaos Citadel will evolve from a pure networking demo into a modular, multi-level platform security and resilience arena:
+
+```ascii
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       CHAOS CITADEL: CAMPAIGN ROADMAP                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Level 1: eBPF Shields (Cilium & Hubble)                                     │
+│   • L3/L4/L7 Curfew, Host Firewall (Node Hardening), Egress Gateway         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Level 2: Environmental Cataclysms (Chaos Mesh)                              │
+│   • "Earthquake" (PodChaos) ➔ Test HPA and endpoint churn resilience        │
+│   • "Swamp Fog" (NetworkChaos) ➔ Latency/packet drops stalling trade flows  │
+│   • "Curse of Confusion" (DNSChaos) ➔ Scrambles CoreDNS resolution          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Level 3: The Royal Inquisitor (Cilium Tetragon / Falco / Datadog CSM)       │
+│   • "Sleeper Agent" ➔ Container escape & unauthorized shell execution        │
+│   • In-Kernel Enforcement ➔ Tetragon TracingPolicy kills process (SIGKILL)   │
+│   • Automated Quarantine ➔ Falco/Datadog alert triggers eBPF isolation      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Level 4: The Royal Cryptographic Seal (SPIFFE / SPIRE)                      │
+│   • "The Imposter" ➔ Raiders spoof pod labels (app: market-square)          │
+│   • Cryptographic mTLS ➔ SPIFFE ID verified at handshake; labels ignored    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Level 5: The Mirage Caravan (Argo Rollouts + Shadow Traffic)                │
+│   • Dark launch v2 service; 100% real traffic mirrored without user impact  │
+│   • Chaos injected into shadow route with zero Citadel HP impact            │
+└─────────────────────────────────────────────────────────────────────────────┘
+```

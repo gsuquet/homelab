@@ -65,7 +65,7 @@ before those alternatives become permanent, selectable options in the lab.
 | Workload identity | **SPIFFE / SPIRE** | — | Relevant regardless of the mesh choice above. |
 | Shadow traffic | **Argo Rollouts** (`setMirrorRoute`) driving **Istio** traffic routing | Gateway API traffic-routing plugin (would let Cilium's own Gateway API drive mirroring, no Istio needed) | Argo Rollouts (CNCF graduated, part of the Argo family) is the orchestration layer. As of today, only its built-in Istio provider implements mirroring; [PR #4643](https://github.com/argoproj/argo-rollouts/pull/4643) (merged into `master`, May 2026) generalized the mirroring validation so *any* traffic-routing plugin can implement it. The Gateway API plugin's own mirroring support is the natural next step on the public roadmap — re-check its status before phase 2; if it lands and Cilium's Gateway API mirror filter is confirmed usable with it, the Istio add-on may become unnecessary for this pillar. |
 | Policy as code / admission | **Kyverno** | OPA/Gatekeeper (Rego, more verbose) | |
-| Runtime security | **Datadog** (Cloud Security Management) | **Falco** (syscall/kernel-level anomaly detection, CNCF graduated) | Both are kept as permanent, selectable options — Datadog for managed/SaaS-oriented setups, Falco for fully self-hosted/OSS requirements. |
+| Runtime security | **Datadog** (Cloud Security Management) | **Falco** (syscall anomaly detection) / **Cilium Tetragon** (eBPF in-kernel enforcement) | Datadog for managed/SaaS setups. For self-hosted OSS: Falco (CNCF graduated) provides rule-based syscall auditing, while Cilium Tetragon provides native eBPF in-kernel enforcement (TracingPolicy with automated SIGKILL prevention) seamlessly integrated with the Cilium datapath. |
 | Cross-cutting observability | **Datadog** (dashboards, APM, network monitoring) | **Prometheus + Grafana** (+ Hubble UI) | Same logic: both stay in the lab, chosen per setup rather than one replacing the other. |
 | Chaos engineering | **Chaos Mesh** | LitmusChaos (more workflow/GitOps-oriented) | |
 | Supply chain (stretch) | **Trivy** (+ optional cosign/Sigstore) | — | |
@@ -108,7 +108,7 @@ fast-moving CNCF ecosystem detail flagged in
 Datadog is not a CNCF project, but the lab's purpose is to compare products,
 not to enforce OSS purity. It's built as a single `datadog` Terraform module
 with feature flags (APM, CSM, network monitoring, ...) so a given setup
-enables only what it needs. Falco + Prometheus/Grafana + Hubble UI are built
+enables only what it needs. Falco, Cilium Tetragon, Prometheus/Grafana, and Hubble UI are built
 alongside it as the fully self-hosted alternative. Neither retires the
 other — the value of the lab is being able to spin up either (or both, for
 a side-by-side demo) depending on what a client's environment or interest
@@ -134,6 +134,7 @@ terraform/
     kyverno/
     datadog/             # configurable observability + security, permanent
     falco/               # configurable runtime security, permanent
+    tetragon/            # Cilium eBPF runtime security & in-kernel enforcement
     chaos-mesh/
     observability-stack/ # kube-prometheus-stack, permanent
   templates/
@@ -166,7 +167,7 @@ modules — a given `templates/*` composition picks which ones it wires up.
 | 0 — Foundations | kind cluster + pure Cilium (CNI) + Hubble; Datadog available as an opt-in module | `cilium`, `hubble`, `datadog` modules, working dashboards |
 | 1 — Identity & network zero trust | SPIRE + `CiliumNetworkPolicy` in default-deny mode, still no mesh | `spire` module + versioned network policies, default-deny demo |
 | 2 — Shadow traffic add-on | Argo Rollouts driving mirroring through Istio ambient (working baseline); spike whether the Gateway API plugin + Cilium's mirror filter can replace Istio once available | `argo-rollouts`, `istio-ambient` modules, no-impact A/B demo scenario, spike notes |
-| 3 — Policy & runtime security | Kyverno (admission) + runtime security, built for both Datadog CSM and Falco | `kyverno`, `datadog`, `falco` modules, side-by-side security signals |
+| 3 — Policy & runtime security | Kyverno (admission) + runtime security, comparing Datadog CSM, Falco, and Cilium Tetragon | `kyverno`, `datadog`, `falco`, `tetragon` modules, side-by-side detection & in-kernel enforcement |
 | 4 — Chaos engineering | Chaos Mesh: pod kill, network latency, partition — combined with zero trust policies | `chaos-mesh` module, quick comparison with LitmusChaos |
 | 5 — Cloud validation | Replay scenarios 0-4 on a managed cluster | `cluster-gke` module, porting notes (cloud CNI differences, cost) |
 | 6 — Final deliverables | Benchmarks, comparisons, documentation consolidation, slides | Presentation deck, documented and publishable Terraform modules |
@@ -190,10 +191,11 @@ platform alone isn't a compelling deliverable for a client.
 3. **Chaos during shadow traffic**: inject latency/network failure on the
    candidate version while mirroring is active, to verify observability
    catches the problem before it ever reaches production.
-4. **Simulated intrusion**: a compromised pod attempts lateral movement;
-   Cilium blocks the unauthorized network flow, and a runtime alert fires —
-   run once with Datadog CSM, once with Falco, to compare detection and
-   signal quality side by side.
+4. **Simulated intrusion**: a compromised pod attempts lateral movement or
+   unauthorized process execution; Cilium blocks the unauthorized network
+   flow, while Datadog CSM, Falco, and Tetragon are evaluated side by side
+   (comparing post-facto syscall alerts vs. Tetragon's in-kernel `SIGKILL`
+   prevention).
 
 ## Expected deliverables
 
