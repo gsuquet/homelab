@@ -44,6 +44,8 @@ observability.
 | Variable | Notes |
 |---|---|
 | `hubble_relay_enabled` / `hubble_ui_enabled` | Flipped on when Hubble Relay or UI components are needed. |
+| `host_firewall_enabled` | Enables eBPF host firewall to protect host/node network namespace. |
+| `egress_gateway_enabled` | Enables egress gateway to redirect/SNAT pod traffic leaving the cluster via dedicated gateway nodes. |
 | `k8s_service_host` / `k8s_service_port` | Set explicitly for kind; leave empty on managed clouds unless proven necessary. |
 | `policy_enforcement_mode` | Allows explicit `CiliumNetworkPolicy` resources per workload without enforcing global default-deny upfront. |
 

@@ -190,6 +190,23 @@ variable "hubble_ui_enabled" {
 
 
 # ─────────────────────────────────────────────
+# Advanced Network & Security Features
+# ─────────────────────────────────────────────
+
+variable "host_firewall_enabled" {
+  description = "Enable Cilium's eBPF host firewall to enforce security policies directly on the host/node network namespace."
+  type        = bool
+  default     = false
+}
+
+variable "egress_gateway_enabled" {
+  description = "Enable Cilium's egress gateway to redirect and SNAT pod traffic exiting the cluster through designated gateway nodes."
+  type        = bool
+  default     = false
+}
+
+
+# ─────────────────────────────────────────────
 # Helm release behavior
 # ─────────────────────────────────────────────
 
