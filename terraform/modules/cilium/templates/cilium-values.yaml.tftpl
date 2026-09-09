@@ -1331,7 +1331,7 @@ healthCheckICMPFailureThreshold: 3
 # -- Configure the host firewall.
 hostFirewall:
   # -- Enables the enforcement of host policies in the eBPF datapath.
-  enabled: false
+  enabled: ${HOST_FIREWALL_ENABLED}
 # -- Enable routing to a service that has zero endpoints
 enableNoServiceEndpointsRoutable: true
 # -- Configure socket LB
@@ -2454,7 +2454,7 @@ nat:
 egressGateway:
   # -- Enables egress gateway to redirect and SNAT the traffic that leaves the
   # cluster.
-  enabled: false
+  enabled: ${EGRESS_GATEWAY_ENABLED}
   # -- Time between triggers of egress gateway state reconciliations
   reconciliationTriggerInterval: 1s
   # -- Maximum number of entries in egress gateway policy map

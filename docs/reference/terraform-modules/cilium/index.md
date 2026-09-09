@@ -31,11 +31,13 @@ See [AGENTS.md](AGENTS.md) for key architectural and design decisions.
 | <a name="input_cluster_name"></a> [cluster\_name](#input\_cluster\_name) | Name of the cluster. It must contain at most 32 characters; It must begin and end with a lower case alphanumeric character; It may contain lower case alphanumeric characters and dashes between. | `string` | n/a | yes |
 | <a name="input_cluster_type"></a> [cluster\_type](#input\_cluster\_type) | Target platform: 'kind' (local), 'gke', 'eks', 'aks', or 'generic'. | `string` | `"kind"` | no |
 | <a name="input_common_labels"></a> [common\_labels](#input\_common\_labels) | Labels applied to every Cilium resource (chart's commonLabels value). | `map(string)` | `{}` | no |
+| <a name="input_egress_gateway_enabled"></a> [egress\_gateway\_enabled](#input\_egress\_gateway\_enabled) | Enable Cilium's egress gateway to redirect and SNAT pod traffic exiting the cluster through designated gateway nodes. | `bool` | `false` | no |
 | <a name="input_eks_eni_enabled"></a> [eks\_eni\_enabled](#input\_eks\_eni\_enabled) | EKS only: use AWS ENI mode (eni.enabled) instead of overlay routing, per Cilium's EKS quickstart. Ignored unless cluster\_type = "eks". | `bool` | `true` | no |
 | <a name="input_encryption_enabled"></a> [encryption\_enabled](#input\_encryption\_enabled) | Enable transparent pod-to-pod traffic encryption. | `bool` | `true` | no |
 | <a name="input_encryption_type"></a> [encryption\_type](#input\_encryption\_type) | Encryption backend when encryption\_enabled is true: 'wireguard' (simpler, generally faster) or 'ipsec'. | `string` | `"wireguard"` | no |
 | <a name="input_gke_cni_bin_path"></a> [gke\_cni\_bin\_path](#input\_gke\_cni\_bin\_path) | GKE only: path to the CNI binary directory on GKE nodes, per Cilium's GKE quickstart. Ignored unless cluster\_type = "gke". | `string` | `"/home/kubernetes/bin"` | no |
 | <a name="input_gke_node_init_enabled"></a> [gke\_node\_init\_enabled](#input\_gke\_node\_init\_enabled) | GKE only: enable nodeinit (reconfigureKubelet, removeCbrBridge) as recommended by Cilium's GKE quickstart. Ignored unless cluster\_type = "gke". | `bool` | `true` | no |
+| <a name="input_host_firewall_enabled"></a> [host\_firewall\_enabled](#input\_host\_firewall\_enabled) | Enable Cilium's eBPF host firewall to enforce security policies directly on the host/node network namespace. | `bool` | `false` | no |
 | <a name="input_hubble_enabled"></a> [hubble\_enabled](#input\_hubble\_enabled) | Enable Hubble's flow-visibility component in the Cilium agent. Required before hubble\_relay\_enabled/hubble\_ui\_enabled can do anything. | `bool` | `true` | no |
 | <a name="input_hubble_relay_enabled"></a> [hubble\_relay\_enabled](#input\_hubble\_relay\_enabled) | Enable the Hubble Relay deployment. Defaults to false: relay/UI are part of the same Helm chart/release as Cilium itself (see AGENTS.md for why this can't be a second, independent Helm release), so the hubble module flips this on rather than installing anything of its own. | `bool` | `false` | no |
 | <a name="input_hubble_ui_enabled"></a> [hubble\_ui\_enabled](#input\_hubble\_ui\_enabled) | Enable the Hubble UI deployment. Same caveat as hubble\_relay\_enabled. | `bool` | `false` | no |
@@ -53,6 +55,8 @@ See [AGENTS.md](AGENTS.md) for key architectural and design decisions.
 
 | Name | Description |
 | ---- | ----------- |
+| <a name="output_egress_gateway_enabled"></a> [egress\_gateway\_enabled](#output\_egress\_gateway\_enabled) | Whether Cilium Egress Gateway is enabled on this release. |
+| <a name="output_host_firewall_enabled"></a> [host\_firewall\_enabled](#output\_host\_firewall\_enabled) | Whether Cilium Host Firewall is enabled on this release. |
 | <a name="output_hubble_relay_enabled"></a> [hubble\_relay\_enabled](#output\_hubble\_relay\_enabled) | Whether Hubble Relay is enabled on this release. Consumed by the hubble module to know whether it still needs to flip this on. |
 | <a name="output_hubble_ui_enabled"></a> [hubble\_ui\_enabled](#output\_hubble\_ui\_enabled) | Whether the Hubble UI is enabled on this release. Consumed by the hubble module to know whether it still needs to flip this on. |
 | <a name="output_namespace"></a> [namespace](#output\_namespace) | Namespace Cilium was installed into. |

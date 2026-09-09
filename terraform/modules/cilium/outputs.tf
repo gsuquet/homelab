@@ -22,3 +22,13 @@ output "hubble_ui_enabled" {
   description = "Whether the Hubble UI is enabled on this release. Consumed by the hubble module to know whether it still needs to flip this on."
   value       = var.hubble_ui_enabled
 }
+
+output "host_firewall_enabled" {
+  description = "Whether Cilium Host Firewall is enabled on this release."
+  value       = var.host_firewall_enabled
+}
+
+output "egress_gateway_enabled" {
+  description = "Whether Cilium Egress Gateway is enabled on this release."
+  value       = var.egress_gateway_enabled
+}
