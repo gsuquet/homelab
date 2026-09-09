@@ -69,3 +69,5 @@ Understanding-oriented documents that explain the *why* behind architectural dec
 | [Secret Management](explanation/secret-management.md) | How Sealed Secrets enables encrypted GitOps secrets |
 | [Smart Home Stack](explanation/smart-home-stack.md) | How Zigbee2MQTT, Mosquitto, and Home Assistant work together |
 | [Automated Updates](explanation/automated-updates.md) | How Renovate keeps dependencies current |
+| [Tower Defense eBPF Game](explanation/tower-defense-ebpf-game.md) | Interactive multiplayer game demonstrating Cilium and Hubble |
+| [Zero Trust & Chaos Lab](explanation/zero-trust-chaos-lab.md) | R&D testbed for zero-trust networking, shadow traffic, and chaos |
