@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned
+%{ if length(COMMON_LABELS) > 0 ~}
+  labels:
+%{ for k, v in COMMON_LABELS ~}
+    ${k}: "${v}"
+%{ endfor ~}
+%{ endif ~}
+spec:
+  selfSigned: {}

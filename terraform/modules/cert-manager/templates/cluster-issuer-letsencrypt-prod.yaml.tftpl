@@ -1,0 +1,55 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+%{ if length(COMMON_LABELS) > 0 ~}
+  labels:
+%{ for k, v in COMMON_LABELS ~}
+    ${k}: "${v}"
+%{ endfor ~}
+%{ endif ~}
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+%{ if ACME_EMAIL != "" ~}
+    email: ${ACME_EMAIL}
+%{ endif ~}
+    privateKeySecretRef:
+      name: letsencrypt-prod-account-key
+    solvers:
+%{ if ENABLE_GATEWAY_API_SOLVER ~}
+      - http01:
+          gatewayHTTPRoute:
+            parentRefs:
+              - name: ${GATEWAY_NAME}
+%{ if GATEWAY_NAMESPACE != "" ~}
+                namespace: ${GATEWAY_NAMESPACE}
+%{ endif ~}
+                kind: ${GATEWAY_KIND}
+                group: ${GATEWAY_GROUP}
+%{ endif ~}
+%{ if ENABLE_CLOUDFLARE_DNS01_SOLVER ~}
+      - dns01:
+          cloudflare:
+            apiTokenSecretRef:
+              name: ${CLOUDFLARE_SECRET_NAME}
+              key: api-token
+%{ if length(CLOUDFLARE_DNS01_ZONES) > 0 || length(CLOUDFLARE_DNS01_DOMAINS) > 0 ~}
+        selector:
+%{ if length(CLOUDFLARE_DNS01_ZONES) > 0 ~}
+          dnsZones:
+%{ for zone in CLOUDFLARE_DNS01_ZONES ~}
+            - ${zone}
+%{ endfor ~}
+%{ endif ~}
+%{ if length(CLOUDFLARE_DNS01_DOMAINS) > 0 ~}
+          dnsNames:
+%{ for domain in CLOUDFLARE_DNS01_DOMAINS ~}
+            - ${domain}
+%{ endfor ~}
+%{ endif ~}
+%{ endif ~}
+%{ endif ~}
+%{ if CUSTOM_SOLVERS_YAML != "" ~}
+${CUSTOM_SOLVERS_YAML}
+%{ endif ~}
