@@ -6,6 +6,14 @@ module "kind_cluster" {
   worker_count        = 1
 }
 
+module "gateway_api" {
+  source = "../modules/gateway-api"
+
+  channel = "standard"
+
+  depends_on = [module.kind_cluster]
+}
+
 module "cilium" {
   source = "../modules/cilium"
 
@@ -16,5 +24,13 @@ module "cilium" {
   hubble_relay_enabled = true
   hubble_ui_enabled    = true
 
-  depends_on = [module.kind_cluster]
+  depends_on = [module.kind_cluster, module.gateway_api]
+}
+
+module "agent_sandbox" {
+  source = "../modules/agent-sandbox"
+
+  enable_extensions = true
+
+  depends_on = [module.cilium]
 }
