@@ -9,3 +9,7 @@ provider "helm" {
     config_path = module.kind_cluster.kubeconfig_path
   }
 }
+
+provider "kubectl" {
+  config_path = module.kind_cluster.kubeconfig_path
+}
