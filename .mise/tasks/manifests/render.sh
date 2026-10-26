@@ -8,7 +8,7 @@ set -euo pipefail
 # the sibling values.yaml into **/manifests/install.yaml
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if ! PROJECT_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null)"; then
+if ! PROJECT_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2> /dev/null)"; then
     PROJECT_ROOT="${MISE_PROJECT_ROOT:-$(cd "$SCRIPT_DIR/../../.." && pwd)}"
 fi
 
@@ -69,7 +69,7 @@ split_manifest_by_source() {
             fi
 
             cat "$temp_file" > "$output_path"
-            ((file_count+=1))
+            ((file_count += 1))
         fi
     }
 
@@ -78,7 +78,7 @@ split_manifest_by_source() {
             flush_current_resource
 
             current_file="$(source_comment_to_filename "${BASH_REMATCH[1]}")"
-            > "$temp_file"
+            : > "$temp_file"
             echo "$line" >> "$temp_file"
         elif [ -n "$current_file" ]; then
             echo "$line" >> "$temp_file"
@@ -132,7 +132,7 @@ while IFS= read -r chart_file; do
 
     if [ ! -f "$values_file" ]; then
         log_error "Missing required values file: $values_file"
-        ((error_count+=1))
+        ((error_count += 1))
         continue
     fi
 
@@ -140,7 +140,7 @@ while IFS= read -r chart_file; do
     log_info "Updating chart dependencies in: $source_dir"
     if ! helm dependency update "$source_dir" > /dev/null 2>&1; then
         log_error "Failed to update chart dependencies for $component_name"
-        ((error_count+=1))
+        ((error_count += 1))
         continue
     fi
 
@@ -161,10 +161,10 @@ while IFS= read -r chart_file; do
     if helm template "$component_name" "$source_dir" -f "$values_file" $helm_extra_args > "$output_file"; then
         log_info "✓ Successfully rendered $component_name"
         split_manifest_by_source "$output_file" "$manifest_dir"
-        ((rendered_count+=1))
+        ((rendered_count += 1))
     else
         log_error "✗ Failed to render $component_name"
-        ((error_count+=1))
+        ((error_count += 1))
     fi
 
 done <<< "$chart_files"

@@ -15,7 +15,7 @@ for isolated, stateful, singleton workloads tailored for AI agents and sandbox e
 - **Extensions enabled by default.** `enable_extensions = true` activates the `SandboxTemplate`,
   `SandboxWarmPool`, and `SandboxClaim` controllers alongside the core `Sandbox` controller.
 - **Template-driven values.** The values template file (`templates/agent-sandbox-values.yaml.tftpl`)
-  uses uppercase placeholders (`${VARIABLE_NAME}`) rendered via `templatefile()` in `helm-chart.tf`.
+  uses uppercase placeholders (`${VARIABLE_NAME}`) rendered via `templatefile()` in `main.tf`.
 - **Prometheus Operator integration.** An optional `prometheus_servicemonitor_enabled` toggle
   provisions a `ServiceMonitor` for scraping controller metrics.
 
@@ -37,7 +37,7 @@ deploying AI agent sandbox workloads or RBAC bindings.
 - **`charts/agent-sandbox/`** — vendored upstream Helm chart.
 - **`templates/agent-sandbox-values.yaml.tftpl`** — values template with uppercase placeholders.
 - **`locals.tf`** — computes values passed to `templatefile()`.
-- **`helm-chart.tf`** — `helm_release.agent_sandbox` resource definition.
+- **`main.tf`** — `helm_release.agent_sandbox` resource definition.
 - **`namespace.tf`** — conditional namespace creation.
 - **`variables.tf`** / **`outputs.tf`** — input variables and outputs.
 

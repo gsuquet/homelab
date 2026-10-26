@@ -176,13 +176,41 @@ mise run changelog:generate
 
 ---
 
-### `pr:create`
+### `lint`
 
-**Script**: `.mise/tasks/pr/create.sh`
-**Description**: Helper script for PR creation using GitHub CLI (`gh`)
+**Script**: `.mise/tasks/lint/_default.sh`
+**Description**: Run every linter and check. The `Lint` workflow and the pre-commit hooks run the same tasks.
+
+It runs these tasks:
+
+| Task | Tools | Checks |
+| --- | --- | --- |
+| `lint:terraform` | `terraform fmt`, TFLint | Format of all `.tf` files. TFLint with the `all` preset of the bundled `terraform` ruleset (`.tflint.hcl`), in each Terraform directory. `terraform/templates/` is not linted. |
+| `lint:policy` | Conftest | Runs the policy unit tests (`conftest verify`), then checks Terraform, Kubernetes, pre-commit and mise files against the policies in `policy/`. Refer to [Policies](policies.md). |
+| `lint:actions` | actionlint, zizmor | Syntax and security of the workflows in `.github/workflows/`. |
+| `lint:shell` | ShellCheck, shfmt | Shell scripts tracked by git. shfmt reads its settings from `.editorconfig`. |
+| `schemas:test` | check-jsonschema | Refer to [Schemas](schemas.md). |
+| `schemas:check` | check-jsonschema, yq | Refer to [Schemas](schemas.md). |
 
 **Usage**:
 
 ```bash
-mise run pr:create
+mise run lint
+mise run lint:terraform
 ```
+
+---
+
+### `tf:lock`
+
+**Script**: `.mise/tasks/tf/lock.sh`
+**Description**: Update the Terraform lock files for all supported platforms.
+
+Run it after you change a provider version. Commit the `.terraform.lock.hcl` files.
+
+---
+
+### `manifests:validate`
+
+**Script**: `.mise/tasks/manifests/validate.sh`
+**Description**: Validate the rendered manifests against the Kubernetes schemas with kubeconform.
