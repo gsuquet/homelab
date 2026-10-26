@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=../../../instance.schema.json
+---
+apiVersion: infra.gsuquet.com/v1alpha1
+kind: Instance
+name: gke-demo
+description: An ephemeral instance needs a ttl.
+purpose: demo
+lifecycle:
+  type: ephemeral
+state:
+  backend: r2
+layers:
+  cluster:
+    module: cluster-gke
+  bootstrap:
+    module: bootstrap-argocd

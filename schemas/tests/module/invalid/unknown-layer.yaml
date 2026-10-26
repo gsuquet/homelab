@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=../../../module.schema.json
+---
+apiVersion: infra.gsuquet.com/v1alpha1
+kind: Module
+name: platform-cilium
+layer: platform
+tool: terraform
+description: Platform components belong in gitops, not in modules.
+maturity: stable

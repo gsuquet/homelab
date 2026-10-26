@@ -1,80 +1,149 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "automerge": false,
-  "automergeType": "pr",
   "branchPrefix": "renovate/",
   "commitBodyTable": true,
   "configMigration": true,
   "customManagers": [
     {
       "customType": "regex",
-      "datasourceTemplate": "docker",
+      "description": "Versions annotated with a trailing '# renovate: datasource=... depName=...' comment",
       "managerFilePatterns": [
-        "**/deployment.yaml",
-        "**/kustomization.yaml"
+        "/(^|/)\\.mise/config\\.toml$/",
+        "/\\.ya?ml$/",
+        "/\\.tf$/",
+        "/\\.sh$/"
       ],
       "matchStrings": [
-        ".*version:\\s*['\"]?(?<currentValue>[^'\"\\s]+)['\"]?\\s*#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)",
-        "\\s*image:\\s*(?<depName>[a-zA-Z0-9./-]+):(?<currentValue>[a-zA-Z0-9._\\-]+)(?:@sha256:(?<currentDigest>[a-fA-F0-9]{64}))?"
+        "[\"']?(?<currentValue>[^\"'\\s]+)[\"']?\\s*#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)(\\s+versioning=(?<versioning>\\S+))?"
+      ]
+    },
+    {
+      "customType": "regex",
+      "datasourceTemplate": "docker",
+      "description": "Container images in hand-written Kubernetes manifests, including folded scalars (image: >-)",
+      "managerFilePatterns": [
+        "/^kubernetes/(applications|system)/.+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "image:\\s*(?:>-\\s*)?(?<depName>[a-zA-Z0-9./_-]+):(?<currentValue>[a-zA-Z0-9._-]+)(?:@(?<currentDigest>sha256:[a-f0-9]{64}))?"
       ]
     }
   ],
+  "dependencyDashboard": true,
+  "description": "Renovate config for the homelab repo. Every dependency is pinned (exact versions, digests, commit SHAs); low-risk tool updates merge themselves after all checks pass.",
   "extends": [
     "config:best-practices",
     "customManagers:githubActionsVersions",
     "helpers:pinGitHubActionDigestsToSemver",
     ":enablePreCommit",
-    ":maintainLockFilesWeekly",
+    ":gitSignOff",
     ":rebaseStalePrs",
     ":semanticCommits",
-    ":semanticCommitScope(deps)",
-    ":disableRateLimiting",
-    ":gitSignOff"
+    ":semanticCommitScope(deps)"
   ],
-  "forkProcessing": "enabled",
+  "internalChecksFilter": "strict",
   "kubernetes": {
-    "managerFilePatterns": [
-      "/platform/**/*.yaml",
-      "/services/**/*.yaml"
-    ]
+    "enabled": false
   },
   "labels": [
     "renovate"
   ],
+  "lockFileMaintenance": {
+    "automerge": true,
+    "enabled": true,
+    "schedule": [
+      "* 0-6 * * 1"
+    ]
+  },
+  "minimumReleaseAge": "3 days",
   "packageRules": [
     {
       "dependencyDashboardApproval": true,
-      "description": "Require approval for all major version updates",
+      "description": "Major updates wait for approval on the Dependency Dashboard",
       "matchUpdateTypes": [
         "major"
       ]
     },
     {
       "automerge": true,
-      "description": "Prefix all markdown files updates with 'docs'",
-      "matchFileNames": [
-        "**/*.md"
-      ],
-      "semanticCommitScope": null,
-      "semanticCommitType": "docs"
-    },
-    {
-      "automerge": true,
-      "description": "Automatically update dev tools",
-      "extends": [
-        ":semanticCommitScope(tools)"
-      ],
+      "automergeType": "pr",
+      "description": "Dev tools (mise, pre-commit, GitHub Actions): one weekly PR, merged automatically when all checks pass",
       "groupName": "dev tools",
       "groupSlug": "dev-tools",
-      "ignoreTests": true,
       "matchFileNames": [
         ".mise/config.toml",
-        "**/mise/config.toml",
-        ".pre-commit-config.yaml"
+        ".pre-commit-config.yaml",
+        ".github/workflows/**"
       ],
-      "schedule": [
-        "* * * * 5"
+      "matchManagers": [
+        "mise",
+        "pre-commit",
+        "github-actions",
+        "custom.regex"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "digest",
+        "pin",
+        "pinDigest"
+      ],
+      "platformAutomerge": false,
+      "semanticCommitScope": "tools"
+    },
+    {
+      "description": "Terraform providers: one weekly PR; no automerge until Kind tests exist (Phase 4)",
+      "groupName": "terraform providers",
+      "groupSlug": "terraform-providers",
+      "matchManagers": [
+        "terraform"
+      ],
+      "semanticCommitScope": "terraform"
+    },
+    {
+      "description": "Helm charts and container images that reach the homelab: no automerge until Kind tests exist (Phase 4)",
+      "matchFileNames": [
+        "kubernetes/**"
+      ],
+      "semanticCommitScope": "kubernetes"
+    },
+    {
+      "description": "Ansible is being removed (Phase 3): no updates",
+      "enabled": false,
+      "matchFileNames": [
+        "ansible/**"
       ]
+    },
+    {
+      "description": "Ansible tool versions in .mise/config.toml: no updates",
+      "enabled": false,
+      "matchPackageNames": [
+        "ansible",
+        "ansible-creator"
+      ]
+    },
+    {
+      "description": "Lock file maintenance PRs use the tools scope",
+      "matchUpdateTypes": [
+        "lockFileMaintenance"
+      ],
+      "semanticCommitScope": "lock"
     }
-  ]
+  ],
+  "prConcurrentLimit": 10,
+  "prHourlyLimit": 4,
+  "rangeStrategy": "pin",
+  "schedule": [
+    "* 0-6 * * 1"
+  ],
+  "vulnerabilityAlerts": {
+    "labels": [
+      "renovate",
+      "security"
+    ],
+    "minimumReleaseAge": null,
+    "schedule": [
+      "at any time"
+    ]
+  }
 }

@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=../../../instance.schema.json
+---
+apiVersion: infra.gsuquet.com/v1alpha1
+kind: Instance
+name: kind-local
+description: The bootstrap layer is required.
+purpose: test
+lifecycle:
+  type: long-lived
+state:
+  backend: local
+layers:
+  cluster:
+    module: cluster-kind

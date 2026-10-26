@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=../../../instance.schema.json
+---
+apiVersion: infra.gsuquet.com/v1alpha1
+kind: Instance
+name: homelab
+description: Production must not keep state on a laptop.
+purpose: production
+lifecycle:
+  type: long-lived
+state:
+  backend: local
+layers:
+  cluster:
+    module: cluster-talos
+  bootstrap:
+    module: bootstrap-argocd

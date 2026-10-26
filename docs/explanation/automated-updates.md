@@ -1,110 +1,67 @@
 # Explanation: Automated Updates
 
-This document explains how dependency updates are automated using Renovate, and how the pre-commit hook ensures manifests stay in sync when update PRs are merged.
+This document tells how Renovate keeps dependencies up to date, and which updates merge without a human review.
 
 ---
 
-## What Renovate Does
+## What Renovate updates
 
-[Renovate](https://docs.renovatebot.com/) is a bot that scans the repository for dependency version references and opens pull requests to bump them. It runs on a schedule and covers:
+[Renovate](https://docs.renovatebot.com/) scans the repository and opens pull requests (PRs) to update dependencies. The configuration is in `renovate.json`. Renovate updates:
 
-- Container image tags in Kubernetes manifests (`deployment.yaml`, `kustomization.yaml`)
-- Helm chart versions in `sources/chart.yaml` files
-- Tool versions in `.mise/config.toml`
-- Pre-commit hook versions in `.pre-commit-config.yaml`
+| Dependency | Location | Manager |
+| --- | --- | --- |
+| Tools | `.mise/config.toml` | `mise` |
+| Pre-commit hooks (commit SHAs) | `.pre-commit-config.yaml` | `pre-commit` |
+| GitHub Actions (commit SHAs) | `.github/workflows/*.yml` | `github-actions` |
+| Terraform providers and lock files | `terraform/**` | `terraform` |
+| Helm chart dependencies | `kubernetes/**/sources/Chart.yaml` | `helmv3` |
+| Container images (tag and digest) | `kubernetes/applications/**`, `kubernetes/system/**` | custom regex |
+| Versions with a `# renovate:` comment | any YAML, TOML, Terraform or shell file | custom regex |
 
-When Renovate finds a new version, it opens a PR with a branch named `renovate/<package>-<version>`. The PR title follows the conventional commit format set in `renovate.json`.
+Renovate does not update `ansible/`. Ansible will be removed.
 
 ---
 
-## Configuration Overview
+## Pinning
 
-The Renovate configuration lives in `renovate.json`. Key settings:
+All dependencies are pinned:
 
-### Commit Format
+- Exact versions (`rangeStrategy: pin`).
+- Container images with a digest.
+- GitHub Actions and pre-commit hooks with a commit SHA. A comment keeps the readable version.
+- Terraform lock files for all platforms. Run `mise run tf:lock` to refresh them.
+- Tool checksums in `.mise/mise.lock`.
 
-```json
-"semanticCommits": "enabled",
-"commitBody": "{{#if isPR}}{{/if}}"
+A new release must be 3 days old before Renovate proposes it (`minimumReleaseAge`). Security fixes do not wait.
+
+---
+
+## Schedule
+
+Renovate opens PRs on Monday before 07:00. Security fixes open at any time. Lock file maintenance runs on the same schedule.
+
+---
+
+## Automatic merge
+
+| Updates | Automatic merge | Condition |
+| --- | --- | --- |
+| Dev tools: mise, pre-commit, GitHub Actions (minor, patch, digest) | Yes, one grouped PR | All checks pass |
+| Lock file maintenance | Yes | All checks pass |
+| Terraform providers | No | Human review |
+| Helm charts and container images | No | Human review |
+| Major updates | No | Approval on the Dependency Dashboard, then human review |
+
+Helm charts and images reach the homelab. They will merge automatically after the Kind tests exist (Phase 4 of the plan). After that, a minor or patch update merges when all checks and Kind tests pass.
+
+---
+
+## Rendered manifests on update PRs
+
+Renovate cannot run commands after an update on the hosted app. When Renovate changes a `sources/Chart.yaml`, the rendered manifests are not updated in the same PR. The `Validate Kubernetes Manifests` workflow then fails. Until Phase 4 adds an automatic render step, run this on the PR branch:
+
+```bash
+mise run manifests:render
 ```
 
-Commits use the conventional commit format, matching the style enforced by commitlint.
-
-### Auto-merge Rules
-
-Renovate is configured to auto-merge specific categories of updates without manual review:
-
-| Category | Scope | Schedule | Condition |
-| -------- | ----- | -------- | --------- |
-| Markdown files | `docs` | Anytime | Minor/patch only |
-| Dev tools (mise, pre-commit) | `tools` | Fridays | Minor/patch only |
-
-Major version updates require dashboard approval before Renovate opens a PR.
-
-### Custom Managers
-
-Renovate uses a regex-based custom manager to detect container image versions in the Kubernetes manifests:
-
-```json
-{
-  "customManagers": [
-    {
-      "customType": "regex",
-      "datasourceTemplate": "docker",
-      "fileMatch": ["deployment.yaml", "kustomization.yaml"]
-    }
-  ]
-}
-```
-
-This allows Renovate to detect image tag bumps like `ghcr.io/home-assistant/home-assistant:2026.8.0` and open PRs with the next release.
-
----
-
-## Example: Home Assistant Version Bumps
-
-The commit history shows a clear pattern of automated updates:
-
-```text
-chore(homeassistant): bump from 2026.3.4 to 2026.4.3
-chore(homeassistant): bump from 2026.2.3 to 2026.3.4
-chore(homeassistant): bump from 2026.1.3 to 2026.2.3
-chore(homeassistant): bump from 2025.12.0 to 2026.1.3
-```
-
-Each commit updates only the image tag in `kubernetes/applications/homeassistant/deployment.yaml`. ArgoCD detects the change on the next poll and performs a rolling update of the Home Assistant pod.
-
----
-
-## How Manifests Stay in Sync on Update PRs
-
-When Renovate bumps a Helm chart version (e.g., ArgoCD), it modifies `kubernetes/bootstrap/argo-cd/sources/chart.yaml`. This triggers the `render-manifests` pre-commit hook:
-
-```yaml
-# .pre-commit-config.yaml
-- id: render-manifests
-  files: 'kubernetes/**/sources/.*\.yaml'
-  entry: mise run manifests:render
-```
-
-The hook fires when `sources/*.yaml` files are staged and re-renders the manifests before the commit is finalised. This means the Renovate PR automatically includes both the chart version bump and the updated rendered manifests in the same commit — no manual re-rendering step is needed.
-
----
-
-## What Renovate Does NOT Update
-
-- Sealed Secrets encrypted blobs — these are not version-tagged
-- Ansible playbook logic
-- YAML linting rules
-
----
-
-## Reviewing Renovate PRs
-
-For updates that do not auto-merge (application image updates, major version bumps), Renovate opens a PR for manual review. The PR description includes:
-
-- The old and new versions
-- A link to the changelog or release notes (where available)
-- CI status (YAML lint, manifest check)
-
-After review, merge the PR. ArgoCD automatically applies the update within 3 minutes.
+Commit and push the result.

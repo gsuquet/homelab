@@ -7,7 +7,7 @@ This repository is a personal infrastructure learning sandbox and configuration 
 1. **Rendered Manifests Pattern**:
    - Kubernetes applications in `kubernetes/bootstrap/argo-cd/sources/` use Helm charts as source of truth.
    - NEVER manually edit generated files in `kubernetes/**/manifests/` unless modifying template overlays.
-   - ALWAYS run `mise run manifests:render` after changing `sources/chart.yaml` or values files to regenerate split manifests.
+   - ALWAYS run `mise run manifests:render` after changing `sources/Chart.yaml` or values files to regenerate split manifests.
 
 2. **Sealed Secrets**:
    - Plain Kubernetes Secret objects must NEVER be committed to Git.

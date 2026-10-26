@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=../../../instance.schema.json
+---
+apiVersion: infra.gsuquet.com/v1alpha1
+kind: Instance
+name: homelab
+description: Production smart home and personal services on a Raspberry Pi 4.
+purpose: production
+lifecycle:
+  type: long-lived
+state:
+  backend: r2
+layers:
+  cluster:
+    module: cluster-talos
+  bootstrap:
+    module: bootstrap-argocd

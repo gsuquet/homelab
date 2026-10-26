@@ -29,7 +29,7 @@ homelab/
 │   ├── bootstrap/
 │   │   └── argo-cd/                  # ArgoCD self-managed installation
 │   │       ├── sources/
-│   │       │   ├── chart.yaml        # Helm chart dependency (argo-cd 9.5.2)
+│   │       │   ├── Chart.yaml        # Helm chart dependency (argo-cd 9.5.2)
 │   │       │   └── values.yaml       # ArgoCD Helm values
 │   │       ├── manifests/
 │   │       │   ├── install.yaml      # Full rendered output (do not edit directly)
@@ -94,7 +94,7 @@ homelab/
 | ---- | ------- |
 | `ansible/inventory/hosts.yml` | Single source of truth for which hosts exist and what groups they belong to |
 | `ansible/inventory/group_vars/all.yml` | `k3s_version` is the authoritative K3S version for the cluster |
-| `kubernetes/bootstrap/argo-cd/sources/chart.yaml` | Bumping `version` here triggers an ArgoCD upgrade after re-rendering |
+| `kubernetes/bootstrap/argo-cd/sources/Chart.yaml` | Bumping `version` here triggers an ArgoCD upgrade after re-rendering |
 | `kubernetes/bootstrap/argo-cd/bootstrap-application.yaml` | The first ArgoCD Application applied manually; it makes ArgoCD manage itself |
 | `kubernetes/bootstrap/argo-cd/applications-applicationset.yaml` | Any new directory under `kubernetes/applications/` is automatically deployed |
 | `.mise/config.toml` | Pin tool versions here; `mise install` installs them all |

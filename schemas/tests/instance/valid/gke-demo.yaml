@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=../../../instance.schema.json
+---
+apiVersion: infra.gsuquet.com/v1alpha1
+kind: Instance
+name: gke-demo
+description: Short-lived GKE demonstration of the shared platform.
+purpose: demo
+lifecycle:
+  type: ephemeral
+  ttl: 8h
+state:
+  backend: r2
+layers:
+  substrate:
+    module: substrate-gcp-project
+  cluster:
+    module: cluster-gke
+  bootstrap:
+    module: bootstrap-argocd

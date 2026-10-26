@@ -17,3 +17,4 @@ data:
   policy.default: ""
   policy.matchMode: glob
   scopes: '[groups]'
+

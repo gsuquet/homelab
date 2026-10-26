@@ -1,0 +1,8 @@
+# yaml-language-server: $schema=../../../module.schema.json
+---
+apiVersion: infra.gsuquet.com/v1alpha1
+kind: Module
+name: cluster-kind
+layer: cluster
+tool: terraform
+maturity: stable

@@ -22,3 +22,4 @@ spec:
   selector:
     app.kubernetes.io/name: argocd-application-controller
     app.kubernetes.io/instance: argo-cd
+

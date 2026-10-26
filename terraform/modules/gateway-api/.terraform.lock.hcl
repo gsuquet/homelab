@@ -5,7 +5,10 @@ provider "registry.terraform.io/alekc/kubectl" {
   version     = "2.2.0"
   constraints = "2.2.0"
   hashes = [
+    "h1:6HwngyuZSYtUxitcIr7YCGTgoHfjM4klSTPPa4di/BM=",
     "h1:UMcNNSk7bFSs3gzn/+8d6j2/lK+PEUKV4CSrjP6N6nA=",
+    "h1:aSxSOp1l8qIoSYmskiqNH+rKH7OFdvSpob0NWBfR96I=",
+    "h1:hj17qVLN9XWIx5jNPgfvoGFIzijMNhrkfQTbaI0sucE=",
     "zh:0187d07fbfc6960c8f1e5a0a10f686ff989af070dad3c703825e7b36d9f4752b",
     "zh:0d010cb68aea779e8468b267a066f55a27556ef32f864faee8252b777ef1bd26",
     "zh:15527360858690bc2b522a0c9d90b3a650a798852d80b9311daa7e9f7def658d",
