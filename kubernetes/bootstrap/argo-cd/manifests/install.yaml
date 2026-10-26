@@ -14,6 +14,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: argocd
     app.kubernetes.io/version: "v3.3.7"
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-applicationset/serviceaccount.yaml
 apiVersion: v1
@@ -30,6 +31,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: argocd
     app.kubernetes.io/version: "v3.3.7"
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-repo-server/serviceaccount.yaml
 apiVersion: v1
@@ -46,6 +48,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: argocd
     app.kubernetes.io/version: "v3.3.7"
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-server/serviceaccount.yaml
 apiVersion: v1
@@ -62,6 +65,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: argocd
     app.kubernetes.io/version: "v3.3.7"
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-configs/argocd-secret.yaml
 apiVersion: v1
@@ -78,6 +82,7 @@ metadata:
     app.kubernetes.io/part-of: argocd
     app.kubernetes.io/version: "v3.3.7"
 type: Opaque
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-configs/argocd-cm.yaml
 apiVersion: v1
@@ -196,6 +201,7 @@ data:
   timeout.reconciliation: 120s
   timeout.reconciliation.jitter: 60s
   url: https://argocd.example.com
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-configs/argocd-cmd-params-cm.yaml
 apiVersion: v1
@@ -230,6 +236,7 @@ data:
   server.log.format: json
   server.log.level: warn
   server.repo.server.strict.tls: "false"
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-configs/argocd-gpg-keys-cm.yaml
 apiVersion: v1
@@ -244,6 +251,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: argocd
     app.kubernetes.io/version: "v3.3.7"
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-configs/argocd-rbac-cm.yaml
 apiVersion: v1
@@ -264,6 +272,7 @@ data:
   policy.default: ""
   policy.matchMode: glob
   scopes: '[groups]'
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-configs/argocd-ssh-known-hosts-cm.yaml
 apiVersion: v1
@@ -294,6 +303,8 @@ data:
     gitlab.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCsj2bNKTBSpIYDEGk9KxsGh3mySTRgMtXL583qmBpzeQ+jqCMRgBqB98u3z++J1sKlXHWfM9dyhSevkMwSbhoR8XIq/U0tCNyokEi/ueaBMCvbcTHhO7FcwzY92WK4Yt0aGROY5qX2UKSeOvuP4D6TPqKF1onrSzH9bx9XUf2lEdWT/ia1NEKjunUqu1xOB/StKDHMoX4/OKyIzuS0q/T1zOATthvasJFoPrAjkohTyaDUz2LN5JoH839hViyEG82yB+MjcFV5MU3N1l1QL3cVUCh93xSaua1N85qivl+siMkPGbO5xR/En4iEY6K2XPASUEMaieWVNTRCtJ4S8H+9
     ssh.dev.azure.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7Hr1oTWqNqOlzGJOfGJ4NakVyIzf1rXYd4d7wo6jBlkLvCA4odBlL0mDUyZ0/QUfTTqeu+tm22gOsv+VrVTMk6vwRU75gY/y9ut5Mb3bR5BV58dKXyq9A9UeB5Cakehn5Zgm6x1mKoVyf+FFn26iYqXJRgzIZZcZ5V6hrE0Qg39kZm4az48o0AUbf6Sp4SLdvnuMa2sVNwHBboS7EJkm57XQPVU3/QpyNLHbWDdzwtrlS+ez30S3AdYhLKEOxAG8weOnyrtLJAUen9mTkol8oII1edf7mWWbWVf0nBmly21+nZcmCTISQBtdcyPaEno7fFQMDD26/s0lfKob4Kw8H
     vs-ssh.visualstudio.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7Hr1oTWqNqOlzGJOfGJ4NakVyIzf1rXYd4d7wo6jBlkLvCA4odBlL0mDUyZ0/QUfTTqeu+tm22gOsv+VrVTMk6vwRU75gY/y9ut5Mb3bR5BV58dKXyq9A9UeB5Cakehn5Zgm6x1mKoVyf+FFn26iYqXJRgzIZZcZ5V6hrE0Qg39kZm4az48o0AUbf6Sp4SLdvnuMa2sVNwHBboS7EJkm57XQPVU3/QpyNLHbWDdzwtrlS+ez30S3AdYhLKEOxAG8weOnyrtLJAUen9mTkol8oII1edf7mWWbWVf0nBmly21+nZcmCTISQBtdcyPaEno7fFQMDD26/s0lfKob4Kw8H
+    
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-configs/argocd-tls-certs-cm.yaml
 apiVersion: v1
@@ -308,6 +319,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: argocd
     app.kubernetes.io/version: "v3.3.7"
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/redis/health-configmap.yaml
 apiVersion: v1
@@ -350,6 +362,7 @@ data:
       exit 1
     fi
     echo "response=$response"
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/crds/crd-application.yaml
 apiVersion: apiextensions.k8s.io/v1
@@ -7357,6 +7370,7 @@ spec:
     served: true
     storage: true
     subresources: {}
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/crds/crd-applicationset.yaml
 apiVersion: apiextensions.k8s.io/v1
@@ -30527,6 +30541,7 @@ spec:
     storage: true
     subresources:
       status: {}
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/crds/crd-appproject.yaml
 apiVersion: apiextensions.k8s.io/v1
@@ -30906,6 +30921,7 @@ spec:
         type: object
     served: true
     storage: true
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-application-controller/clusterrole.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -30931,6 +30947,7 @@ rules:
     - '*'
     verbs:
     - '*'
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-server/clusterrole.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -30992,6 +31009,7 @@ rules:
     verbs:
       
       - create
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-application-controller/clusterrolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -31014,6 +31032,7 @@ subjects:
 - kind: ServiceAccount
   name: argocd-application-controller
   namespace: argocd
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-server/clusterrolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -31036,6 +31055,7 @@ subjects:
 - kind: ServiceAccount
   name: argocd-server
   namespace: argocd
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-application-controller/role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -31090,6 +31110,7 @@ rules:
   - get
   - list
   - watch
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-applicationset/role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -31194,6 +31215,7 @@ rules:
     - get
     - update
     - create
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-repo-server/role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -31210,6 +31232,7 @@ metadata:
     app.kubernetes.io/part-of: argocd
     app.kubernetes.io/version: "v3.3.7"
 rules:
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-server/role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -31260,6 +31283,7 @@ rules:
   verbs:
   - create
   - list
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-application-controller/rolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -31283,6 +31307,7 @@ subjects:
   - kind: ServiceAccount
     name: argocd-application-controller
     namespace: argocd
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-applicationset/rolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -31306,6 +31331,7 @@ subjects:
   - kind: ServiceAccount
     name: argocd-applicationset-controller
     namespace: argocd
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-repo-server/rolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -31329,6 +31355,7 @@ subjects:
 - kind: ServiceAccount
   name: argocd-repo-server
   namespace: argocd
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-server/rolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -31352,6 +31379,7 @@ subjects:
 - kind: ServiceAccount
   name: argocd-server
   namespace: argocd
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-application-controller/metrics.yaml
 apiVersion: v1
@@ -31377,6 +31405,7 @@ spec:
   selector:
     app.kubernetes.io/name: argocd-application-controller
     app.kubernetes.io/instance: argo-cd
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-applicationset/metrics.yaml
 apiVersion: v1
@@ -31402,6 +31431,7 @@ spec:
   selector:
     app.kubernetes.io/name: argocd-applicationset-controller
     app.kubernetes.io/instance: argo-cd
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-applicationset/service.yaml
 apiVersion: v1
@@ -31426,6 +31456,7 @@ spec:
   selector:
     app.kubernetes.io/name: argocd-applicationset-controller
     app.kubernetes.io/instance: argo-cd
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-repo-server/metrics.yaml
 apiVersion: v1
@@ -31451,6 +31482,7 @@ spec:
   selector:
     app.kubernetes.io/name: argocd-repo-server
     app.kubernetes.io/instance: argo-cd
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-repo-server/service.yaml
 apiVersion: v1
@@ -31475,6 +31507,7 @@ spec:
   selector:
     app.kubernetes.io/name: argocd-repo-server
     app.kubernetes.io/instance: argo-cd
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-server/metrics.yaml
 apiVersion: v1
@@ -31500,6 +31533,7 @@ spec:
   selector:
     app.kubernetes.io/name: argocd-server
     app.kubernetes.io/instance: argo-cd
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-server/service.yaml
 apiVersion: v1
@@ -31530,6 +31564,8 @@ spec:
   selector:
     app.kubernetes.io/name: argocd-server
     app.kubernetes.io/instance: argo-cd
+
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/redis/service.yaml
 apiVersion: v1
@@ -31553,6 +31589,7 @@ spec:
   selector:
     app.kubernetes.io/name: argocd-redis
     app.kubernetes.io/instance: argo-cd
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-applicationset/deployment.yaml
 apiVersion: apps/v1
@@ -31851,6 +31888,7 @@ spec:
               - key: applicationsetcontroller.profile.enabled
                 path: profiler.enabled
       dnsPolicy: ClusterFirst
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-repo-server/deployment.yaml
 apiVersion: apps/v1
@@ -32282,6 +32320,7 @@ spec:
           - key: ca.crt
             path: ca.crt
       dnsPolicy: ClusterFirst
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-server/deployment.yaml
 apiVersion: apps/v1
@@ -32750,6 +32789,7 @@ spec:
           - key: server.profile.enabled
             path: profiler.enabled
       dnsPolicy: ClusterFirst
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/redis/deployment.yaml
 apiVersion: apps/v1
@@ -32838,6 +32878,7 @@ spec:
             name: argocd-redis-health-configmap
             defaultMode: 493
       dnsPolicy: ClusterFirst
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/argocd-application-controller/statefulset.yaml
 apiVersion: apps/v1
@@ -33260,6 +33301,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: argocd
     app.kubernetes.io/version: "v3.3.7"
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/redis-secret-init/role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -33293,6 +33335,7 @@ rules:
       - secrets
     verbs:
       - create
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/redis-secret-init/rolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -33318,6 +33361,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: argocd-redis-secret-init
+
 ---
 # Source: argo-cd/charts/argo-cd/templates/redis-secret-init/job.yaml
 apiVersion: batch/v1
@@ -33381,3 +33425,4 @@ spec:
       nodeSelector:
         kubernetes.io/os: linux
       serviceAccountName: argocd-redis-secret-init
+
