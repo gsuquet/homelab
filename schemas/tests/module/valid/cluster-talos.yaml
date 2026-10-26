@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=../../../module.schema.json
+---
+apiVersion: homelab.gsuquet.dev/v1alpha1
+kind: Module
+name: cluster-talos
+layer: cluster
+tool: terraform
+description: Builds a Talos Linux cluster on bare metal or a Raspberry Pi.
+maturity: experimental
+contract:
+  requires: []
+  provides:
+    - kubeconfig
+    - cluster_name

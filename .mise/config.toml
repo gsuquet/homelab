@@ -6,6 +6,7 @@ ANSIBLE_CREATOR_VERSION = "25.3.1" # renovate: datasource=pypi depName=ansible-c
 lockfile = true
 
 [tools]
+'pipx:check-jsonschema' = '0.38.2'
 cilium-cli = '0.19.5'
 cilium-hubble = '1.19.4'
 git-cliff = '2.8.0'

@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=../../../module.schema.json
+---
+apiVersion: homelab.gsuquet.dev/v1alpha1
+kind: Module
+name: cluster-kind
+layer: cluster
+tool: ansible
+description: Ansible is not an accepted tool.
+maturity: stable

@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/gsuquet/homelab/schemas/module.schema.json",
+  "title": "Module",
+  "description": "Metadata for one module in modules/<layer>-<component>/module.yaml.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "apiVersion",
+    "kind",
+    "name",
+    "layer",
+    "tool",
+    "description",
+    "maturity"
+  ],
+  "properties": {
+    "apiVersion": {
+      "description": "Version of this schema.",
+      "const": "homelab.gsuquet.dev/v1alpha1"
+    },
+    "kind": {
+      "const": "Module"
+    },
+    "name": {
+      "description": "Module name. Must be equal to the folder name and start with the layer name.",
+      "type": "string",
+      "pattern": "^(substrate|cluster|bootstrap)-[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 63
+    },
+    "layer": {
+      "description": "The layer that the module belongs to.",
+      "enum": [
+        "substrate",
+        "cluster",
+        "bootstrap"
+      ]
+    },
+    "tool": {
+      "description": "The IaC tool that builds the module.",
+      "enum": [
+        "terraform",
+        "pulumi"
+      ]
+    },
+    "description": {
+      "description": "One sentence that tells what the module does.",
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 200
+    },
+    "maturity": {
+      "description": "How ready the module is for use.",
+      "enum": [
+        "experimental",
+        "stable",
+        "deprecated"
+      ]
+    },
+    "contract": {
+      "description": "Values that the module gets from the layer below (requires) and gives to the layer above (provides).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requires": {
+          "$ref": "#/$defs/contractKeys"
+        },
+        "provides": {
+          "$ref": "#/$defs/contractKeys"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "layer": {
+            "const": "substrate"
+          }
+        },
+        "required": [
+          "layer"
+        ]
+      },
+      "then": {
+        "properties": {
+          "name": {
+            "pattern": "^substrate-"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "layer": {
+            "const": "cluster"
+          }
+        },
+        "required": [
+          "layer"
+        ]
+      },
+      "then": {
+        "properties": {
+          "name": {
+            "pattern": "^cluster-"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "layer": {
+            "const": "bootstrap"
+          }
+        },
+        "required": [
+          "layer"
+        ]
+      },
+      "then": {
+        "properties": {
+          "name": {
+            "pattern": "^bootstrap-"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "contractKeys": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
+      }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=../../../instance.schema.json
+---
+apiVersion: homelab.gsuquet.dev/v1alpha1
+kind: Instance
+name: kind-local
+description: A long-lived instance must not have a ttl.
+purpose: test
+lifecycle:
+  type: long-lived
+  ttl: 4h
+state:
+  backend: local
+layers:
+  cluster:
+    module: cluster-kind
+  bootstrap:
+    module: bootstrap-argocd

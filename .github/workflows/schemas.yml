@@ -1,0 +1,44 @@
+---
+name: Validate Schemas
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/schemas.yml'
+      - '.mise/config.toml'
+      - '.mise/tasks/schemas/**'
+      - 'schemas/**'
+      - 'modules/**/module.yaml'
+      - 'instances/**/instance.yaml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'schemas/**'
+      - 'modules/**/module.yaml'
+      - 'instances/**/instance.yaml'
+
+permissions:
+  contents: read
+
+jobs:
+  schemas:
+    name: Test schemas and validate module and instance files
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install tools
+        uses: jdx/mise-action@82a612c5ab8bcda7cc5db6b7e81a8e7584c3dc6e # v5.2.3
+        with:
+          install_args: 'pipx:check-jsonschema yq'
+
+      - name: Test schemas against fixtures
+        run: mise run schemas:test
+
+      - name: Validate module.yaml and instance.yaml files
+        run: mise run schemas:check

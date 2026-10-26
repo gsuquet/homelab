@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=../../../instance.schema.json
+---
+apiVersion: homelab.gsuquet.dev/v1alpha1
+kind: Instance
+name: kind-local
+description: Local Kind cluster for fast tests on a laptop.
+purpose: test
+lifecycle:
+  type: long-lived
+state:
+  backend: local
+layers:
+  cluster:
+    module: cluster-kind
+  bootstrap:
+    module: bootstrap-argocd

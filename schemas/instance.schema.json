@@ -1,0 +1,207 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/gsuquet/homelab/schemas/instance.schema.json",
+  "title": "Instance",
+  "description": "Definition of one instance in instances/<name>/instance.yaml.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "apiVersion",
+    "kind",
+    "name",
+    "description",
+    "purpose",
+    "lifecycle",
+    "state",
+    "layers"
+  ],
+  "properties": {
+    "apiVersion": {
+      "description": "Version of this schema.",
+      "const": "homelab.gsuquet.dev/v1alpha1"
+    },
+    "kind": {
+      "const": "Instance"
+    },
+    "name": {
+      "description": "Instance name. Must be equal to the folder name.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 40
+    },
+    "description": {
+      "description": "One sentence that tells what the instance is for.",
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 200
+    },
+    "purpose": {
+      "description": "Why the instance exists. Production instances get the strictest rules.",
+      "enum": [
+        "production",
+        "test",
+        "demo"
+      ]
+    },
+    "lifecycle": {
+      "description": "How long the instance lives. An ephemeral instance must have a ttl.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "long-lived",
+            "ephemeral"
+          ]
+        },
+        "ttl": {
+          "description": "Time before automatic destroy, in hours (h) or days (d).",
+          "type": "string",
+          "pattern": "^[1-9][0-9]*[hd]$"
+        }
+      },
+      "if": {
+        "properties": {
+          "type": {
+            "const": "ephemeral"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "ttl"
+        ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "ttl"
+          ]
+        }
+      }
+    },
+    "state": {
+      "description": "Where the IaC state is stored.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "backend"
+      ],
+      "properties": {
+        "backend": {
+          "enum": [
+            "r2",
+            "hcp-terraform",
+            "local"
+          ]
+        }
+      }
+    },
+    "layers": {
+      "description": "The module used for each layer. Each module must start with its layer name.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cluster",
+        "bootstrap"
+      ],
+      "properties": {
+        "substrate": {
+          "$ref": "#/$defs/layerRef",
+          "properties": {
+            "module": {
+              "pattern": "^substrate-"
+            }
+          }
+        },
+        "cluster": {
+          "$ref": "#/$defs/layerRef",
+          "properties": {
+            "module": {
+              "pattern": "^cluster-"
+            }
+          }
+        },
+        "bootstrap": {
+          "$ref": "#/$defs/layerRef",
+          "properties": {
+            "module": {
+              "pattern": "^bootstrap-"
+            }
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "description": "A production instance must use remote state.",
+      "if": {
+        "properties": {
+          "purpose": {
+            "const": "production"
+          }
+        },
+        "required": [
+          "purpose"
+        ]
+      },
+      "then": {
+        "properties": {
+          "state": {
+            "properties": {
+              "backend": {
+                "not": {
+                  "const": "local"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "A production instance must be long-lived.",
+      "if": {
+        "properties": {
+          "purpose": {
+            "const": "production"
+          }
+        },
+        "required": [
+          "purpose"
+        ]
+      },
+      "then": {
+        "properties": {
+          "lifecycle": {
+            "properties": {
+              "type": {
+                "const": "long-lived"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "layerRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "module"
+      ],
+      "properties": {
+        "module": {
+          "description": "Name of a folder in modules/.",
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        }
+      }
+    }
+  }
+}

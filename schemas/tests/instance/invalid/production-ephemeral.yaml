@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=../../../instance.schema.json
+---
+apiVersion: homelab.gsuquet.dev/v1alpha1
+kind: Instance
+name: homelab
+description: Production must be long-lived.
+purpose: production
+lifecycle:
+  type: ephemeral
+  ttl: 2d
+state:
+  backend: r2
+layers:
+  cluster:
+    module: cluster-talos
+  bootstrap:
+    module: bootstrap-argocd

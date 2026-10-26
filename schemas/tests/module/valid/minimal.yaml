@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=../../../module.schema.json
+---
+apiVersion: homelab.gsuquet.dev/v1alpha1
+kind: Module
+name: bootstrap-argocd
+layer: bootstrap
+tool: pulumi
+description: Installs Argo CD and points it at the gitops folder.
+maturity: stable

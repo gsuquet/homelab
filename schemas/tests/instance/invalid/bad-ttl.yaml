@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=../../../instance.schema.json
+---
+apiVersion: homelab.gsuquet.dev/v1alpha1
+kind: Instance
+name: gke-demo
+description: The ttl uses hours or days only.
+purpose: demo
+lifecycle:
+  type: ephemeral
+  ttl: 30m
+state:
+  backend: r2
+layers:
+  cluster:
+    module: cluster-gke
+  bootstrap:
+    module: bootstrap-argocd

@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=../../../instance.schema.json
+---
+apiVersion: homelab.gsuquet.dev/v1alpha1
+kind: Instance
+name: kind-local
+description: The cluster layer must use a cluster module.
+purpose: test
+lifecycle:
+  type: long-lived
+state:
+  backend: local
+layers:
+  cluster:
+    module: bootstrap-argocd
+  bootstrap:
+    module: bootstrap-argocd

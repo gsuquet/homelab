@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=../../../instance.schema.json
+---
+apiVersion: homelab.gsuquet.dev/v1alpha1
+kind: Instance
+name: staging
+description: Purpose must be production, test or demo.
+purpose: staging
+lifecycle:
+  type: long-lived
+state:
+  backend: r2
+layers:
+  cluster:
+    module: cluster-kind
+  bootstrap:
+    module: bootstrap-argocd

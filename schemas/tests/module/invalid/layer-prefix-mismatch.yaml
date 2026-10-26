@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=../../../module.schema.json
+---
+apiVersion: homelab.gsuquet.dev/v1alpha1
+kind: Module
+name: cluster-argocd
+layer: bootstrap
+tool: terraform
+description: The name prefix does not match the layer.
+maturity: stable

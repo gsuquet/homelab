@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=../../../module.schema.json
+---
+apiVersion: homelab.gsuquet.dev/v1alpha1
+kind: Module
+name: cluster-Kind_Local
+layer: cluster
+tool: terraform
+description: Names use lowercase words and hyphens only.
+maturity: stable
