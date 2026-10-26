@@ -17,7 +17,7 @@
   "properties": {
     "apiVersion": {
       "description": "Version of this schema.",
-      "const": "homelab.gsuquet.dev/v1alpha1"
+      "const": "homelab.gsuquet.com/v1alpha1"
     },
     "kind": {
       "const": "Module"

@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=../../../instance.schema.json
 ---
-apiVersion: homelab.gsuquet.dev/v1alpha1
+apiVersion: homelab.gsuquet.com/v1alpha1
 kind: Instance
 name: kind-local
 description: A long-lived instance must not have a ttl.
