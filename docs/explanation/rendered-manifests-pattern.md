@@ -23,7 +23,7 @@ This project renders Helm charts locally using `mise run manifests:render` and c
 ```ascii
 Developer workstation                Git repository
 ┌──────────────────────┐             ┌─────────────────────────┐
-│  sources/chart.yaml  │             │  manifests/install.yaml  │
+│  sources/Chart.yaml  │             │  manifests/install.yaml  │
 │  sources/values.yaml │  →  render  │  manifests/argocd-*.yaml │
 │  (Helm chart source) │             │  (Plain YAML, committed) │
 └──────────────────────┘             └─────────────────────────┘
@@ -76,7 +76,7 @@ ArgoCD is configured to use Kustomize for this directory. Kustomize reads `kusto
 | Upstream network dependency | None at sync time | Required every sync |
 | Diff visibility | Full YAML diff in Git | Not visible in Git |
 | Reproducibility | Locked to committed output | Depends on Helm version and chart registry |
-| Git churn on upgrades | High (many YAML files change) | Low (one line in chart.yaml) |
+| Git churn on upgrades | High (many YAML files change) | Low (one line in Chart.yaml) |
 | Offline sync capability | Yes | No |
 
 The main cost is **Git churn**: upgrading ArgoCD from one version to the next produces a large diff in `manifests/` with hundreds of changed lines across many files. This is acceptable here because the benefit — full transparency and offline capability — outweighs the noise in the Git history.

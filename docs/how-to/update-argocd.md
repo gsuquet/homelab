@@ -6,13 +6,13 @@ ArgoCD is installed from a Helm chart whose source is committed in `kubernetes/b
 
 ## 1. Find the New Chart Version
 
-Check the [ArgoCD Helm chart releases](https://github.com/argoproj/argo-helm/releases) for the latest chart version. The chart version and the ArgoCD application version are different — the chart is at `kubernetes/bootstrap/argo-cd/sources/chart.yaml`.
+Check the [ArgoCD Helm chart releases](https://github.com/argoproj/argo-helm/releases) for the latest chart version. The chart version and the ArgoCD application version are different — the chart is at `kubernetes/bootstrap/argo-cd/sources/Chart.yaml`.
 
 ---
 
 ## 2. Update the Chart Version
 
-Open `kubernetes/bootstrap/argo-cd/sources/chart.yaml` and update the `version` field under the `argo-cd` dependency:
+Open `kubernetes/bootstrap/argo-cd/sources/Chart.yaml` and update the `version` field under the `argo-cd` dependency:
 
 ```yaml
 dependencies:

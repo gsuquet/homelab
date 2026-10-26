@@ -9,7 +9,7 @@ kubectl apply -f kubere
 ```
 argo-cd/
 ├── sources/
-│   └── chart.yaml               # Helm chart configuration (source of truth)
+│   └── Chart.yaml               # Helm chart configuration (source of truth)
 ├── manifests/
 │   ├── kustomization.yaml       # Kustomize overlay combining all manifests
 │   ├── argocd-*.yaml            # Individual component manifests
@@ -23,7 +23,7 @@ argo-cd/
 
 ## How It Works
 
-1. **Source Definition**: The Helm chart configuration is defined in `sources/chart.yaml`
+1. **Source Definition**: The Helm chart configuration is defined in `sources/Chart.yaml`
 2. **Local Rendering**: Run `mise run render` to generate manifests from sources
 3. **Manifest Splitting**: Manifests are automatically split into individual files per resource
 4. **Initial Installation**: The Ansible role applies the rendered manifests via `kubectl apply -k`
@@ -35,7 +35,7 @@ argo-cd/
 - **GitOps Native**: All ArgoCD configuration is tracked in Git with full history
 - **Reviewable Changes**: Easy to see what changed in individual files
 - **Self-Healing**: ArgoCD automatically corrects drift from the desired state
-- **Declarative Updates**: Update ArgoCD by modifying `sources/chart.yaml` and committing to Git
+- **Declarative Updates**: Update ArgoCD by modifying `sources/Chart.yaml` and committing to Git
 - **Transparent**: Each resource type is in its own file for easy understanding
 - **Modular**: Kustomize can overlay or patch specific components if needed
 
@@ -43,7 +43,7 @@ argo-cd/
 
 To update ArgoCD:
 
-1. Modify `sources/chart.yaml` with your desired changes
+1. Modify `sources/Chart.yaml` with your desired changes
 2. Run `mise run render` to regenerate the manifests and split them:
    ```bash
    mise run render
@@ -58,7 +58,7 @@ To update ArgoCD:
 Or let pre-commit handle it automatically:
 
 ```bash
-git add sources/chart.yaml
+git add sources/Chart.yaml
 git commit -m "Update ArgoCD configuration"
 # pre-commit hook automatically renders and splits manifests
 git push

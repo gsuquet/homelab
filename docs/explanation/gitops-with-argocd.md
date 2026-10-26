@@ -84,7 +84,7 @@ The chain of self-management:
 2. `applications-applicationset.yaml` and `system-applicationset.yaml` — managed by the bootstrap Application; auto-deploy all other apps
 3. The rendered ArgoCD manifests in `manifests/` — managed by the bootstrap Application; ArgoCD applies updates to its own Deployments
 
-If the ArgoCD version in `sources/chart.yaml` is bumped, re-rendered, and pushed to Git, ArgoCD detects the change and performs a rolling update of its own pods.
+If the ArgoCD version in `sources/Chart.yaml` is bumped, re-rendered, and pushed to Git, ArgoCD detects the change and performs a rolling update of its own pods.
 
 ---
 

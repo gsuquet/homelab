@@ -3,22 +3,20 @@
 
 set -euo pipefail
 
-# Store current state
-git diff --exit-code kubernetes/**/manifests/ > /dev/null 2>&1
-initial_clean=$?
+# shellcheck source=../_base/log.sh
+source "$MISE_PROJECT_ROOT/.mise/tasks/_base/log.sh"
 
-# Render manifests
+cd "$MISE_PROJECT_ROOT"
+
+manifests=':(glob)kubernetes/**/manifests/**'
+
 mise run manifests:render
 
-# Check if anything changed
-git diff --exit-code kubernetes/**/manifests/ > /dev/null 2>&1
-changed=$?
-
-if [ $changed -ne 0 ]; then
-    echo "❌ Manifests are out of date. Run 'mise manifests:render' to update them."
-    git diff kubernetes/**/manifests/
+if ! git diff --quiet -- "$manifests" || [ -n "$(git ls-files --others --exclude-standard -- "$manifests")" ]; then
+    log_error "Manifests are out of date. Run 'mise run manifests:render' and commit the changes."
+    git status --short -- "$manifests"
+    git diff -- "$manifests"
     exit 1
-else
-    echo "✅ All manifests are up to date."
-    exit 0
 fi
+
+log_info "✓ All manifests are up to date."

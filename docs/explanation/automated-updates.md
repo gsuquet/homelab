@@ -9,7 +9,7 @@ This document explains how dependency updates are automated using Renovate, and 
 [Renovate](https://docs.renovatebot.com/) is a bot that scans the repository for dependency version references and opens pull requests to bump them. It runs on a schedule and covers:
 
 - Container image tags in Kubernetes manifests (`deployment.yaml`, `kustomization.yaml`)
-- Helm chart versions in `sources/chart.yaml` files
+- Helm chart versions in `sources/Chart.yaml` files
 - Tool versions in `.mise/config.toml`
 - Pre-commit hook versions in `.pre-commit-config.yaml`
 
@@ -78,7 +78,7 @@ Each commit updates only the image tag in `kubernetes/applications/homeassistant
 
 ## How Manifests Stay in Sync on Update PRs
 
-When Renovate bumps a Helm chart version (e.g., ArgoCD), it modifies `kubernetes/bootstrap/argo-cd/sources/chart.yaml`. This triggers the `render-manifests` pre-commit hook:
+When Renovate bumps a Helm chart version (e.g., ArgoCD), it modifies `kubernetes/bootstrap/argo-cd/sources/Chart.yaml`. This triggers the `render-manifests` pre-commit hook:
 
 ```yaml
 # .pre-commit-config.yaml

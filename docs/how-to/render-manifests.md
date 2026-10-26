@@ -1,6 +1,6 @@
 # How to Render Manifests
 
-This project pre-renders Helm charts to plain YAML and commits the output. When a chart's `sources/chart.yaml` or `sources/values.yaml` changes, the rendered output in `manifests/` must be regenerated.
+This project pre-renders Helm charts to plain YAML and commits the output. When a chart's `sources/Chart.yaml` or `sources/values.yaml` changes, the rendered output in `manifests/` must be regenerated.
 
 See [Rendered Manifests Pattern](../explanation/rendered-manifests-pattern.md) for background on why this approach is used.
 
@@ -10,7 +10,7 @@ See [Rendered Manifests Pattern](../explanation/rendered-manifests-pattern.md) f
 
 You need to re-render when you change:
 
-- `kubernetes/bootstrap/argo-cd/sources/chart.yaml` (ArgoCD version bump)
+- `kubernetes/bootstrap/argo-cd/sources/Chart.yaml` (ArgoCD version bump)
 - `kubernetes/bootstrap/argo-cd/sources/values.yaml` (ArgoCD configuration change)
 - Any other `**/sources/Chart.yaml` or `**/sources/values.yaml` file added in the future
 
@@ -61,7 +61,7 @@ This hook fires on `git commit` when any `sources/*.yaml` file is staged. It ren
 
 This means:
 
-- If you update `sources/chart.yaml` and run `git commit`, the hook re-renders and includes the updated `manifests/` in the same commit automatically
+- If you update `sources/Chart.yaml` and run `git commit`, the hook re-renders and includes the updated `manifests/` in the same commit automatically
 - You only need to run `mise run manifests:render` manually if you want to inspect the output before committing
 
 ---
