@@ -79,3 +79,31 @@ repos:
         language: system
         files: '^(schemas/.*\.schema\.json|modules/[^/]+/module\.yaml|instances/[^/]+/instance\.yaml)$'
         pass_filenames: false
+
+      - id: lint-terraform
+        name: Check Terraform format and run TFLint
+        entry: mise run lint:terraform
+        language: system
+        files: '(\.tf|\.tflint\.hcl)$'
+        pass_filenames: false
+
+      - id: lint-policy
+        name: Test and run Conftest policies
+        entry: mise run lint:policy
+        language: system
+        files: '(^policy/|\.tf$|\.ya?ml$|^\.mise/config\.toml$)'
+        pass_filenames: false
+
+      - id: lint-actions
+        name: Lint GitHub Actions workflows
+        entry: mise run lint:actions
+        language: system
+        files: '^\.github/workflows/'
+        pass_filenames: false
+
+      - id: lint-shell
+        name: Lint and check format of shell scripts
+        entry: mise run lint:shell
+        language: system
+        types: [shell]
+        pass_filenames: false

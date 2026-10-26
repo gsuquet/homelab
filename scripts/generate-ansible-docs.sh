@@ -50,7 +50,7 @@ for role_path in "${ROLES_DIR}"/*; do
 
     # Create target markdown file if it does not exist
     if [ ! -f "${role_doc_file}" ]; then
-        cat <<EOF > "${role_doc_file}"
+        cat << EOF > "${role_doc_file}"
 # Ansible Role: ${role_name}
 
 [<- Back to Ansible Roles Overview](../index.md)

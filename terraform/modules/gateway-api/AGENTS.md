@@ -41,7 +41,7 @@ initialization.
 ## Modifying this module
 
 - **`manifests/`** — contains the official upstream `standard-install.yaml` and `experimental-install.yaml`.
-- **`crds.tf`** — parses manifests with `kubectl_file_documents` and provisions resources.
+- **`main.tf`** — parses manifests with `kubectl_file_documents` and provisions resources.
 - **`variables.tf`** — channel and apply behavior toggles.
 - **`outputs.tf`** — channel, version, and deployed CRD identifiers.
 

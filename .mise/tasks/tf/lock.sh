@@ -21,7 +21,7 @@ find terraform -type f -name '*.tf' -not -path '*/.terraform/*' -not -path 'terr
     while IFS= read -r dir; do
         log_info "Locking providers in $dir"
         # `providers lock` refuses to run until module calls are installed.
-        terraform -chdir="$dir" get >/dev/null
+        terraform -chdir="$dir" get > /dev/null
         terraform -chdir="$dir" providers lock "${platform_args[@]}"
     done
 

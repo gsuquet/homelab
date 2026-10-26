@@ -27,7 +27,7 @@ and Cloudflare DNS-01), and out-of-the-box ClusterIssuer resources.
 - **Template-driven values with static uppercase placeholders.** The upstream
   values file (`templates/cert-manager-values.yaml.tftpl`) uses static uppercase
   placeholders (`${VARIABLE_NAME}`) rendered via `templatefile()` in
-  `helm-chart.tf`. All conditionals and defaults are computed in `locals.tf`
+  `main.tf`. All conditionals and defaults are computed in `locals.tf`
   under `local.cert_manager_values`.
 - **Cloudflare DNS-01 integration.** Supports both existing Secret reference
   (`cloudflare_api_token_secret_name`) and optional direct token injection
@@ -59,7 +59,7 @@ that reference ClusterIssuers in Certificate resources or Gateway / Ingress anno
 - **`templates/cert-manager-values.yaml.tftpl`** — upstream values file with static
   `${VARIABLE_NAME}` placeholders.
 - **`variables.tf`** — defined module variables with validations and defaults.
-- **`helm-chart.tf`** — single `helm_release.cert_manager` resource rendering values
+- **`main.tf`** — single `helm_release.cert_manager` resource rendering values
   via `templatefile()` with `local.cert_manager_values`.
 - **`namespace.tf`** — conditional `kubernetes_namespace_v1` on `create_namespace`.
 - **`secret.tf`** — conditional `kubernetes_secret_v1` for Cloudflare API token.

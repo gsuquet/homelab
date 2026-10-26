@@ -25,7 +25,7 @@ observability.
 - **Template-driven values with static uppercase placeholders.** The upstream
   values file (`templates/cilium-values.yaml.tftpl`) uses static uppercase
   placeholders (`${VARIABLE_NAME}`) rendered via `templatefile()` in
-  `helm-chart.tf`. All conditionals and defaults are computed in `locals.tf`
+  `main.tf`. All conditionals and defaults are computed in `locals.tf`
   under `local.cilium_values`, making the template directly renderable
   locally via `envsubst` (or equivalent tools) to output rendered manifests.
 - **`k8s_service_host` / `k8s_service_port` are opt-in, not defaulted.**
@@ -64,7 +64,7 @@ access).
 - **`templates/cilium-values.yaml.tftpl`** — full upstream values file with static
   `${VARIABLE_NAME}` placeholders for variables and `$${1}` for Envoy regexes
 - **`variables.tf`** — defined module variables with validations and defaults
-- **`helm-chart.tf`** — single `helm_release.cilium` resource rendering the template
+- **`main.tf`** — single `helm_release.cilium` resource rendering the template
   via `templatefile()` with `local.cilium_values`
 - **`namespace.tf`** — conditional on `create_namespace`; don't remove the
   `count` guard, `kube-system` must never be created/owned by Terraform

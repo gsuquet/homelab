@@ -6,7 +6,7 @@ set -euo pipefail
 # shellcheck source=../_base/log.sh
 source "$MISE_PROJECT_ROOT/.mise/tasks/_base/log.sh"
 
-if ! command -v terraform-docs &>/dev/null; then
+if ! command -v terraform-docs &> /dev/null; then
     log_error "terraform-docs is not installed. Install it with: brew install terraform-docs"
     exit 1
 fi
@@ -31,7 +31,7 @@ while IFS= read -r module_dir; do
     if terraform-docs markdown table \
         --output-file "$readme" \
         --output-mode inject \
-        "$module_dir" 2>/dev/null; then
+        "$module_dir" 2> /dev/null; then
         log_info "✓ $module_name → $readme"
         ((rendered_count += 1))
     else
