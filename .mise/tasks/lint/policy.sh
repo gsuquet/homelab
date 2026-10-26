@@ -15,6 +15,7 @@ conftest verify --policy policy
 conftest_files() {
     local namespace="$1"
     shift
+    # bash 3.2 (macOS) treats an empty "${args[@]}" as unbound under `set -u`.
     local args=()
     while [ "$1" != "--" ]; do
         args+=("$1")
@@ -23,14 +24,17 @@ conftest_files() {
     shift
 
     local files=()
-    mapfile -t files < <(git ls-files -- "$@")
+    local file
+    while IFS= read -r file; do
+        files+=("$file")
+    done < <(git ls-files -- "$@")
     if [ "${#files[@]}" -eq 0 ]; then
         log_warn "No files for policy namespace '$namespace'"
         return 0
     fi
 
     log_info "Checking ${#files[@]} file(s) against policy namespace '$namespace'..."
-    conftest test --no-color --policy policy --namespace "$namespace" "${args[@]}" "${files[@]}"
+    conftest test --no-color --policy policy --namespace "$namespace" ${args[@]+"${args[@]}"} "${files[@]}"
 }
 
 conftest_files terraform --combine --parser hcl2 -- '*.tf'

@@ -9,7 +9,9 @@ source "$MISE_PROJECT_ROOT/.mise/tasks/_base/log.sh"
 cd "$MISE_PROJECT_ROOT"
 
 files=()
-mapfile -t files < <(git ls-files -- '*.sh')
+while IFS= read -r file; do
+    files+=("$file")
+done < <(git ls-files -- '*.sh')
 
 log_info "Running ShellCheck on ${#files[@]} script(s)..."
 shellcheck "${files[@]}"

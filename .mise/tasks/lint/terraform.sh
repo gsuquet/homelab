@@ -16,7 +16,9 @@ fi
 
 # terraform/templates/ holds empty stubs that are not valid modules yet.
 dirs=()
-mapfile -t dirs < <(git ls-files -- '*.tf' ':!:terraform/templates/**' | xargs -n1 dirname | sort -u)
+while IFS= read -r dir; do
+    dirs+=("$dir")
+done < <(git ls-files -- '*.tf' ':!:terraform/templates/**' | xargs -n1 dirname | sort -u)
 
 failed=0
 for dir in "${dirs[@]}"; do
