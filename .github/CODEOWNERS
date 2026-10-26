@@ -1,5 +1,6 @@
 # The owner must approve a change to these paths. Refer to "Review policy" in AGENTS.md.
-# This file has an effect only when branch protection requires a review from code owners.
+# Agents open PRs with the owner's account, so GitHub does not enforce this file.
+# Agents read it to know which PRs they must not merge.
 # The last pattern that matches a file wins. A pattern without an owner removes the owner.
 
 # By default, the owner approves every change: the homelab, modules, CI and the standards.

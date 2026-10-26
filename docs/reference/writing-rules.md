@@ -20,9 +20,11 @@ The documentation uses [ASD-STE100](https://www.asd-ste100.org/) (Simplified Tec
 | Rule | Vale check | Level |
 | --- | --- | --- |
 | Use approved words. The check has a list of words that are not approved, with a replacement for each word. | `STE.Words` | Error |
-| Write sentences with a maximum of 25 words. Write procedural sentences with a maximum of 20 words. | `STE.SentenceLength` | Warning |
+| Write sentences with a maximum of 25 words. | `STE.SentenceLength` | Warning |
 | Use the active voice. | `STE.Passive` | Warning |
 | Do not use vague words, for example `just`, `simply` or `should`. | `STE.Vague` | Warning |
+
+Vale does not check the 20-word limit for procedural sentences (ASD-STE100 rule 4.1). Vale cannot tell a procedural sentence from a descriptive sentence. Make sure that each procedure step has a maximum of 20 words.
 
 Only errors fail `mise run lint:docs`. The warnings help you to write better text. To see them, run:
 
