@@ -185,10 +185,11 @@ It runs these tasks:
 
 | Task | Tools | Checks |
 | --- | --- | --- |
-| `lint:terraform` | `terraform fmt`, TFLint | Format of all `.tf` files. TFLint with the `all` preset of the bundled `terraform` ruleset (`.tflint.hcl`), in each Terraform directory. `terraform/templates/` is not linted. |
+| `lint:terraform` | `terraform fmt`, TFLint | Format of all `.tf` files. TFLint with the `all` preset of the bundled `terraform` ruleset (`.tflint.hcl`), in each Terraform directory. |
 | `lint:policy` | Conftest | Runs the policy unit tests (`conftest verify`), then checks Terraform, Kubernetes, pre-commit and mise files against the policies in `policy/`. Refer to [Policies](policies.md). |
 | `lint:actions` | actionlint, zizmor | Syntax and security of the workflows in `.github/workflows/`. |
 | `lint:shell` | ShellCheck, shfmt | Shell scripts tracked by git. shfmt reads its settings from `.editorconfig`. |
+| `lint:docs` | Vale | Markdown files against the ASD-STE100 rules. Only errors fail the check. Refer to [Writing rules](writing-rules.md). |
 | `schemas:test` | check-jsonschema | Refer to [Schemas](schemas.md). |
 | `schemas:check` | check-jsonschema, yq | Refer to [Schemas](schemas.md). |
 

@@ -13,7 +13,7 @@ and Cloudflare DNS-01), and out-of-the-box ClusterIssuer resources.
   — no `helm repo add` needed, and OCI artifacts are cosign-signed.
 - **`cert-manager` namespace by default.** Defaults to dedicated `cert-manager` namespace
   managed via `kubernetes_namespace_v1` (`create_namespace = true`).
-- **CRD lifecycle in Helm.** `crds.enabled = true` and `crds.keep = true` ensure that
+- **CRD lifecycle in Helm.** `crds.enabled = true` and `crds.keep = true` make sure that
   cert-manager CRDs are properly deployed on install and preserved on release uninstall
   to avoid cascading garbage collection of certificates and keys.
 - **Gateway API first-class integration.** With clusters moving to Gateway API (e.g. Cilium
@@ -48,7 +48,7 @@ and Cloudflare DNS-01), and out-of-the-box ClusterIssuer resources.
 ## Outputs consumed by downstream modules
 
 `release_name`, `namespace`, `selfsigned_issuer_name`, `letsencrypt_staging_issuer_name`,
-and `letsencrypt_prod_issuer_name` provide references for downstream modules or Helm releases
+and `letsencrypt_prod_issuer_name` give references for downstream modules or Helm releases
 that reference ClusterIssuers in Certificate resources or Gateway / Ingress annotations.
 
 ## Modifying this module

@@ -29,7 +29,7 @@ for isolated, stateful, singleton workloads tailored for AI agents and sandbox e
 
 ## Outputs consumed by downstream modules
 
-`release_name`, `namespace`, and `extensions_enabled` provide references for downstream modules
+`release_name`, `namespace`, and `extensions_enabled` give references for downstream modules
 deploying AI agent sandbox workloads or RBAC bindings.
 
 ## Modifying this module

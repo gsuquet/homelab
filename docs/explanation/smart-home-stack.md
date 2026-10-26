@@ -27,7 +27,7 @@ Mosquitto is an MQTT message broker. It:
 - Routes messages to subscribers based on topic subscriptions
 - Acts as the central message bus that decouples producers from consumers
 
-Mosquitto runs with authentication required — all clients (Zigbee2MQTT, Home Assistant, etc.) must provide a username and password. In this cluster it listens on port 8883.
+Mosquitto runs with authentication required — all clients (Zigbee2MQTT, Home Assistant, etc.) must give a username and password. In this cluster it listens on port 8883.
 
 ### Home Assistant
 

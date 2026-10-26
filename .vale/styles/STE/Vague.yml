@@ -1,0 +1,13 @@
+# ASD-STE100 rule 1.5 and section 9: write precise instructions. These words
+# make an instruction unclear.
+extends: existence
+message: "Remove '%s' or write a precise word (ASD-STE100 rule 1.5)."
+level: warning
+ignorecase: true
+tokens:
+  - basically
+  - easily
+  - just
+  - simply
+  - should
+  - very

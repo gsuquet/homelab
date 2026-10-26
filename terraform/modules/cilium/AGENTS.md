@@ -36,7 +36,7 @@ observability.
 - **Encryption defaults on (WireGuard).** Pod-to-pod traffic is encrypted by
   default; `encryption_type` also supports `ipsec`.
 - **Bandwidth Manager & BBR.** Enabled by default (`bandwidth_manager_enabled = true`,
-  `bandwidth_manager_bbr = true`) to provide eBPF EDT (Earliest Departure Time)
+  `bandwidth_manager_bbr = true`) to give eBPF EDT (Earliest Departure Time)
   packet pacing and BBR TCP congestion control for Pods.
 
 ## Variables that require attention

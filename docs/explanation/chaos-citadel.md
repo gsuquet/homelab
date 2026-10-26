@@ -9,7 +9,7 @@
 
 ## 1. Executive Summary & Purpose
 
-**Chaos Citadel** is an interactive, participatory multiplayer defense game designed to demonstrate cloud-native resilience, **Cilium eBPF networking, runtime security, and Chaos Engineering** to a cross-functional audience:
+**Chaos Citadel** is an interactive, participatory multiplayer defense game designed to show cloud-native resilience, **Cilium eBPF networking, runtime security, and Chaos Engineering** to a cross-functional audience:
 
 - **Developers & DevOps:** Real-time visibility into L3/L4/L7 traffic, zero-code network troubleshooting, automated topology discovery, and resilience against fault injection.
 - **Platform & Security Engineers:** Instant Zero-Trust enforcement, kernel-level packet drops, eBPF Host Firewall node hardening, automated pod quarantine, and cryptographic workload identity.
@@ -281,7 +281,7 @@ spec:
 ```
 
 > [!NOTE]
-> **Kind Environment Consideration:** Standard Kind nodes do not run an SSH daemon (port 22) out of the box. Sapper probes simulate host attacks by hitting Kubelet (`10250`) or a lightweight daemon deployed with `hostNetwork: true`. Safe rule definitions ensure essential node communication (such as Cilium health probes on port 4240 and ICMP) are never blocked.
+> **Kind Environment Consideration:** Standard Kind nodes do not run an SSH daemon (port 22) out of the box. Sapper probes simulate host attacks by hitting Kubelet (`10250`) or a lightweight daemon deployed with `hostNetwork: true`. Safe rule definitions make sure that essential node communication (such as Cilium health probes on port 4240 and ICMP) are never blocked.
 
 **Kernel Effect:** When active, eBPF programs attached to the host's NIC (`eth0`) drop non-whitelisted node packets before the Linux network stack even processes them.
 

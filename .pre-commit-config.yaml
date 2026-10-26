@@ -107,3 +107,10 @@ repos:
         language: system
         types: [shell]
         pass_filenames: false
+
+      - id: lint-docs
+        name: Check Markdown files against the ASD-STE100 rules
+        entry: mise run lint:docs
+        language: system
+        files: '(\.md$|^\.vale)'
+        pass_filenames: false

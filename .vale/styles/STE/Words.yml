@@ -1,0 +1,29 @@
+# ASD-STE100 rule 1.1: use approved words. This list holds common words that
+# are not approved, with an approved replacement.
+extends: substitution
+message: "Use '%s' instead of '%s' (ASD-STE100 rule 1.1)."
+level: error
+ignorecase: true
+swap:
+  accomplish: do
+  additional: more
+  approximately: about
+  assist: help
+  commence: start
+  demonstrate: show
+  ensure: make sure
+  facilitate: help
+  however: but
+  in order to: to
+  indicate: show
+  initiate: start
+  leverage: use
+  numerous: many
+  obtain: get
+  prior to: before
+  provide: give
+  regarding: about
+  subsequently: then
+  sufficient: enough
+  terminate: stop
+  utilize: use
