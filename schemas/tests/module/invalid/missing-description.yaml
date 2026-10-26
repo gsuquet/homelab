@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=../../../module.schema.json
 ---
-apiVersion: homelab.gsuquet.com/v1alpha1
+apiVersion: infra.gsuquet.com/v1alpha1
 kind: Module
 name: cluster-kind
 layer: cluster
