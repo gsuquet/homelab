@@ -19,7 +19,6 @@ check_kind() {
 
     for dir in "$root"/*/; do
         dir="${dir%/}"
-        [ "$(basename "$dir")" = "_template" ] && continue
         file="$dir/$file_name"
 
         if [ ! -f "$file" ]; then
@@ -32,6 +31,9 @@ check_kind() {
             failures=$((failures + 1))
             continue
         fi
+
+        # The template folder has a placeholder name.
+        [ "$(basename "$dir")" = "_template" ] && continue
 
         name="$(yq '.name' "$file")"
         if [ "$name" != "$(basename "$dir")" ]; then

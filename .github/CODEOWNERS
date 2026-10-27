@@ -1,0 +1,19 @@
+# The owner must approve a change to these paths. Refer to "Review policy" in AGENTS.md.
+# Agents open PRs with the owner's account, so GitHub does not enforce this file.
+# Agents read it to know which PRs they must not merge.
+# The last pattern that matches a file wins. A pattern without an owner removes the owner.
+
+# By default, the owner approves every change: the homelab, modules, CI and the standards.
+* @gsuquet
+
+# A reviewing agent can approve documentation.
+/docs/
+
+# The standards are in the documentation, but the owner approves them.
+/docs/reference/policies.md @gsuquet
+/docs/reference/schemas.md @gsuquet
+/docs/reference/writing-rules.md @gsuquet
+
+# Add each test or demo instance here without an owner, for example:
+# /instances/kind-dev-01/
+# /gitops/instances/kind-dev-01.yaml

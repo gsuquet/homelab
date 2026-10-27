@@ -51,7 +51,7 @@ provider "kubernetes" {
 ## Modifying this module
 
 - **`locals.tf`** — computed values only (image string, kubeconfig path, node lists)
-- **`variables.tf`** — all inputs; always provide a `description` and sensible `default`
+- **`variables.tf`** — all inputs; always give a `description` and sensible `default`
 - **`main.tf`** — single `kind_cluster.this` resource; use `dynamic` blocks for optional config
 - **`outputs.tf`** — expose all attributes needed by downstream providers; mark secrets `sensitive`
 - **`terraform.tf`** — only bump the provider version when intentionally upgrading

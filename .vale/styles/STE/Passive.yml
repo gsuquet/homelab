@@ -1,0 +1,9 @@
+# ASD-STE100 rule 3.6: use the active voice in procedures, and as much as possible
+# in descriptive text.
+extends: existence
+message: "'%s' looks like passive voice. Use the active voice (ASD-STE100 rule 3.6)."
+level: warning
+ignorecase: true
+raw:
+  - \b(?:am|is|are|was|were|be|been|being)\s+
+  - (?:\w+ed|built|done|found|given|kept|known|made|run|sent|set|shown|taken|written)\b

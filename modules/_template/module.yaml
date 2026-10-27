@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=../../schemas/module.schema.json
+---
+# DRAFT: the module standards are not decided yet. Refer to README.md.
+apiVersion: infra.gsuquet.com/v1alpha1
+kind: Module
+name: cluster-example
+layer: cluster
+tool: terraform
+description: Example module. Copy this folder to start a new module.
+maturity: experimental
+contract:
+  provides:
+    - example_id

@@ -25,7 +25,7 @@ See [AGENTS.md](AGENTS.md) for key architectural and design decisions.
 
 | Name | Description | Type | Default | Required |
 | ---- | ----------- | ---- | ------- | :------: |
-| <a name="input_acme_custom_solvers"></a> [acme\_custom\_solvers](#input\_acme\_custom\_solvers) | Additional custom challenge solvers to include in Let's Encrypt ClusterIssuers. | `any` | `[]` | no |
+| <a name="input_acme_custom_solvers"></a> [acme\_custom\_solvers](#input\_acme\_custom\_solvers) | More custom challenge solvers to include in Let's Encrypt ClusterIssuers. | `any` | `[]` | no |
 | <a name="input_acme_email"></a> [acme\_email](#input\_acme\_email) | Email address used for Let's Encrypt ACME registration and certificate expiry notifications. | `string` | `""` | no |
 | <a name="input_cainjector_replicas"></a> [cainjector\_replicas](#input\_cainjector\_replicas) | Number of cert-manager cainjector replicas to deploy. | `number` | `1` | no |
 | <a name="input_chart_digest"></a> [chart\_digest](#input\_chart\_digest) | Digest of the cert-manager chart (oci://quay.io/jetstack/charts/cert-manager) to install. Pinned for reproducibility — bump deliberately. | `string` | `""` | no |
@@ -35,7 +35,7 @@ See [AGENTS.md](AGENTS.md) for key architectural and design decisions.
 | <a name="input_cloudflare_dns01_domains"></a> [cloudflare\_dns01\_domains](#input\_cloudflare\_dns01\_domains) | List of specific DNS domain names to route to Cloudflare DNS-01 solver (e.g. ['*.example.com']). | `list(string)` | `[]` | no |
 | <a name="input_cloudflare_dns01_zones"></a> [cloudflare\_dns01\_zones](#input\_cloudflare\_dns01\_zones) | List of DNS zones to route to Cloudflare DNS-01 solver (e.g. ['example.com']). | `list(string)` | `[]` | no |
 | <a name="input_common_labels"></a> [common\_labels](#input\_common\_labels) | Labels applied to every cert-manager resource (chart's global.commonLabels value). | `map(string)` | `{}` | no |
-| <a name="input_controller_extra_args"></a> [controller\_extra\_args](#input\_controller\_extra\_args) | Additional CLI flags to pass to the cert-manager controller binary. | `list(string)` | `[]` | no |
+| <a name="input_controller_extra_args"></a> [controller\_extra\_args](#input\_controller\_extra\_args) | More CLI flags to pass to the cert-manager controller binary. | `list(string)` | `[]` | no |
 | <a name="input_controller_replicas"></a> [controller\_replicas](#input\_controller\_replicas) | Number of cert-manager controller replicas to deploy. | `number` | `1` | no |
 | <a name="input_crds_enabled"></a> [crds\_enabled](#input\_crds\_enabled) | Install cert-manager CustomResourceDefinitions as part of the Helm release. | `bool` | `true` | no |
 | <a name="input_crds_keep"></a> [crds\_keep](#input\_crds\_keep) | Add the 'helm.sh/resource-policy: keep' annotation to CRDs to prevent accidental deletion upon release uninstall. | `bool` | `true` | no |

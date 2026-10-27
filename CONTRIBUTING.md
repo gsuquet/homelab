@@ -1,62 +1,56 @@
-# Contributing to HomeLab
+# Contributing
 
-Thank you for considering contributing to the HomeLab project!
+This repository has one owner. People and coding agents (Claude Code, Codex and Antigravity) make the changes. Agents also read [AGENTS.md](AGENTS.md).
 
-## Getting Started
-
-1. **Fork and Clone**:
-
-   ```bash
-   git clone https://github.com/gsuquet/homelab.git
-   cd homelab
-   ```
-
-2. **Set Up Environment**:
-
-   ```bash
-   mise install
-   pre-commit install
-   ```
-
-## Development Workflow
-
-### 1. Conventional Commits
-
-All commit messages must follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
-
-- `feat: add homeassistant component`
-- `fix: update cloudflare tunnel secret path`
-- `docs: update ansible role reference`
-- `chore: bump helm chart dependency`
-
-### 2. Kubernetes Manifest Changes
-
-If modifying Helm sources in `kubernetes/**/sources/`:
+## Set up the environment
 
 ```bash
-mise run manifests:render
+git clone https://github.com/gsuquet/homelab.git
+cd homelab
+mise install
+pre-commit install --install-hooks
+pre-commit install --hook-type commit-msg
 ```
 
-This renders charts and updates split manifests in Git.
+`.mise/config.toml` pins each tool to an exact version, and `.mise/mise.lock` holds the checksums.
 
-### 3. Documentation Changes
+## Make a change
 
-If modifying Ansible roles or Terraform modules:
+1. Create a branch from `main`.
+2. Make the change.
+3. Run `mise run lint`. Correct each problem that it shows.
+4. Commit with a [Conventional Commits](https://www.conventionalcommits.org/) message, for example `fix(cilium): set the API server port`.
+5. Open a pull request (PR). Fill in the PR template.
 
-```bash
-mise run doc:generate
-```
+## Checks
 
-This updates reference docs in `docs/reference/`.
+The standards are checks, not only text. The `Lint` workflow and the pre-commit hooks run the same tasks.
 
-### 4. Running Checks & Verification
+| Check | Task | Reference |
+| --- | --- | --- |
+| Terraform format and TFLint | `mise run lint:terraform` | [Mise tasks](docs/reference/mise-tasks.md) |
+| Conftest policies | `mise run lint:policy` | [Policies](docs/reference/policies.md) |
+| GitHub Actions workflows | `mise run lint:actions` | [Mise tasks](docs/reference/mise-tasks.md) |
+| Shell scripts | `mise run lint:shell` | [Mise tasks](docs/reference/mise-tasks.md) |
+| Documentation language | `mise run lint:docs` | [Writing rules](docs/reference/writing-rules.md) |
+| `module.yaml` and `instance.yaml` | `mise run schemas:check` | [Schemas](docs/reference/schemas.md) |
 
-Before pushing or opening a PR, ensure all pre-commit hooks pass:
+When you add a rule, add a check for it in the same PR.
 
-```bash
-pre-commit run --all-files
-```
+## Specific changes
 
-## Code of Conduct
+| Change | Also do this |
+| --- | --- |
+| A Helm chart or values in `kubernetes/**/sources/` | Run `mise run manifests:render`. |
+| A Terraform module | Run `mise run doc:generate`. |
+| A Terraform provider version | Run `mise run tf:lock`. |
+| A tool version in `.mise/config.toml` | Run `mise lock`. |
+| A new module | Copy `modules/_template/`. Read its `README.md`. |
 
-Please adhere to our [Code of Conduct](CODE_OF_CONDUCT.md) in all community interactions.
+## Review
+
+A different agent or the owner reviews each PR. The owner approves each change to the homelab, the modules, CI and the standards. `.github/CODEOWNERS` lists these paths. Refer to "Review policy" in [AGENTS.md](AGENTS.md).
+
+## Code of conduct
+
+Obey the [Code of Conduct](CODE_OF_CONDUCT.md).

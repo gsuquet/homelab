@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Run every linter and check. CI and pre-commit run the same tasks."
-#MISE depends=["lint:terraform", "lint:policy", "lint:actions", "lint:shell", "schemas:test", "schemas:check"]
+#MISE depends=["lint:terraform", "lint:policy", "lint:actions", "lint:shell", "lint:docs", "schemas:test", "schemas:check"]
 
 set -euo pipefail
 

@@ -1,0 +1,8 @@
+# ASD-STE100 rules 4.1 and 5.1: a procedural sentence has a maximum of 20 words,
+# and a descriptive sentence has a maximum of 25 words.
+extends: occurrence
+message: "Write sentences with a maximum of 25 words (ASD-STE100 rule 5.1)."
+level: warning
+scope: sentence
+max: 25
+token: \b(\w+)\b

@@ -100,7 +100,7 @@ variable "cainjector_replicas" {
 }
 
 variable "controller_extra_args" {
-  description = "Additional CLI flags to pass to the cert-manager controller binary."
+  description = "More CLI flags to pass to the cert-manager controller binary."
   type        = list(string)
   default     = []
 }
@@ -212,7 +212,7 @@ variable "acme_email" {
 }
 
 variable "acme_custom_solvers" {
-  description = "Additional custom challenge solvers to include in Let's Encrypt ClusterIssuers."
+  description = "More custom challenge solvers to include in Let's Encrypt ClusterIssuers."
   type        = any
   default     = []
 }

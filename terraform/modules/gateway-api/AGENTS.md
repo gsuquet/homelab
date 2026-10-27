@@ -35,7 +35,7 @@ Deploys official Kubernetes [Gateway API](https://gateway-api.sigs.k8s.io/) Cust
 ## Outputs consumed by downstream modules
 
 Downstream modules (such as `cilium` or `cert-manager`) that require Gateway API CRDs can declare
-`depends_on = [module.gateway_api]` to ensure API registration completes before Gateway controller
+`depends_on = [module.gateway_api]` to make sure that API registration completes before Gateway controller
 initialization.
 
 ## Modifying this module

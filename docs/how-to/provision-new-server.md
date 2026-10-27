@@ -10,7 +10,7 @@ Use this guide to provision a brand-new node or to reprovision `olympus.local` f
 
 Open `ansible/inventory/hosts.yml` and add the new host under the appropriate group.
 
-For an additional K3S server (control-plane):
+For one more K3S server (control-plane):
 
 ```yaml
 all:
@@ -34,7 +34,7 @@ all:
         worker1.local:
 ```
 
-### 2. Ensure SSH access
+### 2. Make sure that SSH access works
 
 ```bash
 ssh-copy-id daedalus@newserver.local
@@ -72,7 +72,7 @@ The new node should appear with `Ready` status within a minute of the playbook c
 
 If you are rebuilding `olympus.local` from a fresh OS install:
 
-1. Ensure the hostname and SSH user in `ansible/inventory/hosts.yml` still match the new OS setup.
+1. Make sure that the hostname and SSH user in `ansible/inventory/hosts.yml` still match the new OS setup.
 2. Re-copy your SSH key if needed: `ssh-copy-id daedalus@olympus.local`
 3. Run the full install playbook:
 
