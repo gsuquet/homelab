@@ -1,13 +1,13 @@
 module "kind_cluster" {
-  source = "../modules/kind-cluster"
+  source = "../../modules/cluster-kind"
 
-  name                = "kind-dev-01"
+  name                = "kind-local"
   disable_default_cni = true
   worker_count        = 1
 }
 
 module "gateway_api" {
-  source = "../modules/gateway-api"
+  source = "../../modules/bootstrap-gateway-api"
 
   channel = "standard"
 
@@ -15,7 +15,7 @@ module "gateway_api" {
 }
 
 module "cilium" {
-  source = "../modules/cilium"
+  source = "../../modules/bootstrap-cilium"
 
   cluster_name         = module.kind_cluster.name
   cluster_type         = "kind"
@@ -28,7 +28,7 @@ module "cilium" {
 }
 
 module "agent_sandbox" {
-  source = "../modules/agent-sandbox"
+  source = "../../modules/bootstrap-agent-sandbox"
 
   enable_extensions = true
 

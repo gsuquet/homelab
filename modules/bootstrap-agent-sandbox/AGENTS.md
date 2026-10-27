@@ -1,4 +1,4 @@
-# AGENTS.md — agent-sandbox Terraform module
+# AGENTS.md — bootstrap-agent-sandbox Terraform module
 
 ## Purpose
 

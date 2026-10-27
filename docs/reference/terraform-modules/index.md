@@ -1,20 +1,25 @@
 # Terraform Modules Reference
 
-Technical documentation for Terraform modules provided in `terraform/modules/`.
+This page lists the Terraform modules in `modules/`. The name of each module starts with its layer: `substrate-`, `cluster-` or `bootstrap-`.
 
 ## Available Modules
 
 | Module | Description | Location |
 |--------|-------------|----------|
-| [`kind-cluster`](kind-cluster/index.md) | Provision local Kind (Kubernetes in Docker) development clusters | `terraform/modules/kind-cluster/` |
-| [`cilium`](cilium/index.md) | Install Cilium as the cluster CNI (pure networking baseline, no mesh) | `terraform/modules/cilium/` |
+| [`cluster-kind`](cluster-kind/index.md) | Creates a local Kind (Kubernetes in Docker) cluster | `modules/cluster-kind/` |
+| [`bootstrap-gateway-api`](bootstrap-gateway-api/index.md) | Installs the Gateway API CRDs | `modules/bootstrap-gateway-api/` |
+| [`bootstrap-cilium`](bootstrap-cilium/index.md) | Installs Cilium as the cluster CNI | `modules/bootstrap-cilium/` |
+| [`bootstrap-cert-manager`](bootstrap-cert-manager/index.md) | Installs cert-manager and its cluster issuers | `modules/bootstrap-cert-manager/` |
+| [`bootstrap-agent-sandbox`](bootstrap-agent-sandbox/index.md) | Installs the agent-sandbox controller | `modules/bootstrap-agent-sandbox/` |
+
+In Phase 2, the GitOps platform (`gitops/platform/`) takes over Gateway API, cert-manager and agent-sandbox.
 
 ---
 
 ## Usage
 
-Module documentation is automatically updated via `terraform-docs`. Run:
+terraform-docs updates the module reference pages. Run:
+
 ```bash
 mise run doc:generate
 ```
-to refresh module reference documentation.

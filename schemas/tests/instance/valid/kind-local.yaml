@@ -11,6 +11,9 @@ state:
   backend: local
 layers:
   cluster:
-    module: cluster-kind
+    modules:
+      - cluster-kind
   bootstrap:
-    module: bootstrap-argocd
+    modules:
+      - bootstrap-cilium
+      - bootstrap-argocd

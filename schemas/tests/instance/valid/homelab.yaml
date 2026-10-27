@@ -11,6 +11,9 @@ state:
   backend: r2
 layers:
   cluster:
-    module: cluster-talos
+    modules:
+      - cluster-talos
   bootstrap:
-    module: bootstrap-argocd
+    modules:
+      - bootstrap-cilium
+      - bootstrap-argocd

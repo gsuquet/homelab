@@ -27,12 +27,16 @@ This page lists the JSON Schemas in `schemas/` and the tasks that use them.
 - A `production` instance must be `long-lived` and must not use `local` state.
 - `state.backend` is `r2`, `hcp-terraform` or `local`.
 - `layers.cluster` and `layers.bootstrap` are mandatory. `layers.substrate` is optional.
-- The module of each layer must start with the layer name.
+- Each layer has a `modules` list, in the order of installation. The list has one or more modules, and no module two times.
+- The name of each module must start with the layer name.
 - Other fields are not permitted.
 
 ## Rules that the schemas cannot check
 
-The `schemas:check` task also makes sure that `name` is equal to the folder name.
+The `schemas:check` task also checks these rules:
+
+- `name` is equal to the folder name. `modules/_template/` is not checked for this rule.
+- Each module in the `layers` of an `instance.yaml` has a folder in `modules/`, and its `module.yaml` has the same `layer`.
 
 ## Tasks
 

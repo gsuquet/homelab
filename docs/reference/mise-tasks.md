@@ -99,7 +99,7 @@ pre-commit install
 
 **What it does**:
 
-1. Scans `terraform/modules/` for module directories (one level deep)
+1. Scans `modules/` for module directories (one level deep). It skips `modules/_template/`.
 2. For each module, runs `terraform-docs markdown table --output-mode inject` to inject
    a Markdown table of inputs, outputs, providers, and requirements into the module's
    `README.md` between `<!-- BEGIN_TF_DOCS -->` / `<!-- END_TF_DOCS -->` markers
@@ -118,8 +118,8 @@ mise run tf:docs
 **Example output**:
 
 ```bash
-[INFO] Generating docs for module: kind-cluster
-[INFO] ✓ kind-cluster → /path/to/terraform/modules/kind-cluster/README.md
+[INFO] Generating docs for module: cluster-kind
+[INFO] ✓ cluster-kind → /path/to/modules/cluster-kind/README.md
 
 [INFO] ====================================
 [INFO] Documentation generation complete!
@@ -198,6 +198,29 @@ It runs these tasks:
 ```bash
 mise run lint
 mise run lint:terraform
+```
+
+---
+
+### `instance:plan`, `instance:up`, `instance:down`
+
+**Scripts**: `.mise/tasks/instance/plan.sh`, `up.sh`, `down.sh`
+**Description**: Show the changes, create or update, or destroy one instance in `instances/`.
+
+Each task does these steps:
+
+1. Validates `instances/<instance>/instance.yaml` against `schemas/instance.schema.json`.
+2. Runs `terraform init` in `instances/<instance>/`.
+3. Runs `terraform plan`, `terraform apply` or `terraform destroy`.
+
+For a `test` or `demo` instance, `instance:up` and `instance:down` do not ask for approval. For a `production` instance, Terraform asks you to type `yes`.
+
+**Usage**:
+
+```bash
+mise run instance:plan kind-local
+mise run instance:up kind-local
+mise run instance:down kind-local
 ```
 
 ---

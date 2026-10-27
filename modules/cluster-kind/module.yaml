@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=../../schemas/module.schema.json
+---
+apiVersion: infra.gsuquet.com/v1alpha1
+kind: Module
+name: cluster-kind
+layer: cluster
+tool: terraform
+description: Creates a local Kind (Kubernetes in Docker) cluster and writes its kubeconfig.
+maturity: stable
+contract:
+  provides:
+    - kubeconfig_path
+    - endpoint
+    - client_certificate
+    - client_key
+    - cluster_ca_certificate

@@ -1,4 +1,4 @@
-# AGENTS.md — cilium Terraform module
+# AGENTS.md — bootstrap-cilium Terraform module
 
 ## Purpose
 

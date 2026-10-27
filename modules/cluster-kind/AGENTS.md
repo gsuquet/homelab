@@ -1,4 +1,4 @@
-# AGENTS.md — kind-cluster Terraform module
+# AGENTS.md — cluster-kind Terraform module
 
 ## Purpose
 

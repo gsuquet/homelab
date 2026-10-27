@@ -1,4 +1,4 @@
-# AGENTS.md — cert-manager Terraform module
+# AGENTS.md — bootstrap-cert-manager Terraform module
 
 ## Purpose
 

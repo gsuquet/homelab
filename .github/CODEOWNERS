@@ -14,6 +14,6 @@
 /docs/reference/schemas.md @gsuquet
 /docs/reference/writing-rules.md @gsuquet
 
-# Add each test or demo instance here without an owner, for example:
-# /instances/kind-dev-01/
-# /gitops/instances/kind-dev-01.yaml
+# Test and demo instances. A reviewing agent can approve them.
+/instances/kind-local/
+/gitops/instances/kind-local.yaml

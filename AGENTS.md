@@ -8,7 +8,7 @@ A folder can have its own `AGENTS.md`. Read it before you change files in that f
 
 This repository provisions the production homelab: a Raspberry Pi 4 cluster. It also holds demo and test instances, for example Kind, GKE and Azure. Each instance uses the same modules.
 
-The repository is in migration to a new design. Some folders still use the old design (`ansible/`, `terraform/`, `kubernetes/`). Do not add new code to `ansible/`. The migration removes Ansible.
+The repository is in migration to a new design. The new design uses `modules/`, `instances/` and `gitops/`. Some folders still use the old design (`ansible/`, `kubernetes/`). Do not add new code to `ansible/`. The migration removes Ansible.
 
 ## Rules
 

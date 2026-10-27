@@ -1,4 +1,4 @@
-# AGENTS.md — gateway-api Terraform module
+# AGENTS.md — bootstrap-gateway-api Terraform module
 
 ## Purpose
 

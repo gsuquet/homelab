@@ -4,6 +4,8 @@ package terraform
 
 exact_version := `^[0-9]+\.[0-9]+\.[0-9]+$`
 
+is_module(path) if startswith(path, "modules/")
+
 is_module(path) if contains(path, "/modules/")
 
 # Modules receive providers from the root module. A provider block makes a

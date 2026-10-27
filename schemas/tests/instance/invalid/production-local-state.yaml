@@ -11,6 +11,8 @@ state:
   backend: local
 layers:
   cluster:
-    module: cluster-talos
+    modules:
+      - cluster-talos
   bootstrap:
-    module: bootstrap-argocd
+    modules:
+      - bootstrap-argocd
