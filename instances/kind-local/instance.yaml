@@ -7,7 +7,7 @@ description: Local Kind cluster on a laptop, to test the modules and the platfor
 purpose: test
 lifecycle:
   type: long-lived
-# The state moves to Cloudflare R2 after the bucket exists.
+# A Kind cluster lives on one laptop, so its state stays on that laptop.
 state:
   backend: local
 layers:
