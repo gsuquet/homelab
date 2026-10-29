@@ -24,7 +24,8 @@ This page lists the JSON Schemas in `schemas/` and the tasks that use them.
 - `purpose` is `production`, `test` or `demo`.
 - `lifecycle.type` is `long-lived` or `ephemeral`.
 - An `ephemeral` instance must have a `ttl`, in hours (`8h`) or days (`2d`). A `long-lived` instance must not have a `ttl`.
-- A `production` instance must be `long-lived` and must not use `local` state.
+- A `production` instance must be `long-lived`.
+- Only a `test` instance can use `local` state. A `production` or `demo` instance must use remote state, because more than one machine or a CI job can run it.
 - `state.backend` is `r2`, `hcp-terraform` or `local`.
 - `layers.cluster` and `layers.bootstrap` are mandatory. `layers.substrate` is optional.
 - Each layer has a `modules` list, in the order of installation. The list has one or more modules, and no module two times.

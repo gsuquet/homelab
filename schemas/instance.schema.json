@@ -144,11 +144,14 @@
   },
   "allOf": [
     {
-      "description": "A production instance must use remote state.",
+      "description": "Only a test instance can use local state. Production and demo instances use remote state.",
       "if": {
         "properties": {
           "purpose": {
-            "const": "production"
+            "enum": [
+              "production",
+              "demo"
+            ]
           }
         },
         "required": [
