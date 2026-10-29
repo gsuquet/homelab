@@ -24,6 +24,50 @@ instance_load() {
     export INSTANCE_DIR INSTANCE_PURPOSE
 }
 
+# docker_start
+# Starts the first Docker runtime that is installed: Colima, OrbStack,
+# Rancher Desktop or Docker Desktop. Returns 1 when no runtime is installed.
+docker_start() {
+    if command -v colima > /dev/null 2>&1; then
+        log_info "Starting Colima..."
+        colima start
+    elif command -v orb > /dev/null 2>&1; then
+        log_info "Starting OrbStack..."
+        orb start
+    elif command -v rdctl > /dev/null 2>&1; then
+        log_info "Starting Rancher Desktop..."
+        rdctl start
+    elif [ "$(uname -s)" = "Darwin" ] && [ -d "/Applications/Docker.app" ]; then
+        log_info "Starting Docker Desktop..."
+        open -a Docker
+    else
+        return 1
+    fi
+}
+
+# docker_ensure
+# Makes sure that Docker runs. Set DOCKER_NO_START=1 to only check.
+docker_ensure() {
+    local i
+
+    docker info > /dev/null 2>&1 && return 0
+
+    if [ "${DOCKER_NO_START:-0}" = "1" ] || ! docker_start; then
+        log_error "Docker is not running. Kind needs it. Start Docker and try again."
+        exit 1
+    fi
+
+    # Docker Desktop and Rancher Desktop return before the engine is ready.
+    for i in $(seq 1 60); do
+        docker info > /dev/null 2>&1 && return 0
+        [ "$i" -eq 1 ] && log_info "Waiting for Docker..."
+        sleep 2
+    done
+
+    log_error "Docker did not start in 120 seconds."
+    exit 1
+}
+
 # instance_preflight
 # Checks what the cluster module needs on this machine before Terraform runs.
 instance_preflight() {
@@ -31,10 +75,7 @@ instance_preflight() {
     modules="$(yq '.layers.cluster.modules[]' "$INSTANCE_DIR/instance.yaml")"
 
     if grep -qx 'cluster-kind' <<< "$modules"; then
-        if ! docker info > /dev/null 2>&1; then
-            log_error "Docker is not running. Kind needs it. Start Docker (for example 'colima start') and try again."
-            exit 1
-        fi
+        docker_ensure
     fi
 }
 

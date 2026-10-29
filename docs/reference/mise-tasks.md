@@ -210,8 +210,9 @@ mise run lint:terraform
 Each task does these steps:
 
 1. Validates `instances/<instance>/instance.yaml` against `schemas/instance.schema.json`.
-2. Runs `terraform init` in `instances/<instance>/`.
-3. Runs `terraform plan`, `terraform apply` or `terraform destroy`.
+2. If the instance uses `cluster-kind`, makes sure that Docker runs. If Docker does not run, the task starts the first runtime that it finds: Colima, OrbStack, Rancher Desktop or Docker Desktop (macOS). Set `DOCKER_NO_START=1` to stop with an error instead.
+3. Runs `terraform init` in `instances/<instance>/`.
+4. Runs `terraform plan`, `terraform apply` or `terraform destroy`.
 
 For a `test` or `demo` instance, `instance:up` and `instance:down` do not ask for approval. For a `production` instance, Terraform asks you to type `yes`.
 
