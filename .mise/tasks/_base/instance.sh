@@ -24,6 +24,20 @@ instance_load() {
     export INSTANCE_DIR INSTANCE_PURPOSE
 }
 
+# instance_preflight
+# Checks what the cluster module needs on this machine before Terraform runs.
+instance_preflight() {
+    local modules
+    modules="$(yq '.layers.cluster.modules[]' "$INSTANCE_DIR/instance.yaml")"
+
+    if grep -qx 'cluster-kind' <<< "$modules"; then
+        if ! docker info > /dev/null 2>&1; then
+            log_error "Docker is not running. Kind needs it. Start Docker (for example 'colima start') and try again."
+            exit 1
+        fi
+    fi
+}
+
 # instance_init
 # Runs terraform init in the instance root module.
 instance_init() {

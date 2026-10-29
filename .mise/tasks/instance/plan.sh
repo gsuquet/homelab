@@ -10,6 +10,7 @@ source "$MISE_PROJECT_ROOT/.mise/tasks/_base/log.sh"
 source "$MISE_PROJECT_ROOT/.mise/tasks/_base/instance.sh"
 
 instance_load "${usage_instance:?}"
+instance_preflight
 instance_init
 terraform -chdir="$INSTANCE_DIR" plan -input=false
 

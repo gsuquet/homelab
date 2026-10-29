@@ -10,6 +10,7 @@ source "$MISE_PROJECT_ROOT/.mise/tasks/_base/log.sh"
 source "$MISE_PROJECT_ROOT/.mise/tasks/_base/instance.sh"
 
 instance_load "${usage_instance:?}"
+instance_preflight
 instance_init
 # shellcheck disable=SC2046 # The flag is empty or one word.
 terraform -chdir="$INSTANCE_DIR" destroy -input=false $(instance_approve_flag)
