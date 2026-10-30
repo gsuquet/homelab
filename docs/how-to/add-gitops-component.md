@@ -28,7 +28,7 @@ This procedure adds a platform component or an application to an instance. Argo 
        argocd.argoproj.io/sync-wave: "-2"
    ```
 
-6. If the chart has CRDs, give them the annotation `argocd.argoproj.io/sync-wave: "-1"`. Most charts have a value for CRD annotations.
+6. If the chart has CRDs, give them the annotation `argocd.argoproj.io/sync-wave: "-1"`. Most charts have a value for CRD annotations. Helm cannot change the files in the `crds/` folder of a chart. If the chart has CRDs only there, ask for a review of the render task before you add the component.
 7. Give each container a memory request equal to its memory limit, and a CPU request. Do not set a CPU limit.
 8. Add `values/<instance>.yaml` for each instance that uses the component. The file can be empty.
 9. Run `mise run manifests:render`.

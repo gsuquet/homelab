@@ -52,8 +52,9 @@ check_instance_terraform() {
 # - Each component in the file has gitops/<group>/<name>/rendered/<instance>/,
 #   and that folder contains the Namespace of the component.
 # - No two components have the same name: it is also the Application name.
-# - Each folder in gitops/platform/ and gitops/apps/ has sources/Chart.yaml:
-#   all components use the rendered manifests pattern.
+# - Each folder in gitops/platform/ and gitops/apps/ has sources/Chart.yaml,
+#   sources/chart.env and sources/templates/namespace.yaml: all components use
+#   the rendered manifests pattern and ship their own Namespace.
 # - Argo CD manages itself: each instance in gitops/platform/argocd/values/
 #   has an entry point, and the entry point lists argocd in platform. Without
 #   this, the ApplicationSet deletes the argocd Application and Argo CD stops
@@ -85,7 +86,7 @@ check_gitops_tree() {
                 if [ ! -d "$rendered" ]; then
                     log_error "$file: gitops/$group/$name/rendered/$instance/ is missing. Add gitops/$group/$name/values/$instance.yaml and run 'mise run manifests:render'."
                     failures=$((failures + 1))
-                elif ! grep -qx -- "$namespace" <<< "$(yq ea 'select(.kind == "Namespace") | .metadata.name' "$rendered"/*.yaml 2> /dev/null || true)"; then
+                elif ! grep -qxF -- "$namespace" <<< "$(yq ea 'select(.kind == "Namespace") | .metadata.name' "$rendered"/*.yaml 2> /dev/null || true)"; then
                     log_error "$file: gitops/$group/$name/rendered/$instance/ has no Namespace '$namespace'. Each component ships its own Namespace."
                     failures=$((failures + 1))
                 fi
@@ -101,13 +102,15 @@ check_gitops_tree() {
 
     # Each component uses the rendered manifests pattern: an umbrella chart in
     # sources/, rendered by manifests:render. There is no hand-written folder.
-    local component
+    local component required
     for component in "$root"/gitops/platform/*/ "$root"/gitops/apps/*/; do
         [ -d "$component" ] || continue
-        if [ ! -f "${component}sources/Chart.yaml" ]; then
-            log_error "${component}: sources/Chart.yaml is missing. Each component uses the rendered manifests pattern."
-            failures=$((failures + 1))
-        fi
+        for required in sources/Chart.yaml sources/chart.env sources/templates/namespace.yaml; do
+            if [ ! -f "${component}${required}" ]; then
+                log_error "${component}: ${required} is missing. Each component uses the rendered manifests pattern and ships its own Namespace."
+                failures=$((failures + 1))
+            fi
+        done
     done
 
     for values in "$root"/gitops/platform/argocd/values/*.yaml; do

@@ -114,15 +114,18 @@ chart_namespace() {
     (source "$chart_env_file" && echo "${NAMESPACE:-}")
 }
 
-# render_chart <release name> <source dir> <output file> <values file...>
+# render_chart <release name> <source dir> <output file> <values file or --flag...>
 render_chart() {
     local release="$1" source_dir="$2" output_file="$3"
     shift 3
 
     local args=()
-    local values_file namespace
-    for values_file in "$@"; do
-        args+=(-f "$values_file")
+    local arg namespace
+    for arg in "$@"; do
+        case "$arg" in
+            --*) args+=("$arg") ;;
+            *) args+=(-f "$arg") ;;
+        esac
     done
     namespace="$(chart_namespace "$source_dir")"
     [ -n "$namespace" ] && args+=(--namespace "$namespace")
@@ -203,7 +206,8 @@ while IFS= read -r chart_file; do
         mkdir -p "$output_dir"
 
         log_info "Rendering $component_name for $instance to: $output_dir"
-        if render_chart "$component_name" "$source_dir" "$output_file" "$source_dir/values.yaml" "$instance_values"; then
+        # --include-crds: the CRDs in the crds/ folder of a chart go to rendered/ too.
+        if render_chart "$component_name" "$source_dir" "$output_file" "$source_dir/values.yaml" "$instance_values" --include-crds; then
             split_manifest_by_source "$output_file" "$output_dir"
             log_info "✓ Successfully rendered $component_name for $instance"
             ((rendered_count += 1))
