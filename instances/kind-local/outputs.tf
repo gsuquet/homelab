@@ -17,8 +17,3 @@ output "gateway_api_channel" {
   description = "Channel installed for Gateway API."
   value       = module.gateway_api.channel
 }
-
-output "agent_sandbox_release_status" {
-  description = "Status of the agent-sandbox Helm release."
-  value       = module.agent_sandbox.release_status
-}
