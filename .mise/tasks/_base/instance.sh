@@ -105,6 +105,26 @@ instance_init() {
     terraform -chdir="$INSTANCE_DIR" init -input=false
 }
 
+# instance_layer_targets <layer>
+# Prints one -target=module.<block> flag for each module block of the instance
+# whose source is a module of <layer> in instance.yaml.
+instance_layer_targets() {
+    local layer="$1" modules
+    modules="$(yq ".layers.${layer}.modules[]" "$INSTANCE_DIR/instance.yaml" 2> /dev/null || true)"
+    [ -n "$modules" ] || return 0
+
+    cat "$INSTANCE_DIR"/*.tf | awk -v modules="$modules" '
+        BEGIN { n = split(modules, list, "\n"); for (i = 1; i <= n; i++) wanted[list[i]] = 1 }
+        /^[[:space:]]*(#|\/\/)/ { next }
+        /^[[:space:]]*module[[:space:]]+"/ { name = $0; sub(/^[[:space:]]*module[[:space:]]+"/, "", name); sub(/".*/, "", name) }
+        /source[[:space:]]*=[[:space:]]*"\.\.\/\.\.\/modules\// {
+            src = $0; sub(/.*\.\.\/\.\.\/modules\//, "", src); sub(/["\/].*/, "", src)
+            if (name != "" && (src in wanted)) print "-target=module." name
+            name = ""
+        }
+    '
+}
+
 # instance_approve_flag
 # Prints -auto-approve for test and demo instances. A production instance needs
 # an interactive approval.
