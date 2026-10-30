@@ -1,5 +1,5 @@
 variable "manifests_dir" {
-  description = "Folder with the rendered Argo CD manifests of the instance: gitops/platform/argocd/rendered/<instance>. Argo CD syncs the same folder after the bootstrap."
+  description = "Folder with the rendered Argo CD manifests of the cluster: gitops/clusters/<cluster>/rendered/argocd. Argo CD syncs the same folder after the bootstrap."
   type        = string
 
   validation {
@@ -18,4 +18,10 @@ variable "wait_for_rollout" {
   description = "Wait until the Argo CD Deployments and StatefulSets are ready before the apply completes."
   type        = bool
   default     = true
+}
+
+variable "application" {
+  description = "Name of the Argo CD Application that syncs manifests_dir. Terraform applies this Application and no other: Argo CD makes the other Applications in the order of their sync waves."
+  type        = string
+  default     = "argocd"
 }

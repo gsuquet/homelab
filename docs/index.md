@@ -38,7 +38,7 @@ Task-oriented recipes that solve a specific problem. Assumes familiarity with th
 | [Manage Secrets](how-to/manage-secrets.md) | Create and commit encrypted secrets with Sealed Secrets |
 | [Add a Zigbee Device](how-to/add-zigbee-device.md) | Pair a new Zigbee device and expose it to Home Assistant |
 | [Render Manifests](how-to/render-manifests.md) | Re-render Helm charts to plain YAML after a config change |
-| [Add a GitOps Component](how-to/add-gitops-component.md) | Deploy a platform component or an app to an instance with Argo CD |
+| [Add a GitOps Component](how-to/add-gitops-component.md) | Deploy an infrastructure component or an app to a cluster with Argo CD |
 | [Open the Argo CD UI](how-to/open-argocd-ui.md) | Log in to Argo CD on an instance with a port-forward |
 | [Configure Cloudflare](how-to/configure-cloudflare.md) | Set up the Cloudflare tunnel for external access |
 | [Use Kind behind a TLS-inspecting proxy](how-to/use-kind-behind-a-tls-proxy.md) | Make the Colima VM and the Kind nodes trust a company proxy CA |

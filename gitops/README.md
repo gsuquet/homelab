@@ -4,43 +4,45 @@ Argo CD deploys the content of this folder. Refer to [GitOps with Argo CD](../do
 
 | Folder | Content |
 | --- | --- |
-| `platform/<component>/` | Platform components, for example Argo CD, cert-manager and the gateways. |
+| `infrastructure/<component>/` | Components that can change cluster-scoped resources, for example Argo CD, cert-manager and the gateways. |
 | `apps/<app>/` | Applications, for example Home Assistant. |
-| `instances/<instance>.yaml` | The entry point for one instance. It lists the components and apps that the instance uses. |
+| `clusters/<cluster>/` | All that is specific to one cluster: the list of components, the value overrides and the rendered manifests. |
 
-## Layout of a component
-
-Each component in `platform/` and `apps/` uses the rendered manifests pattern:
+## Layout
 
 ```text
-<component>/
-├── sources/
-│   ├── Chart.yaml        # Umbrella chart. The upstream chart has an exact version.
-│   ├── chart.env         # NAMESPACE for helm template.
-│   ├── values.yaml       # Values for all instances
-│   └── templates/        # namespace.yaml, and more manifests, for example an AppProject.
-├── values/
-│   └── <instance>.yaml   # Values for one instance
-└── rendered/
-    └── <instance>/       # Generated manifests. Do not edit.
+gitops/
+├── infrastructure/<component>/sources/
+│   ├── Chart.yaml              # Umbrella chart. The upstream chart has an exact version.
+│   ├── values.yaml             # Values for all clusters
+│   └── templates/              # namespace.yaml, and more manifests
+├── apps/<app>/sources/         # The same layout
+└── clusters/<cluster>/
+    ├── cluster.yaml            # Entry point: the components of the cluster
+    ├── values/<component>.yaml # Optional. Values for this cluster only
+    └── rendered/<component>/   # Generated manifests. Do not edit.
 ```
 
-`mise run manifests:render` writes `rendered/<instance>/` for each file in `values/`. It writes one file for each resource.
+`mise run manifests:render` renders each component in `cluster.yaml` to `clusters/<cluster>/rendered/<component>/`. It writes one file for each resource, with the name `<kind>-<name>.yaml`.
 
 Each component uses this pattern. Each component ships its own `Namespace`, with the Pod Security labels and the sync wave `-2`. Its CRDs have the sync wave `-1`. Refer to [Add a GitOps component](../docs/how-to/add-gitops-component.md).
 
-## Entry point of an instance
+## Entry point of a cluster
 
-`instances/<instance>.yaml` lists the components of the instance. `schemas/gitops-instance.schema.json` validates it.
+`clusters/<cluster>/cluster.yaml` lists the components of the cluster. `schemas/gitops-cluster.schema.json` validates it.
 
 ```yaml
 apiVersion: infra.gsuquet.com/v1alpha1
-kind: GitOpsInstance
-instance: kind-local
-platform:
-  - name: argocd       # Folder in platform/. Also the name of the Application.
-    namespace: argocd  # Destination namespace of the Application.
-apps: []
+kind: GitOpsCluster
+name: kind-local            # Equal to the folder name and to the Terraform instance
+infrastructure:
+  - name: argocd            # Folder in infrastructure/. Also the name of the Application.
+    namespace: argocd       # Destination namespace of the Application.
+apps:
+  - name: web
+    namespace: web
+    dependsOn:              # Optional. Argo CD syncs web after argocd is Healthy.
+      - argocd
 ```
 
-The `platform` and `apps` ApplicationSets read this file from Git. They make one Application for each item. The Application syncs `<group>/<name>/rendered/<instance>/`.
+The `argocd` component renders one Application for each item. `dependsOn` sets the sync wave of the Application.

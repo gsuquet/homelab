@@ -85,4 +85,4 @@ if [ "$failures" -ne 0 ]; then
     exit 1
 fi
 
-log_info "✓ All module.yaml, instance.yaml and GitOps instance files comply with their schema."
+log_info "✓ All module.yaml, instance.yaml and GitOps cluster files comply with their schema."

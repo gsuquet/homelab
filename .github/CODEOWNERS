@@ -16,4 +16,4 @@
 
 # Test and demo instances. A reviewing agent can approve them.
 /instances/kind-local/
-/gitops/instances/kind-local.yaml
+/gitops/clusters/kind-local/

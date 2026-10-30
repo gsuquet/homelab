@@ -5,5 +5,5 @@ output "namespace" {
 
 output "manifest_keys" {
   description = "Keys (<kind>/<namespace>/<name>) of the resources that the bootstrap applied."
-  value       = keys(local.manifests)
+  value       = concat(keys(local.foundation), keys(local.components), keys(local.argocd_resources))
 }

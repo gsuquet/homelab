@@ -74,15 +74,15 @@ homelab/
 │   ├── bootstrap-cilium/             # Cilium CNI
 │   ├── bootstrap-cert-manager/       # cert-manager and cluster issuers
 │   ├── bootstrap-agent-sandbox/      # agent-sandbox controller
-│   └── bootstrap-argocd/             # Argo CD bootstrap from gitops/platform/argocd/
+│   └── bootstrap-argocd/             # Argo CD bootstrap from gitops/clusters/<cluster>/rendered/argocd/
 │
 ├── instances/                        # One root module for each instance, with instance.yaml
 │   └── kind-local/                   # Local Kind test instance
 │
 ├── gitops/                           # Argo CD sources
-│   ├── platform/                     # Platform components, for example argocd/
+│   ├── infrastructure/               # Infrastructure components, for example argocd/
 │   ├── apps/                         # Applications
-│   └── instances/                    # One Argo CD entry point for each instance (<instance>.yaml)
+│   └── clusters/                     # One folder for each cluster: cluster.yaml, values/, rendered/
 │
 ├── schemas/                          # JSON Schemas for module.yaml and instance.yaml
 ├── policy/                           # Conftest policies

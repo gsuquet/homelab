@@ -1,19 +1,18 @@
 # Add a GitOps component
 
-This procedure adds a platform component or an application to an instance. Argo CD then deploys it from Git. For the design, refer to [GitOps with Argo CD](../explanation/gitops-with-argocd.md).
+This procedure adds an infrastructure component or an application to a cluster. Argo CD then deploys it from Git. For the design, refer to [GitOps with Argo CD](../explanation/gitops-with-argocd.md).
 
 ## Prerequisites
 
-- Argo CD runs on the instance. The `bootstrap-argocd` module installs it.
+- Argo CD runs on the cluster. The `bootstrap-argocd` module installs it.
 - You ran `mise install`.
 
 ## Procedure
 
-1. Make the folder `gitops/platform/<component>/`. For an application, use `gitops/apps/<app>/`.
+1. Make the folder `gitops/infrastructure/<component>/`. For an application, use `gitops/apps/<app>/`. Use `infrastructure/` when the component must change cluster-scoped resources, for example CRDs or webhooks.
 2. Add `sources/Chart.yaml`. Set the upstream chart as a dependency with an exact version.
-3. Add `sources/values.yaml` with the values for all instances.
-4. Add `sources/chart.env` with `NAMESPACE=<namespace>`.
-5. Add `sources/templates/namespace.yaml`. Argo CD does not create namespaces. Use the restricted level if the pods comply:
+3. Add `sources/values.yaml` with the values for all clusters.
+4. Add `sources/templates/namespace.yaml`. Argo CD does not create namespaces. Use the restricted level if the pods comply:
 
    ```yaml
    apiVersion: v1
@@ -28,27 +27,30 @@ This procedure adds a platform component or an application to an instance. Argo 
        argocd.argoproj.io/sync-wave: "-2"
    ```
 
-6. If the chart has CRDs, give them the annotation `argocd.argoproj.io/sync-wave: "-1"`. Most charts have a value for CRD annotations. Helm cannot change the files in the `crds/` folder of a chart. If the chart has CRDs only there, ask for a review of the render task before you add the component.
-7. Give each container a memory request equal to its memory limit, and a CPU request. Do not set a CPU limit.
-8. Add `values/<instance>.yaml` for each instance that uses the component. The file can be empty.
+5. If the chart has CRDs, give them the annotation `argocd.argoproj.io/sync-wave: "-1"`. Most charts have a value for CRD annotations. Helm cannot change the files in the `crds/` folder of a chart. If the chart has CRDs only there, ask for a review of the render task before you add the component.
+6. Give each container a memory request equal to its memory limit, and a CPU request. Do not set a CPU limit.
+7. Add the component to `gitops/clusters/<cluster>/cluster.yaml`. Use the list of the group: `infrastructure` or `apps`. Add `dependsOn` if the component needs another component first, for example its CRDs:
+
+   ```yaml
+   apps:
+     - name: <component>
+       namespace: <namespace>
+       dependsOn:
+         - cert-manager
+   ```
+
+8. Optional: add `gitops/clusters/<cluster>/values/<component>.yaml` with the values for this cluster only.
 9. Run `mise run manifests:render`.
-10. Make sure that `rendered/<instance>/` contains the expected manifests.
-11. Add the component to `gitops/instances/<instance>.yaml`:
+10. Make sure that `gitops/clusters/<cluster>/rendered/<component>/` contains the expected manifests, and that `rendered/argocd/` contains the new Application.
+11. Run `mise run lint` and `mise run schemas:check`.
+12. Open a pull request.
 
-    ```yaml
-    platform:
-      - name: <component>
-        namespace: <namespace>
-    ```
-
-12. Run `mise run lint` and `mise run schemas:check`.
-13. Open a pull request.
-
-When the pull request merges, the ApplicationSet makes the Application. Argo CD then syncs the component.
+When the pull request merges, the `argocd` Application makes the new Application in its sync wave. Argo CD then syncs the component.
 
 ## Remove a component
 
-1. Remove the component from `gitops/instances/<instance>.yaml`.
-2. Remove `values/<instance>.yaml` from the component, then run `mise run manifests:render`.
+1. Remove the component from `gitops/clusters/<cluster>/cluster.yaml`.
+2. Remove `gitops/clusters/<cluster>/values/<component>.yaml` if it exists.
+3. Run `mise run manifests:render`.
 
-The ApplicationSet deletes the Application. The ApplicationSet has `preserveResourcesOnDeletion: true`, thus the resources stay in the cluster. Delete them with `kubectl` if necessary.
+Argo CD deletes the Application. The Application has no resources finalizer, thus the resources stay in the cluster. Delete them with `kubectl` if necessary.

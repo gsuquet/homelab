@@ -32,14 +32,14 @@ test_rendered_manifest_without_digest_is_allowed if {
 
 test_gitops_rendered_manifest_without_digest_is_allowed if {
 	count(kubernetes.deny) == 0 with input as [{
-		"path": "gitops/platform/argocd/rendered/kind-local/argocd-server-deployment.yaml",
+		"path": "gitops/clusters/kind-local/rendered/argocd/deployment-argocd-server.yaml",
 		"contents": deployment("quay.io/argoproj/argocd:v3.5.6"),
 	}]
 }
 
 test_gitops_hand_written_manifest_without_digest_is_denied if {
 	count(kubernetes.deny) == 1 with input as [{
-		"path": "gitops/platform/example/extra/deployment.yaml",
+		"path": "gitops/infrastructure/example/extra/deployment.yaml",
 		"contents": deployment("quay.io/argoproj/argocd:v3.5.6"),
 	}]
 }
@@ -73,23 +73,20 @@ test_non_workload_is_ignored if {
 	count(kubernetes.deny) == 0 with input as [{"path": "kubernetes/applications/x/svc.yaml", "contents": {"kind": "Service"}}]
 }
 
-applicationset(revision) := {
-	"kind": "ApplicationSet",
-	"spec": {"template": {"spec": {"source": {"targetRevision": revision}}}},
+application(revision) := {
+	"kind": "Application",
+	"metadata": {"name": "demo"},
+	"spec": {"source": {"targetRevision": revision}},
 }
 
-test_applicationset_on_main_is_allowed if {
-	count(kubernetes.deny) == 0 with input as [{
-		"path": "gitops/platform/argocd/rendered/kind-local/applicationsets.yaml",
-		"contents": applicationset("main"),
-	}]
+application_path := "gitops/clusters/kind-local/rendered/argocd/application-demo.yaml"
+
+test_application_on_main_is_allowed if {
+	count(kubernetes.deny) == 0 with input as [{"path": application_path, "contents": application("main")}]
 }
 
-test_applicationset_on_a_branch_is_denied if {
-	count(kubernetes.deny) == 1 with input as [{
-		"path": "gitops/platform/argocd/rendered/kind-local/applicationsets.yaml",
-		"contents": applicationset("feat/test"),
-	}]
+test_application_on_a_branch_is_denied if {
+	count(kubernetes.deny) == 1 with input as [{"path": application_path, "contents": application("feat/test")}]
 }
 
 namespace(labels, annotations) := {
@@ -105,42 +102,42 @@ pss_labels := {
 
 test_namespace_with_pss_and_wave_is_allowed if {
 	count(kubernetes.deny) == 0 with input as [{
-		"path": "gitops/platform/demo/rendered/kind-local/namespace.yaml",
+		"path": "gitops/clusters/kind-local/rendered/demo/namespace-demo.yaml",
 		"contents": namespace(pss_labels, {"argocd.argoproj.io/sync-wave": "-2"}),
 	}]
 }
 
 test_namespace_without_pss_is_denied if {
 	count(kubernetes.deny) == 3 with input as [{
-		"path": "gitops/platform/demo/rendered/kind-local/namespace.yaml",
+		"path": "gitops/clusters/kind-local/rendered/demo/namespace-demo.yaml",
 		"contents": namespace({}, {"argocd.argoproj.io/sync-wave": "-2"}),
 	}]
 }
 
 test_namespace_with_unknown_pss_level_is_denied if {
 	count(kubernetes.deny) == 1 with input as [{
-		"path": "gitops/platform/demo/rendered/kind-local/namespace.yaml",
+		"path": "gitops/clusters/kind-local/rendered/demo/namespace-demo.yaml",
 		"contents": namespace(object.union(pss_labels, {"pod-security.kubernetes.io/warn": "strict"}), {"argocd.argoproj.io/sync-wave": "-2"}),
 	}]
 }
 
 test_namespace_without_wave_is_denied if {
 	count(kubernetes.deny) == 1 with input as [{
-		"path": "gitops/platform/demo/rendered/kind-local/namespace.yaml",
+		"path": "gitops/clusters/kind-local/rendered/demo/namespace-demo.yaml",
 		"contents": namespace(pss_labels, {}),
 	}]
 }
 
 test_crd_without_wave_is_denied if {
 	count(kubernetes.deny) == 1 with input as [{
-		"path": "gitops/platform/demo/rendered/kind-local/crd.yaml",
+		"path": "gitops/clusters/kind-local/rendered/demo/customresourcedefinition-demos.example.com.yaml",
 		"contents": {"kind": "CustomResourceDefinition", "metadata": {"name": "demos.example.com"}},
 	}]
 }
 
 test_crd_with_wave_is_allowed if {
 	count(kubernetes.deny) == 0 with input as [{
-		"path": "gitops/platform/demo/rendered/kind-local/crd.yaml",
+		"path": "gitops/clusters/kind-local/rendered/demo/customresourcedefinition-demos.example.com.yaml",
 		"contents": {"kind": "CustomResourceDefinition", "metadata": {"name": "demos.example.com", "annotations": {"argocd.argoproj.io/sync-wave": "-1"}}},
 	}]
 }
@@ -152,15 +149,16 @@ test_namespace_outside_gitops_is_not_checked if {
 	}]
 }
 
-test_applicationset_with_create_namespace_is_denied if {
+test_application_with_create_namespace_is_denied if {
 	count(kubernetes.deny) == 1 with input as [{
-		"path": "gitops/platform/argocd/rendered/kind-local/applicationset-platform.yaml",
-		"contents": {
-			"kind": "ApplicationSet",
-			"spec": {"template": {"spec": {
-				"source": {"targetRevision": "main"},
-				"syncPolicy": {"syncOptions": ["CreateNamespace=true"]},
-			}}},
-		},
+		"path": application_path,
+		"contents": object.union(application("main"), {"spec": {"syncPolicy": {"syncOptions": ["CreateNamespace=true"]}}}),
+	}]
+}
+
+test_application_with_resources_finalizer_is_denied if {
+	count(kubernetes.deny) == 1 with input as [{
+		"path": application_path,
+		"contents": object.union(application("main"), {"metadata": {"finalizers": ["resources-finalizer.argocd.argoproj.io/background"]}}),
 	}]
 }

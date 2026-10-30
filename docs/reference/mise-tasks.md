@@ -13,7 +13,7 @@ Tasks are defined under `.mise/tasks/` and run with `mise run <task>`. All tasks
 
 **What it does**:
 
-1. Scans `kubernetes/` and `gitops/` for all `**/sources/Chart.yaml` files. A chart in `gitops/` renders one time for each `values/<instance>.yaml` to `rendered/<instance>/`. Refer to [Render manifests](../how-to/render-manifests.md).
+1. Scans `kubernetes/` and `gitops/` for all `**/sources/Chart.yaml` files. A chart in `gitops/` renders one time for each cluster that lists it in `gitops/clusters/<cluster>/cluster.yaml`, to `gitops/clusters/<cluster>/rendered/<component>/`. Refer to [Render manifests](../how-to/render-manifests.md).
 2. For each chart in `kubernetes/`:
    - Runs `helm dependency update` to fetch or update chart dependencies (downloads the upstream chart)
    - Runs `helm template <component> <source_dir> -f values.yaml` to produce `manifests/install.yaml`

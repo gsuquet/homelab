@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/gsuquet/homelab/schemas/gitops-cluster.schema.json",
+  "title": "GitOps cluster",
+  "description": "GitOps entry point of one cluster in gitops/clusters/<cluster>/cluster.yaml. The argocd component makes one Argo CD Application for each component in the lists.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "apiVersion",
+    "kind",
+    "name",
+    "infrastructure",
+    "apps"
+  ],
+  "properties": {
+    "apiVersion": {
+      "description": "Version of this schema.",
+      "const": "infra.gsuquet.com/v1alpha1"
+    },
+    "kind": {
+      "const": "GitOpsCluster"
+    },
+    "name": {
+      "description": "Cluster name. Must be equal to the folder name, and to the name of the Terraform instance in instances/.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 40
+    },
+    "infrastructure": {
+      "description": "Components in gitops/infrastructure/ that the cluster uses.",
+      "$ref": "#/$defs/components"
+    },
+    "apps": {
+      "description": "Applications in gitops/apps/ that the cluster uses.",
+      "$ref": "#/$defs/components"
+    }
+  },
+  "$defs": {
+    "components": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "namespace"
+        ],
+        "properties": {
+          "name": {
+            "description": "Folder name of the component. It is also the name of the Argo CD Application.",
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "maxLength": 53
+          },
+          "namespace": {
+            "description": "Destination namespace of the Application.",
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "maxLength": 63
+          },
+          "dependsOn": {
+            "description": "Components that must be Healthy before Argo CD syncs this component. The names can be in infrastructure or in apps.",
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+            }
+          }
+        }
+      }
+    }
+  }
+}
