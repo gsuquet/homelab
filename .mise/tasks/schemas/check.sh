@@ -5,6 +5,8 @@ set -euo pipefail
 
 # shellcheck source=../_base/log.sh
 source "$MISE_PROJECT_ROOT/.mise/tasks/_base/log.sh"
+# shellcheck source=../_base/instance-checks.sh
+source "$MISE_PROJECT_ROOT/.mise/tasks/_base/instance-checks.sh"
 
 cd "$MISE_PROJECT_ROOT"
 
@@ -65,38 +67,6 @@ check_instance_modules() {
             failures=$((failures + 1))
         fi
     done < <(yq "$query" "$file")
-}
-
-# check_instance_terraform <instance.yaml>
-# The Terraform files of the instance must use exactly the modules that
-# instance.yaml lists, and must have a backend block exactly when the backend is
-# not local.
-check_instance_terraform() {
-    local file="$1"
-    local dir listed used backend has_backend
-    dir="$(dirname "$file")"
-
-    listed="$(yq '.layers[].modules[]' "$file" | sort -u)"
-    used="$(cat "$dir"/*.tf 2> /dev/null |
-        sed -n 's|^[[:space:]]*source[[:space:]]*=[[:space:]]*"\.\./\.\./modules/\([^"/]*\)".*|\1|p' | sort -u)"
-    if [ "$listed" != "$used" ]; then
-        log_error "$file: the modules in instance.yaml are not the modules that $dir/*.tf uses"
-        diff <(echo "$listed") <(echo "$used") | sed -n 's/^</  only in instance.yaml:/p; s/^>/  only in the Terraform files:/p' >&2
-        failures=$((failures + 1))
-    fi
-
-    backend="$(yq '.state.backend' "$file")"
-    has_backend=no
-    if grep -Eq '^[[:space:]]*backend[[:space:]]+"' "$dir"/*.tf 2> /dev/null; then
-        has_backend=yes
-    fi
-    if [ "$backend" = "local" ] && [ "$has_backend" = "yes" ]; then
-        log_error "$file: state.backend is local, but $dir/*.tf has a backend block"
-        failures=$((failures + 1))
-    elif [ "$backend" != "local" ] && [ "$has_backend" = "no" ]; then
-        log_error "$file: state.backend is $backend, but $dir/*.tf has no backend block"
-        failures=$((failures + 1))
-    fi
 }
 
 check_kind schemas/module.schema.json modules module.yaml

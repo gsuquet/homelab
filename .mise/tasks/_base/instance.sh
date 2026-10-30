@@ -65,7 +65,7 @@ docker_ensure() {
     local i
 
     if ! command -v docker > /dev/null 2>&1; then
-        log_error "The docker command is missing. Kind needs it. Install it, for example: brew install docker."
+        log_error "The docker command is missing. Kind needs it. Install it (for example: brew install docker), or open Docker Desktop once."
         exit 1
     fi
 
