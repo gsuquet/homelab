@@ -27,6 +27,8 @@ To do this step manually:
     security find-certificate -a -p -c "<CA name>" /Library/Keychains/System.keychain > ~/.config/certs/proxy-ca.pem
     ```
 
+    The `-c` option finds each certificate that has the name in its name. Thus the file can contain more than one certificate. This is not a problem: the VM and the nodes trust each certificate in the file.
+
 3. Run `colima start --edit` and add this entry. Use the absolute path, because the script runs as root.
 
     ```yaml

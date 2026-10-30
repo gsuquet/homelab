@@ -25,9 +25,23 @@ instance_load() {
 }
 
 # docker_start
-# Starts the first Docker runtime that is installed: Colima, OrbStack,
-# Rancher Desktop or Docker Desktop. Returns 1 when no runtime is installed.
+# Starts the runtime in DOCKER_RUNTIME (colima, orbstack, rancher-desktop or
+# docker-desktop). Without DOCKER_RUNTIME, starts the first runtime that is
+# installed, in that order. Returns 1 when no runtime is installed.
 docker_start() {
+    case "${DOCKER_RUNTIME:-}" in
+        "") ;;
+        colima) log_info "Starting Colima..." && colima start && return 0 ;;
+        orbstack) log_info "Starting OrbStack..." && orb start && return 0 ;;
+        rancher-desktop) log_info "Starting Rancher Desktop..." && rdctl start && return 0 ;;
+        docker-desktop) log_info "Starting Docker Desktop..." && open -a Docker && return 0 ;;
+        *)
+            log_error "DOCKER_RUNTIME='$DOCKER_RUNTIME' is not valid. Use colima, orbstack, rancher-desktop or docker-desktop."
+            exit 1
+            ;;
+    esac
+    [ -z "${DOCKER_RUNTIME:-}" ] || return 1
+
     if command -v colima > /dev/null 2>&1; then
         log_info "Starting Colima..."
         colima start
@@ -49,6 +63,11 @@ docker_start() {
 # Makes sure that Docker runs. Set DOCKER_NO_START=1 to only check.
 docker_ensure() {
     local i
+
+    if ! command -v docker > /dev/null 2>&1; then
+        log_error "The docker command is missing. Kind needs it. Install it, for example: brew install docker."
+        exit 1
+    fi
 
     docker info > /dev/null 2>&1 && return 0
 

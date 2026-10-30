@@ -38,6 +38,8 @@ The `schemas:check` task also checks these rules:
 
 - `name` is equal to the folder name. `modules/_template/` is not checked for this rule.
 - Each module in the `layers` of an `instance.yaml` has a folder in `modules/`, and its `module.yaml` has the same `layer`.
+- The Terraform files of an instance use each module of its `layers` with `source = "../../modules/<module>"`, and they use no other module.
+- The Terraform files of an instance have a `backend` block if `state.backend` is not `local`. They have no `backend` block if `state.backend` is `local`.
 
 ## Tasks
 

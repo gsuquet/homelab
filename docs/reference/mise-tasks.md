@@ -210,7 +210,7 @@ mise run lint:terraform
 Each task does these steps:
 
 1. Validates `instances/<instance>/instance.yaml` against `schemas/instance.schema.json`.
-2. If the instance uses `cluster-kind`, makes sure that Docker runs. If Docker does not run, the task starts the first runtime that it finds: Colima, OrbStack, Rancher Desktop or Docker Desktop (macOS). Set `DOCKER_NO_START=1` to stop with an error instead. If image pulls fail behind a company proxy, refer to [Use Kind behind a TLS-inspecting proxy](../how-to/use-kind-behind-a-tls-proxy.md).
+2. If the instance uses `cluster-kind`, makes sure that Docker runs. If Docker does not run, the task starts the first runtime that it finds: Colima, OrbStack, Rancher Desktop or Docker Desktop (macOS). To start a specific runtime, set `DOCKER_RUNTIME` to `colima`, `orbstack`, `rancher-desktop` or `docker-desktop`. Set `DOCKER_NO_START=1` to stop with an error instead. If the `docker` command is missing, the task stops with an error. If image pulls fail behind a company proxy, refer to [Use Kind behind a TLS-inspecting proxy](../how-to/use-kind-behind-a-tls-proxy.md).
 3. Runs `terraform init` in `instances/<instance>/`.
 4. Runs `terraform plan`, `terraform apply` or `terraform destroy`.
 
