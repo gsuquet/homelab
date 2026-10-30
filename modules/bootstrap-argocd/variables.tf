@@ -9,7 +9,7 @@ variable "manifests_dir" {
 }
 
 variable "force_conflicts" {
-  description = "Take the ownership of fields that another field manager owns. Argo CD takes the fields back on its first sync."
+  description = "Take the ownership of fields that another field manager owns, for example after a manual kubectl apply."
   type        = bool
   default     = true
 }

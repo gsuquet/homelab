@@ -40,4 +40,12 @@ spec:
         syncOptions:
           - CreateNamespace=true
           - ServerSideApply=true
+        # Argo CD does not try a failed sync again for the same revision. Retry
+        # covers short failures, for example an image pull timeout in a hook.
+        retry:
+          limit: 5
+          backoff:
+            duration: 10s
+            factor: 2
+            maxDuration: 3m
 

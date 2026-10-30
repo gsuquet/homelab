@@ -52,12 +52,13 @@ The `schemas:check` task also checks these rules:
 - In `gitops/instances/<name>.yaml`, `instance` is equal to the file name.
 - Each component in `gitops/instances/<name>.yaml` has the folder `gitops/<group>/<component>/rendered/<name>/`.
 - Two components of one instance do not have the same name, because the name is also the name of the Argo CD Application.
+- Each instance in `gitops/platform/argocd/values/` has the file `gitops/instances/<name>.yaml`, and this file lists `argocd` in `platform`. Argo CD manages itself through this item.
 
 ## Tasks
 
 | Task | Action |
 | --- | --- |
-| `mise run schemas:test` | Validates the fixtures in `schemas/tests/`. Each file in `valid/` must pass. Each file in `invalid/` must fail. |
+| `mise run schemas:test` | Validates the fixtures in `schemas/tests/`. Each file in `valid/` must pass. Each file in `invalid/` must fail. The `gitops-tree/` cases test the `gitops/` checks: each folder is a small repository root. |
 | `mise run schemas:check` | Validates each `module.yaml`, `instance.yaml` and `gitops/instances/*.yaml` in the repository. |
 
 The pre-commit hooks and the `Validate Schemas` workflow run the same tasks.

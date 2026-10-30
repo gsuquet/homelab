@@ -1,0 +1,6 @@
+apiVersion: infra.gsuquet.com/v1alpha1
+kind: GitOpsInstance
+instance: kind
+platform:
+  - name: argocd
+apps: []

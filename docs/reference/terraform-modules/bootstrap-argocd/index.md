@@ -21,7 +21,7 @@ Refer to [AGENTS.md](AGENTS.md) for the design decisions.
 
 | Name | Description | Type | Default | Required |
 | ---- | ----------- | ---- | ------- | :------: |
-| <a name="input_force_conflicts"></a> [force\_conflicts](#input\_force\_conflicts) | Take the ownership of fields that an other field manager owns. Argo CD takes the fields back on its first sync. | `bool` | `true` | no |
+| <a name="input_force_conflicts"></a> [force\_conflicts](#input\_force\_conflicts) | Take the ownership of fields that another field manager owns, for example after a manual kubectl apply. | `bool` | `true` | no |
 | <a name="input_manifests_dir"></a> [manifests\_dir](#input\_manifests\_dir) | Folder with the rendered Argo CD manifests of the instance: gitops/platform/argocd/rendered/<instance>. Argo CD syncs the same folder after the bootstrap. | `string` | n/a | yes |
 | <a name="input_wait_for_rollout"></a> [wait\_for\_rollout](#input\_wait\_for\_rollout) | Wait until the Argo CD Deployments and StatefulSets are ready before the apply completes. | `bool` | `true` | no |
 

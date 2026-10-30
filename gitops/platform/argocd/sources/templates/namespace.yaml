@@ -3,5 +3,5 @@ kind: Namespace
 metadata:
   name: argocd
   annotations:
-    # Argo CD must not delete its own namespace.
-    argocd.argoproj.io/sync-options: Prune=false
+    # Argo CD must not delete its own namespace, also when the argocd Application is deleted.
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false

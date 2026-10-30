@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# Checks of an instance folder. Used by schemas:check and schemas:test.
+# Checks of an instance folder and of the gitops/ tree. Used by schemas:check and schemas:test.
 
 # check_instance_terraform <instance.yaml>
 # The Terraform files of the instance must use exactly the modules that
@@ -43,4 +43,65 @@ check_instance_terraform() {
         log_error "$file: state.backend is $backend, but $dir/*.tf has no backend or cloud block"
         failures=$((failures + 1))
     fi
+}
+
+# check_gitops_tree <root>
+# Checks gitops/ in <root>. Increments the global failures counter on each error.
+# - Each gitops/instances/<instance>.yaml validates against its schema, and
+#   instance is equal to the file name.
+# - Each component in the file has gitops/<group>/<name>/rendered/<instance>/.
+# - No two components have the same name: it is also the Application name.
+# - Argo CD manages itself: each instance in gitops/platform/argocd/values/
+#   has an entry point, and the entry point lists argocd in platform. Without
+#   this, the ApplicationSet deletes the argocd Application and Argo CD stops
+#   managing itself.
+# schemas:test runs the cases in schemas/tests/gitops-tree/.
+check_gitops_tree() {
+    local root="$1"
+    local schema="$MISE_PROJECT_ROOT/schemas/gitops-instance.schema.json"
+    local file instance group name duplicates values
+
+    for file in "$root"/gitops/instances/*.yaml; do
+        [ -f "$file" ] || continue
+
+        if ! check-jsonschema --schemafile "$schema" "$file"; then
+            failures=$((failures + 1))
+            continue
+        fi
+
+        instance="$(yq '.instance' "$file")"
+        if [ "$instance" != "$(basename "$file" .yaml)" ]; then
+            log_error "$file: instance '$instance' must be equal to the file name '$(basename "$file" .yaml)'"
+            failures=$((failures + 1))
+        fi
+
+        for group in platform apps; do
+            while IFS= read -r name; do
+                [ -n "$name" ] || continue
+                if [ ! -d "$root/gitops/$group/$name/rendered/$instance" ]; then
+                    log_error "$file: gitops/$group/$name/rendered/$instance/ is missing. Add gitops/$group/$name/values/$instance.yaml and run 'mise run manifests:render'."
+                    failures=$((failures + 1))
+                fi
+            done < <(yq ".${group}[].name" "$file")
+        done
+
+        duplicates="$(yq '(.platform + .apps)[].name' "$file" | sort | uniq -d)"
+        if [ -n "$duplicates" ]; then
+            log_error "$file: more than one component has the name: $duplicates"
+            failures=$((failures + 1))
+        fi
+    done
+
+    for values in "$root"/gitops/platform/argocd/values/*.yaml; do
+        [ -f "$values" ] || continue
+        instance="$(basename "$values" .yaml)"
+        file="$root/gitops/instances/$instance.yaml"
+        if [ ! -f "$file" ]; then
+            log_error "$values: Argo CD runs on $instance, but $file is missing. Argo CD would stop managing itself."
+            failures=$((failures + 1))
+        elif [ "$(yq '[.platform[] | select(.name == "argocd")] | length' "$file")" = "0" ]; then
+            log_error "$file: platform must list argocd. Argo CD would stop managing itself."
+            failures=$((failures + 1))
+        fi
+    done
 }

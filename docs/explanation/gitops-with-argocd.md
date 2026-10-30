@@ -43,7 +43,7 @@ Terraform (one time)            Git (main)
                     one Application for each component
 ```
 
-Each `kubectl_manifest` in the module has `ignore_changes = all`. Terraform creates the resources, but it does not update them. Argo CD applies all the changes from Git. Thus Terraform and Argo CD do not fight over the same fields.
+Each `kubectl_manifest` in the module has `ignore_changes = all`. Terraform creates the resources, but it does not update them. Terraform applies them as the `argocd-controller` field manager, thus Argo CD owns all the fields after its first sync. Argo CD applies all the changes from Git, and Terraform and Argo CD do not fight over the same fields.
 
 ### Upgrade Argo CD
 
@@ -68,7 +68,10 @@ To add a component, refer to [Add a GitOps component](../how-to/add-gitops-compo
 
 ### Safety rules
 
-- Argo CD does not prune the `argocd` namespace and the Argo CD CRDs. A deleted CRD deletes all the Applications.
+- Argo CD does not prune the Argo CD CRDs. A deleted CRD deletes all the Applications.
+- Argo CD does not prune or delete the `argocd` namespace, also when you delete the `argocd` Application.
+- `mise run schemas:check` makes sure that each instance with Argo CD has an entry point that lists `argocd`. Without it, the ApplicationSet deletes the `argocd` Application, and Argo CD stops managing itself.
+- Each Application tries a failed sync again, up to 5 times. Argo CD does not try a failed sync again for the same revision without this setting.
 - The ApplicationSets have `preserveResourcesOnDeletion: true`. When a component goes out of the entry point, its resources stay in the cluster.
 - The repository has no Argo CD `Secret`. Argo CD makes `argocd-secret` and `argocd-initial-admin-secret` when it starts.
 
