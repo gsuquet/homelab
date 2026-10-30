@@ -1,0 +1,16 @@
+# Platform components can change all resources, also cluster-scoped resources.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform
+  namespace: argocd
+spec:
+  description: Platform components in gitops/platform/.
+  sourceRepos:
+    - {{ .Values.gitops.repoURL }}
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: "*"
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"

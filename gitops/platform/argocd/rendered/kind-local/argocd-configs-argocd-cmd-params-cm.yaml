@@ -18,6 +18,7 @@ data:
   applicationsetcontroller.log.level: warn
   commitserver.log.format: json
   commitserver.log.level: warn
+  controller.diff.server.side: "true"
   controller.log.format: json
   controller.log.level: warn
   dexserver.log.format: json

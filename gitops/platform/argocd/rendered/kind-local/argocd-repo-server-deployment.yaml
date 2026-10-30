@@ -22,7 +22,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/cmd-params: a3107a4a3b98db65bdbfa1dcf598de36f6ec4c97041317075cfe1add21524d2e
+        checksum/cmd-params: 39935b3b91bd38da18612ef09676fe4d84b5db2b1d5c311ee72d03ce49415ab3
         checksum/cm: 59e39adfa9ade3dc78e1f9ae5d906571ee3b334933b782d9c819d57514ed5339
       labels:
         helm.sh/chart: argo-cd-10.11.6
@@ -354,7 +354,11 @@ spec:
           successThreshold: 1
           failureThreshold: 3
         resources:
-          {}
+          limits:
+            memory: 384Mi
+          requests:
+            cpu: 100m
+            memory: 384Mi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -374,7 +378,11 @@ spec:
         imagePullPolicy: IfNotPresent
         name: copyutil
         resources:
-          {}
+          limits:
+            memory: 384Mi
+          requests:
+            cpu: 100m
+            memory: 384Mi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:

@@ -65,3 +65,39 @@ deny contains msg if {
 	revision != "main"
 	msg := sprintf("%s: the ApplicationSet syncs %q, not main. Set gitops.targetRevision back to main.", [file.path, revision])
 }
+
+# Each GitOps component ships its own Namespace, with the Pod Security labels.
+pss_modes := ["enforce", "audit", "warn"]
+
+pss_levels := {"privileged", "baseline", "restricted"}
+
+deny contains msg if {
+	some file in input
+	startswith(file.path, "gitops/")
+	file.contents.kind == "Namespace"
+	some mode in pss_modes
+	level := object.get(object.get(file.contents.metadata, "labels", {}), sprintf("pod-security.kubernetes.io/%s", [mode]), "")
+	not level in pss_levels
+	msg := sprintf("%s: the Namespace must have the label pod-security.kubernetes.io/%s set to privileged, baseline or restricted", [file.path, mode])
+}
+
+# Sync waves: -2 Namespace, -1 CRDs, 0 the rest.
+expected_wave := {"Namespace": "-2", "CustomResourceDefinition": "-1"}
+
+deny contains msg if {
+	some file in input
+	startswith(file.path, "gitops/")
+	wave := expected_wave[file.contents.kind]
+	object.get(object.get(file.contents.metadata, "annotations", {}), "argocd.argoproj.io/sync-wave", "") != wave
+	msg := sprintf("%s: a %s must have the annotation argocd.argoproj.io/sync-wave: %q", [file.path, file.contents.kind, wave])
+}
+
+# The namespace of a component comes from Git, with its labels. Argo CD must not create it.
+deny contains msg if {
+	some file in input
+	startswith(file.path, "gitops/")
+	file.contents.kind == "ApplicationSet"
+	some option in object.get(file.contents.spec.template.spec, ["syncPolicy", "syncOptions"], [])
+	option == "CreateNamespace=true"
+	msg := sprintf("%s: do not use CreateNamespace=true. Each component ships its own Namespace.", [file.path])
+}

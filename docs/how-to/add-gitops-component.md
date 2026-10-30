@@ -12,20 +12,37 @@ This procedure adds a platform component or an application to an instance. Argo 
 1. Make the folder `gitops/platform/<component>/`. For an application, use `gitops/apps/<app>/`.
 2. Add `sources/Chart.yaml`. Set the upstream chart as a dependency with an exact version.
 3. Add `sources/values.yaml` with the values for all instances.
-4. If the chart needs a namespace, add `sources/chart.env` with `NAMESPACE=<namespace>`.
-5. Add `values/<instance>.yaml` for each instance that uses the component. The file can be empty.
-6. Run `mise run manifests:render`.
-7. Make sure that `rendered/<instance>/` contains the expected manifests.
-8. Add the component to `gitops/instances/<instance>.yaml`:
+4. Add `sources/chart.env` with `NAMESPACE=<namespace>`.
+5. Add `sources/templates/namespace.yaml`. Argo CD does not create namespaces. Use the restricted level if the pods comply:
 
    ```yaml
-   platform:
-     - name: <component>
-       namespace: <namespace>
+   apiVersion: v1
+   kind: Namespace
+   metadata:
+     name: <namespace>
+     labels:
+       pod-security.kubernetes.io/enforce: restricted
+       pod-security.kubernetes.io/audit: restricted
+       pod-security.kubernetes.io/warn: restricted
+     annotations:
+       argocd.argoproj.io/sync-wave: "-2"
    ```
 
-9. Run `mise run lint` and `mise run schemas:check`.
-10. Open a pull request.
+6. If the chart has CRDs, give them the annotation `argocd.argoproj.io/sync-wave: "-1"`. Most charts have a value for CRD annotations.
+7. Give each container a memory request equal to its memory limit, and a CPU request. Do not set a CPU limit.
+8. Add `values/<instance>.yaml` for each instance that uses the component. The file can be empty.
+9. Run `mise run manifests:render`.
+10. Make sure that `rendered/<instance>/` contains the expected manifests.
+11. Add the component to `gitops/instances/<instance>.yaml`:
+
+    ```yaml
+    platform:
+      - name: <component>
+        namespace: <namespace>
+    ```
+
+12. Run `mise run lint` and `mise run schemas:check`.
+13. Open a pull request.
 
 When the pull request merges, the ApplicationSet makes the Application. Argo CD then syncs the component.
 

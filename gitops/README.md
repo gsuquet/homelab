@@ -16,9 +16,9 @@ Each component in `platform/` and `apps/` uses the rendered manifests pattern:
 <component>/
 ├── sources/
 │   ├── Chart.yaml        # Umbrella chart. The upstream chart has an exact version.
-│   ├── chart.env         # Optional. NAMESPACE for helm template.
+│   ├── chart.env         # NAMESPACE for helm template.
 │   ├── values.yaml       # Values for all instances
-│   └── templates/        # Optional. More manifests, for example an AppProject.
+│   └── templates/        # namespace.yaml, and more manifests, for example an AppProject.
 ├── values/
 │   └── <instance>.yaml   # Values for one instance
 └── rendered/
@@ -26,6 +26,8 @@ Each component in `platform/` and `apps/` uses the rendered manifests pattern:
 ```
 
 `mise run manifests:render` writes `rendered/<instance>/` for each file in `values/`. It writes one file for each resource.
+
+Each component uses this pattern. Each component ships its own `Namespace`, with the Pod Security labels and the sync wave `-2`. Its CRDs have the sync wave `-1`. Refer to [Add a GitOps component](../docs/how-to/add-gitops-component.md).
 
 ## Entry point of an instance
 

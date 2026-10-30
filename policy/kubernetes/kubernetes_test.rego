@@ -91,3 +91,76 @@ test_applicationset_on_a_branch_is_denied if {
 		"contents": applicationset("feat/test"),
 	}]
 }
+
+namespace(labels, annotations) := {
+	"kind": "Namespace",
+	"metadata": {"name": "demo", "labels": labels, "annotations": annotations},
+}
+
+pss_labels := {
+	"pod-security.kubernetes.io/enforce": "restricted",
+	"pod-security.kubernetes.io/audit": "restricted",
+	"pod-security.kubernetes.io/warn": "restricted",
+}
+
+test_namespace_with_pss_and_wave_is_allowed if {
+	count(kubernetes.deny) == 0 with input as [{
+		"path": "gitops/platform/demo/rendered/kind-local/namespace.yaml",
+		"contents": namespace(pss_labels, {"argocd.argoproj.io/sync-wave": "-2"}),
+	}]
+}
+
+test_namespace_without_pss_is_denied if {
+	count(kubernetes.deny) == 3 with input as [{
+		"path": "gitops/platform/demo/rendered/kind-local/namespace.yaml",
+		"contents": namespace({}, {"argocd.argoproj.io/sync-wave": "-2"}),
+	}]
+}
+
+test_namespace_with_unknown_pss_level_is_denied if {
+	count(kubernetes.deny) == 1 with input as [{
+		"path": "gitops/platform/demo/rendered/kind-local/namespace.yaml",
+		"contents": namespace(object.union(pss_labels, {"pod-security.kubernetes.io/warn": "strict"}), {"argocd.argoproj.io/sync-wave": "-2"}),
+	}]
+}
+
+test_namespace_without_wave_is_denied if {
+	count(kubernetes.deny) == 1 with input as [{
+		"path": "gitops/platform/demo/rendered/kind-local/namespace.yaml",
+		"contents": namespace(pss_labels, {}),
+	}]
+}
+
+test_crd_without_wave_is_denied if {
+	count(kubernetes.deny) == 1 with input as [{
+		"path": "gitops/platform/demo/rendered/kind-local/crd.yaml",
+		"contents": {"kind": "CustomResourceDefinition", "metadata": {"name": "demos.example.com"}},
+	}]
+}
+
+test_crd_with_wave_is_allowed if {
+	count(kubernetes.deny) == 0 with input as [{
+		"path": "gitops/platform/demo/rendered/kind-local/crd.yaml",
+		"contents": {"kind": "CustomResourceDefinition", "metadata": {"name": "demos.example.com", "annotations": {"argocd.argoproj.io/sync-wave": "-1"}}},
+	}]
+}
+
+test_namespace_outside_gitops_is_not_checked if {
+	count(kubernetes.deny) == 0 with input as [{
+		"path": "kubernetes/system/demo/namespace.yaml",
+		"contents": namespace({}, {}),
+	}]
+}
+
+test_applicationset_with_create_namespace_is_denied if {
+	count(kubernetes.deny) == 1 with input as [{
+		"path": "gitops/platform/argocd/rendered/kind-local/applicationset-platform.yaml",
+		"contents": {
+			"kind": "ApplicationSet",
+			"spec": {"template": {"spec": {
+				"source": {"targetRevision": "main"},
+				"syncPolicy": {"syncOptions": ["CreateNamespace=true"]},
+			}}},
+		},
+	}]
+}

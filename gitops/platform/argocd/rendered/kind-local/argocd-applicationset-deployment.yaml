@@ -22,7 +22,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/cmd-params: a3107a4a3b98db65bdbfa1dcf598de36f6ec4c97041317075cfe1add21524d2e
+        checksum/cmd-params: 39935b3b91bd38da18612ef09676fe4d84b5db2b1d5c311ee72d03ce49415ab3
       labels:
         helm.sh/chart: argo-cd-10.11.6
         app.kubernetes.io/name: argocd-applicationset-controller
@@ -228,7 +228,11 @@ spec:
               containerPort: 7000
               protocol: TCP
           resources:
-            {}
+            limits:
+              memory: 128Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:

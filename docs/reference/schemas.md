@@ -50,7 +50,8 @@ The `schemas:check` task also checks these rules:
 - If an instance uses `cluster-kind`, its Terraform files have an `output "cluster_name"` block. `instance:up` reads it.
 - The Terraform files of an instance have a `backend` block if `state.backend` is not `local`. They have no `backend` block if `state.backend` is `local`.
 - In `gitops/instances/<name>.yaml`, `instance` is equal to the file name.
-- Each component in `gitops/instances/<name>.yaml` has the folder `gitops/<group>/<component>/rendered/<name>/`.
+- Each component in `gitops/instances/<name>.yaml` has the folder `gitops/<group>/<component>/rendered/<name>/`, and this folder contains a `Namespace` with the name of the `namespace` field.
+- Each folder in `gitops/platform/` and `gitops/apps/` has `sources/Chart.yaml`. All components use the rendered manifests pattern.
 - Two components of one instance do not have the same name, because the name is also the name of the Argo CD Application.
 - Each instance in `gitops/platform/argocd/values/` has the file `gitops/instances/<name>.yaml`, and this file lists `argocd` in `platform`. Argo CD manages itself through this item.
 

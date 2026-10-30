@@ -49,8 +49,11 @@ check_instance_terraform() {
 # Checks gitops/ in <root>. Increments the global failures counter on each error.
 # - Each gitops/instances/<instance>.yaml validates against its schema, and
 #   instance is equal to the file name.
-# - Each component in the file has gitops/<group>/<name>/rendered/<instance>/.
+# - Each component in the file has gitops/<group>/<name>/rendered/<instance>/,
+#   and that folder contains the Namespace of the component.
 # - No two components have the same name: it is also the Application name.
+# - Each folder in gitops/platform/ and gitops/apps/ has sources/Chart.yaml:
+#   all components use the rendered manifests pattern.
 # - Argo CD manages itself: each instance in gitops/platform/argocd/values/
 #   has an entry point, and the entry point lists argocd in platform. Without
 #   this, the ApplicationSet deletes the argocd Application and Argo CD stops
@@ -59,7 +62,7 @@ check_instance_terraform() {
 check_gitops_tree() {
     local root="$1"
     local schema="$MISE_PROJECT_ROOT/schemas/gitops-instance.schema.json"
-    local file instance group name duplicates values
+    local file instance group name namespace rendered duplicates values
 
     for file in "$root"/gitops/instances/*.yaml; do
         [ -f "$file" ] || continue
@@ -76,18 +79,33 @@ check_gitops_tree() {
         fi
 
         for group in platform apps; do
-            while IFS= read -r name; do
+            while IFS=' ' read -r name namespace; do
                 [ -n "$name" ] || continue
-                if [ ! -d "$root/gitops/$group/$name/rendered/$instance" ]; then
+                rendered="$root/gitops/$group/$name/rendered/$instance"
+                if [ ! -d "$rendered" ]; then
                     log_error "$file: gitops/$group/$name/rendered/$instance/ is missing. Add gitops/$group/$name/values/$instance.yaml and run 'mise run manifests:render'."
                     failures=$((failures + 1))
+                elif ! grep -qx -- "$namespace" <<< "$(yq ea 'select(.kind == "Namespace") | .metadata.name' "$rendered"/*.yaml 2> /dev/null || true)"; then
+                    log_error "$file: gitops/$group/$name/rendered/$instance/ has no Namespace '$namespace'. Each component ships its own Namespace."
+                    failures=$((failures + 1))
                 fi
-            done < <(yq ".${group}[].name" "$file")
+            done < <(yq ".${group}[] | .name + \" \" + .namespace" "$file")
         done
 
         duplicates="$(yq '(.platform + .apps)[].name' "$file" | sort | uniq -d)"
         if [ -n "$duplicates" ]; then
             log_error "$file: more than one component has the name: $duplicates"
+            failures=$((failures + 1))
+        fi
+    done
+
+    # Each component uses the rendered manifests pattern: an umbrella chart in
+    # sources/, rendered by manifests:render. There is no hand-written folder.
+    local component
+    for component in "$root"/gitops/platform/*/ "$root"/gitops/apps/*/; do
+        [ -d "$component" ] || continue
+        if [ ! -f "${component}sources/Chart.yaml" ]; then
+            log_error "${component}: sources/Chart.yaml is missing. Each component uses the rendered manifests pattern."
             failures=$((failures + 1))
         fi
     done

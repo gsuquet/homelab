@@ -59,6 +59,33 @@ The `argocd` Application syncs the new manifests and Argo CD upgrades itself.
 
 To add a component, refer to [Add a GitOps component](../how-to/add-gitops-component.md).
 
+### Namespaces
+
+Each component ships its own `Namespace` in `sources/templates/namespace.yaml`. Thus the Pod Security labels and the policy labels are in Git, and a reviewer sees them. The ApplicationSets do not use `CreateNamespace`. A Conftest policy makes sure that each `Namespace` in `gitops/` has the three Pod Security labels (`enforce`, `audit`, `warn`). `mise run schemas:check` makes sure that the rendered folder of each component contains the namespace of its entry.
+
+### Sync waves
+
+Argo CD applies the resources of one Application in waves. A Conftest policy checks the first two waves:
+
+| Wave | Resources |
+| --- | --- |
+| `-2` | `Namespace` |
+| `-1` | `CustomResourceDefinition` |
+| `0` | All other resources (default) |
+| `1` or more | Resources that need the custom resources of the same component, for example a `ClusterIssuer` after cert-manager |
+
+Waves order the resources inside one Application. Between two components, a resource whose CRD comes from another component fails its first sync, and the sync retry applies it again when the CRD exists.
+
+### Argo CD settings
+
+| Setting | Value | Reason |
+| --- | --- | --- |
+| Diff | Server-side (`controller.diff.server.side`) | It goes with server-side apply. Defaulted fields do not show as OutOfSync. |
+| Default role | `role:readonly` | A logged-in user without a role can look, but not change. |
+| Resource exclusions | The chart defaults | They already exclude Endpoints, Leases, Cilium identities and endpoints, and Kyverno reports. |
+| Resources | Memory request equal to the limit, a CPU request, no CPU limit | The cluster resource policy. Sized for a Raspberry Pi 4 with 8 GiB. |
+| Admin user | On | Change the password and delete `argocd-initial-admin-secret` after the first login. SSO comes later. |
+
 ### Projects
 
 | Project | Source | Cluster-scoped resources | Namespaces |
@@ -71,6 +98,7 @@ To add a component, refer to [Add a GitOps component](../how-to/add-gitops-compo
 - Argo CD does not prune the Argo CD CRDs. A deleted CRD deletes all the Applications.
 - Argo CD does not prune or delete the `argocd` namespace, also when you delete the `argocd` Application.
 - `mise run schemas:check` makes sure that each instance with Argo CD has an entry point that lists `argocd`. Without it, the ApplicationSet deletes the `argocd` Application, and Argo CD stops managing itself.
+- All components use the rendered manifests pattern: `mise run schemas:check` makes sure that each folder in `gitops/platform/` and `gitops/apps/` has `sources/Chart.yaml`.
 - Each Application tries a failed sync again, up to 5 times. Argo CD does not try a failed sync again for the same revision without this setting.
 - The ApplicationSets have `preserveResourcesOnDeletion: true`. When a component goes out of the entry point, its resources stay in the cluster.
 - The repository has no Argo CD `Secret`. Argo CD makes `argocd-secret` and `argocd-initial-admin-secret` when it starts.
