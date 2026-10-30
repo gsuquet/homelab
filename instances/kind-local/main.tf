@@ -28,11 +28,3 @@ module "cilium" {
 
   depends_on = [module.kind_cluster, module.gateway_api]
 }
-
-module "agent_sandbox" {
-  source = "../../modules/bootstrap-agent-sandbox"
-
-  enable_extensions = true
-
-  depends_on = [module.cilium]
-}
