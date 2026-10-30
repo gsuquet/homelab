@@ -13,8 +13,8 @@ Tasks are defined under `.mise/tasks/` and run with `mise run <task>`. All tasks
 
 **What it does**:
 
-1. Scans the repository for all `**/sources/Chart.yaml` files
-2. For each chart found:
+1. Scans `kubernetes/` and `gitops/` for all `**/sources/Chart.yaml` files. A chart in `gitops/` renders one time for each `values/<instance>.yaml` to `rendered/<instance>/`. Refer to [Render manifests](../how-to/render-manifests.md).
+2. For each chart in `kubernetes/`:
    - Runs `helm dependency update` to fetch or update chart dependencies (downloads the upstream chart)
    - Runs `helm template <component> <source_dir> -f values.yaml` to produce `manifests/install.yaml`
    - Splits `manifests/install.yaml` into individual files, one per Kubernetes resource, using `# Source:` comment markers
@@ -53,9 +53,9 @@ Done: 1 rendered, 0 errors
 
 **What it does**:
 
-1. Records the current git diff state of `kubernetes/**/manifests/`
+1. Records the current git diff state of `kubernetes/**/manifests/` and `gitops/**/rendered/`
 2. Runs `mise run manifests:render`
-3. Checks if the `kubernetes/**/manifests/` files changed as a result
+3. Checks if these files changed as a result
 4. Exits with code `0` if manifests are current (no changes), or code `1` if they are out of date
 
 **When to use**:
@@ -246,4 +246,4 @@ Run it after you change a provider version. Commit the `.terraform.lock.hcl` fil
 ### `manifests:validate`
 
 **Script**: `.mise/tasks/manifests/validate.sh`
-**Description**: Validate the rendered manifests against the Kubernetes schemas with kubeconform.
+**Description**: Validate the rendered manifests (`manifests/` and `rendered/` folders) against the Kubernetes schemas with kubeconform.

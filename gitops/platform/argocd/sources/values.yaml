@@ -1,0 +1,61 @@
+# Values for all instances. values/<instance>.yaml adds the values for one instance.
+
+# Settings of the GitOps entry point. The templates in templates/ use them.
+gitops:
+  # Repository that Argo CD reads.
+  repoURL: https://github.com/gsuquet/homelab.git
+  # Git revision that Argo CD syncs. A test instance can use a branch.
+  targetRevision: main
+  # Instance name. Each values/<instance>.yaml must set it.
+  instance: ""
+
+argo-cd:
+  fullnameOverride: argocd
+  namespaceOverride: argocd
+
+  crds:
+    # Argo CD must not delete its own CRDs. A deleted CRD deletes all the Applications.
+    annotations:
+      argocd.argoproj.io/sync-options: ServerSideApply=true,Prune=false
+
+  global:
+    logging:
+      format: json
+      level: warn
+    revisionHistoryLimit: 3
+
+  configs:
+    cm:
+      admin.enabled: true
+      exec.enabled: false
+    params:
+      # TLS stops at the gateway or at kubectl port-forward.
+      server.insecure: true
+    # Argo CD creates argocd-secret when it starts. Thus the repository has no Secret.
+    secret:
+      createSecret: false
+
+  controller:
+    metrics:
+      enabled: true
+
+  dex:
+    enabled: false
+
+  notifications:
+    enabled: false
+
+  redis:
+    enabled: true
+
+  server:
+    metrics:
+      enabled: true
+
+  repoServer:
+    metrics:
+      enabled: true
+
+  applicationSet:
+    metrics:
+      enabled: true

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+  annotations:
+    # Argo CD must not delete its own namespace.
+    argocd.argoproj.io/sync-options: Prune=false

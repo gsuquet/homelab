@@ -7,11 +7,13 @@ on:
       - '.github/workflows/manifests.yml'
       - '.mise/config.toml'
       - '.mise/tasks/manifests/**'
+      - 'gitops/**'
       - 'kubernetes/**'
   push:
     branches:
       - main
     paths:
+      - 'gitops/**'
       - 'kubernetes/**'
 
 permissions:

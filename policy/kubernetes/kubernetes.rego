@@ -5,6 +5,8 @@ package kubernetes
 # Rendered output comes from a pinned chart; hand-written manifests are pinned here.
 is_rendered(path) if contains(path, "/manifests/")
 
+is_rendered(path) if contains(path, "/rendered/")
+
 # Workload kinds and the location of their pod spec.
 pod_spec(obj) := obj.spec.template.spec if obj.kind in {"Deployment", "StatefulSet", "DaemonSet", "Job", "ReplicaSet"}
 
@@ -52,4 +54,14 @@ deny contains msg if {
 	not is_rendered(path)
 	not regex.match(`@sha256:[a-f0-9]{64}$`, image)
 	msg := sprintf("%s: image %q must be pinned with a sha256 digest", [path, image])
+}
+
+# A branch can set gitops.targetRevision to test itself on Kind. main must sync main.
+deny contains msg if {
+	some file in input
+	startswith(file.path, "gitops/")
+	file.contents.kind == "ApplicationSet"
+	revision := file.contents.spec.template.spec.source.targetRevision
+	revision != "main"
+	msg := sprintf("%s: the ApplicationSet syncs %q, not main. Set gitops.targetRevision back to main.", [file.path, revision])
 }

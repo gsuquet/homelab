@@ -17,7 +17,72 @@ The key properties:
 
 ---
 
-## How ArgoCD Watches This Repository
+## The new design: `gitops/`
+
+The new design keeps all the GitOps sources in `gitops/`. Each instance has an entry point, and Argo CD manages itself from the first day. The `olympus` cluster still uses the old layout in `kubernetes/`, until its migration.
+
+### Bootstrap
+
+Terraform installs Argo CD one time. The `bootstrap-argocd` module applies the rendered manifests in `gitops/platform/argocd/rendered/<instance>/`. These manifests contain:
+
+- Argo CD, rendered from the upstream `argo-cd` chart.
+- The `platform` and `apps` AppProjects.
+- The `platform` and `apps` ApplicationSets.
+
+The `platform` ApplicationSet makes the `argocd` Application. This Application syncs the same rendered folder from Git. Thus, after the bootstrap, Argo CD manages itself.
+
+```text
+Terraform (one time)            Git (main)
+        │                           │
+        ▼                           ▼
+ rendered/<instance>/  ──────▶  argocd Application ──▶ Argo CD, AppProjects, ApplicationSets
+                                    │
+          gitops/instances/<instance>.yaml
+                                    │
+                                    ▼
+                    one Application for each component
+```
+
+Each `kubectl_manifest` in the module has `ignore_changes = all`. Terraform creates the resources, but it does not update them. Argo CD applies all the changes from Git. Thus Terraform and Argo CD do not fight over the same fields.
+
+### Upgrade Argo CD
+
+1. Change the chart version in `gitops/platform/argocd/sources/Chart.yaml`, or change the values.
+2. Run `mise run manifests:render`.
+3. Merge the pull request.
+
+The `argocd` Application syncs the new manifests and Argo CD upgrades itself.
+
+### Entry point of an instance
+
+`gitops/instances/<instance>.yaml` lists the components and the applications of the instance. Each ApplicationSet uses a matrix generator: a Git file generator reads the entry point, and a list generator makes one item for each component. Each Application syncs `gitops/<group>/<name>/rendered/<instance>/`.
+
+To add a component, refer to [Add a GitOps component](../how-to/add-gitops-component.md).
+
+### Projects
+
+| Project | Source | Cluster-scoped resources | Namespaces |
+| --- | --- | --- | --- |
+| `platform` | This repository | All | All |
+| `apps` | This repository | `Namespace` only | All, but not `kube-system` and `argocd` |
+
+### Safety rules
+
+- Argo CD does not prune the `argocd` namespace and the Argo CD CRDs. A deleted CRD deletes all the Applications.
+- The ApplicationSets have `preserveResourcesOnDeletion: true`. When a component goes out of the entry point, its resources stay in the cluster.
+- The repository has no Argo CD `Secret`. Argo CD makes `argocd-secret` and `argocd-initial-admin-secret` when it starts.
+
+### Test a branch on Kind
+
+The ApplicationSets sync `main`. To test a branch, set `gitops.targetRevision` in `gitops/platform/argocd/values/kind-local.yaml` to the branch name, and render. Set it back to `main` before the merge. A Conftest policy fails `mise run lint` when a rendered ApplicationSet does not sync `main`.
+
+---
+
+## Old layout: `kubernetes/` (olympus)
+
+The rest of this page tells how the old layout works on `olympus`. The migration removes it.
+
+### How ArgoCD Watches This Repository
 
 ArgoCD is configured with a single Application called `argocd-bootstrap` (defined in `kubernetes/bootstrap/argo-cd/bootstrap-application.yaml`). This Application points at the `kubernetes/bootstrap/argo-cd/` directory in the repo:
 
@@ -36,11 +101,11 @@ This Application manages ArgoCD itself — if you change any file in `kubernetes
 
 ---
 
-## The ApplicationSet Pattern
+### The ApplicationSet Pattern
 
 Instead of writing an ArgoCD `Application` for every service, this project uses `ApplicationSet` resources that auto-discover applications by scanning Git directory paths.
 
-### Applications ApplicationSet
+#### Applications ApplicationSet
 
 ```yaml
 # kubernetes/bootstrap/argo-cd/applications-applicationset.yaml
@@ -74,7 +139,7 @@ The same pattern applies to `kubernetes/system/*` via the `system-applicationset
 
 ---
 
-## Self-Managing ArgoCD
+### Self-Managing ArgoCD
 
 ArgoCD manages its own deployment. This is possible because ArgoCD is already running when it applies its own manifests — it effectively updates itself on the next sync.
 
@@ -88,7 +153,7 @@ If the ArgoCD version in `sources/Chart.yaml` is bumped, re-rendered, and pushed
 
 ---
 
-## Sync Policy
+### Sync Policy
 
 All Applications and ApplicationSets in this project are configured with:
 
@@ -108,7 +173,7 @@ syncPolicy:
 
 ---
 
-## How to Trigger a Sync
+### How to Trigger a Sync
 
 **Normal path**: Commit to the `main` branch and push. ArgoCD polls Git every 3 minutes and syncs automatically.
 
@@ -133,7 +198,7 @@ kubectl patch application <app-name> -n argocd \
 
 ---
 
-## ArgoCD Projects
+### ArgoCD Projects
 
 Applications are grouped into two ArgoCD Projects, which define security boundaries:
 

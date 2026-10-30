@@ -30,6 +30,20 @@ test_rendered_manifest_without_digest_is_allowed if {
 	}]
 }
 
+test_gitops_rendered_manifest_without_digest_is_allowed if {
+	count(kubernetes.deny) == 0 with input as [{
+		"path": "gitops/platform/argocd/rendered/kind-local/argocd-server-deployment.yaml",
+		"contents": deployment("quay.io/argoproj/argocd:v3.5.6"),
+	}]
+}
+
+test_gitops_hand_written_manifest_without_digest_is_denied if {
+	count(kubernetes.deny) == 1 with input as [{
+		"path": "gitops/platform/example/extra/deployment.yaml",
+		"contents": deployment("quay.io/argoproj/argocd:v3.5.6"),
+	}]
+}
+
 test_latest_tag_is_denied if {
 	count(kubernetes.deny) == 1 with input as [{
 		"path": "kubernetes/bootstrap/argo-cd/manifests/server.yaml",
@@ -57,4 +71,23 @@ test_init_containers_are_checked if {
 
 test_non_workload_is_ignored if {
 	count(kubernetes.deny) == 0 with input as [{"path": "kubernetes/applications/x/svc.yaml", "contents": {"kind": "Service"}}]
+}
+
+applicationset(revision) := {
+	"kind": "ApplicationSet",
+	"spec": {"template": {"spec": {"source": {"targetRevision": revision}}}},
+}
+
+test_applicationset_on_main_is_allowed if {
+	count(kubernetes.deny) == 0 with input as [{
+		"path": "gitops/platform/argocd/rendered/kind-local/applicationsets.yaml",
+		"contents": applicationset("main"),
+	}]
+}
+
+test_applicationset_on_a_branch_is_denied if {
+	count(kubernetes.deny) == 1 with input as [{
+		"path": "gitops/platform/argocd/rendered/kind-local/applicationsets.yaml",
+		"contents": applicationset("feat/test"),
+	}]
 }

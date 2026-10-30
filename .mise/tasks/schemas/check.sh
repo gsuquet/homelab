@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Validate every module.yaml and instance.yaml against its schema"
+#MISE description="Validate every module.yaml, instance.yaml and GitOps instance file against its schema"
 
 set -euo pipefail
 
@@ -69,6 +69,42 @@ check_instance_modules() {
     done < <(yq "$query" "$file")
 }
 
+# check_gitops_instance <gitops/instances/<instance>.yaml>
+# The file validates against its schema, instance is equal to the file name,
+# each component has a rendered folder for the instance, and no two components
+# have the same name: the name is also the name of the Argo CD Application.
+check_gitops_instance() {
+    local file="$1"
+    local instance group name duplicates
+
+    if ! check-jsonschema --schemafile schemas/gitops-instance.schema.json "$file"; then
+        failures=$((failures + 1))
+        return
+    fi
+
+    instance="$(yq '.instance' "$file")"
+    if [ "$instance" != "$(basename "$file" .yaml)" ]; then
+        log_error "$file: instance '$instance' must be equal to the file name '$(basename "$file" .yaml)'"
+        failures=$((failures + 1))
+    fi
+
+    for group in platform apps; do
+        while IFS= read -r name; do
+            [ -n "$name" ] || continue
+            if [ ! -d "gitops/$group/$name/rendered/$instance" ]; then
+                log_error "$file: gitops/$group/$name/rendered/$instance/ is missing. Add gitops/$group/$name/values/$instance.yaml and run 'mise run manifests:render'."
+                failures=$((failures + 1))
+            fi
+        done < <(yq ".${group}[].name" "$file")
+    done
+
+    duplicates="$(yq '(.platform + .apps)[].name' "$file" | sort | uniq -d)"
+    if [ -n "$duplicates" ]; then
+        log_error "$file: more than one component has the name: $duplicates"
+        failures=$((failures + 1))
+    fi
+}
+
 check_kind schemas/module.schema.json modules module.yaml
 check_kind schemas/instance.schema.json instances instance.yaml
 
@@ -78,9 +114,14 @@ for file in instances/*/instance.yaml; do
     check_instance_terraform "$file"
 done
 
+for file in gitops/instances/*.yaml; do
+    [ -f "$file" ] || continue
+    check_gitops_instance "$file"
+done
+
 if [ "$failures" -ne 0 ]; then
     log_error "$failures file(s) do not comply with their schema."
     exit 1
 fi
 
-log_info "✓ All module.yaml and instance.yaml files comply with their schema."
+log_info "✓ All module.yaml, instance.yaml and GitOps instance files comply with their schema."

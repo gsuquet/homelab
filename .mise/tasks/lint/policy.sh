@@ -38,7 +38,8 @@ conftest_files() {
 }
 
 conftest_files terraform --combine --parser hcl2 -- '*.tf'
-conftest_files kubernetes --combine -- 'kubernetes/*.yaml' 'gitops/*.yaml'
+# Helm templates are not YAML until they render. The rendered/ output is checked.
+conftest_files kubernetes --combine -- 'kubernetes/*.yaml' 'gitops/*.yaml' ':(exclude)gitops/*/sources/templates/*'
 conftest_files precommit -- .pre-commit-config.yaml
 conftest_files mise -- .mise/config.toml
 

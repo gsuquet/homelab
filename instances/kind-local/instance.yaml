@@ -18,4 +18,4 @@ layers:
     modules:
       - bootstrap-gateway-api
       - bootstrap-cilium
-      - bootstrap-agent-sandbox
+      - bootstrap-argocd

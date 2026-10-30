@@ -8,6 +8,7 @@ This page lists the JSON Schemas in `schemas/` and the tasks that use them.
 | --- | --- | --- |
 | `schemas/module.schema.json` | Module metadata | `modules/<layer>-<component>/module.yaml` |
 | `schemas/instance.schema.json` | Instance definition | `instances/<name>/instance.yaml` |
+| `schemas/gitops-instance.schema.json` | GitOps entry point of an instance | `gitops/instances/<name>.yaml` |
 
 ## Rules in the module schema
 
@@ -32,6 +33,13 @@ This page lists the JSON Schemas in `schemas/` and the tasks that use them.
 - The name of each module must start with the layer name.
 - Other fields are not permitted.
 
+## Rules in the GitOps instance schema
+
+- `platform` and `apps` are mandatory. A list can be empty.
+- Each item has a `name` and a `namespace`. Both use lowercase letters, digits and hyphens.
+- A list has no item two times.
+- Other fields are not permitted.
+
 ## Rules that the schemas cannot check
 
 The `schemas:check` task also checks these rules:
@@ -41,13 +49,16 @@ The `schemas:check` task also checks these rules:
 - The Terraform files of an instance use each module of its `layers` with `source = "../../modules/<module>"`, and they use no other module.
 - If an instance uses `cluster-kind`, its Terraform files have an `output "cluster_name"` block. `instance:up` reads it.
 - The Terraform files of an instance have a `backend` block if `state.backend` is not `local`. They have no `backend` block if `state.backend` is `local`.
+- In `gitops/instances/<name>.yaml`, `instance` is equal to the file name.
+- Each component in `gitops/instances/<name>.yaml` has the folder `gitops/<group>/<component>/rendered/<name>/`.
+- Two components of one instance do not have the same name, because the name is also the name of the Argo CD Application.
 
 ## Tasks
 
 | Task | Action |
 | --- | --- |
 | `mise run schemas:test` | Validates the fixtures in `schemas/tests/`. Each file in `valid/` must pass. Each file in `invalid/` must fail. |
-| `mise run schemas:check` | Validates each `module.yaml` and `instance.yaml` in the repository. |
+| `mise run schemas:check` | Validates each `module.yaml`, `instance.yaml` and `gitops/instances/*.yaml` in the repository. |
 
 The pre-commit hooks and the `Validate Schemas` workflow run the same tasks.
 

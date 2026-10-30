@@ -1,0 +1,2 @@
+gitops:
+  instance: kind-local

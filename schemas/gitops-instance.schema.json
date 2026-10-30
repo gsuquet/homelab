@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/gsuquet/homelab/schemas/gitops-instance.schema.json",
+  "title": "GitOps instance",
+  "description": "GitOps entry point of one instance in gitops/instances/<instance>.yaml. An Argo CD ApplicationSet reads the lists and makes one Application for each component.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "apiVersion",
+    "kind",
+    "instance",
+    "platform",
+    "apps"
+  ],
+  "properties": {
+    "apiVersion": {
+      "description": "Version of this schema.",
+      "const": "infra.gsuquet.com/v1alpha1"
+    },
+    "kind": {
+      "const": "GitOpsInstance"
+    },
+    "instance": {
+      "description": "Instance name. Must be equal to the file name.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 40
+    },
+    "platform": {
+      "description": "Components in gitops/platform/ that the instance uses.",
+      "$ref": "#/$defs/components"
+    },
+    "apps": {
+      "description": "Applications in gitops/apps/ that the instance uses.",
+      "$ref": "#/$defs/components"
+    }
+  },
+  "$defs": {
+    "components": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "namespace"
+        ],
+        "properties": {
+          "name": {
+            "description": "Folder name of the component. It is also the name of the Argo CD Application.",
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "maxLength": 53
+          },
+          "namespace": {
+            "description": "Destination namespace of the Application.",
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "maxLength": 63
+          }
+        }
+      }
+    }
+  }
+}

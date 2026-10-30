@@ -3,9 +3,10 @@
 
 set -euo pipefail
 
-# Script to render umbrella Helm charts from sources to manifests
-# Finds all **/sources/Chart.yaml files in the project and renders them using
-# the sibling values.yaml into **/manifests/install.yaml
+# Renders the umbrella Helm charts in sources/ folders to plain manifests:
+# - kubernetes/**/sources/ renders with the sibling values.yaml to manifests/.
+# - gitops/<group>/<component>/sources/ renders once for each
+#   values/<instance>.yaml to rendered/<instance>/.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if ! PROJECT_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2> /dev/null)"; then
@@ -103,30 +104,44 @@ if ! helm repo update > /dev/null 2>&1; then
     log_warn "Failed to update helm repositories; dependency resolution may fail"
 fi
 
-# Find all Chart.yaml files in sources directories
-chart_files=$(find "$PROJECT_ROOT" -type f -path "*/sources/Chart.yaml")
+# chart_namespace <source dir>
+# Prints NAMESPACE from <source dir>/chart.env, or nothing. A subshell reads the
+# file, so a value does not leak to the next chart.
+chart_namespace() {
+    local chart_env_file="$1/chart.env"
+    [ -f "$chart_env_file" ] || return 0
+    # shellcheck disable=SC1090
+    (source "$chart_env_file" && echo "${NAMESPACE:-}")
+}
 
-if [ -z "$chart_files" ]; then
-    log_warn "No Chart.yaml files found in **/sources/ directories"
-    exit 0
-fi
+# render_chart <release name> <source dir> <output file> <values file...>
+render_chart() {
+    local release="$1" source_dir="$2" output_file="$3"
+    shift 3
+
+    local args=()
+    local values_file namespace
+    for values_file in "$@"; do
+        args+=(-f "$values_file")
+    done
+    namespace="$(chart_namespace "$source_dir")"
+    [ -n "$namespace" ] && args+=(--namespace "$namespace")
+
+    helm template "$release" "$source_dir" "${args[@]}" > "$output_file"
+}
 
 rendered_count=0
 error_count=0
 
-# Process each chart file
+# Old layout: kubernetes/**/sources/ renders to the sibling manifests/ folder.
 while IFS= read -r chart_file; do
+    [ -n "$chart_file" ] || continue
     log_info "Processing: $chart_file"
 
-    # Get the directory containing the chart file
     source_dir=$(dirname "$chart_file")
     values_file="$source_dir/values.yaml"
-
-    # Get the parent directory (should be the component directory)
     component_dir=$(dirname "$source_dir")
     component_name=$(basename "$component_dir")
-
-    # Create manifests directory if it doesn't exist
     manifest_dir="$component_dir/manifests"
     mkdir -p "$manifest_dir"
 
@@ -136,7 +151,6 @@ while IFS= read -r chart_file; do
         continue
     fi
 
-    # Update dependencies for umbrella chart
     log_info "Updating chart dependencies in: $source_dir"
     if ! helm dependency update "$source_dir" > /dev/null 2>&1; then
         log_error "Failed to update chart dependencies for $component_name"
@@ -144,21 +158,9 @@ while IFS= read -r chart_file; do
         continue
     fi
 
-    # Render the chart
     output_file="$manifest_dir/install.yaml"
     log_info "Rendering chart to: $output_file"
-
-    helm_extra_args=""
-    chart_env_file="$source_dir/chart.env"
-    if [ -f "$chart_env_file" ]; then
-        log_info "Loading chart.env from: $chart_env_file"
-        # shellcheck disable=SC1090
-        source "$chart_env_file"
-        [ -n "${NAMESPACE:-}" ] && helm_extra_args="$helm_extra_args --namespace $NAMESPACE"
-    fi
-
-    # shellcheck disable=SC2086
-    if helm template "$component_name" "$source_dir" -f "$values_file" $helm_extra_args > "$output_file"; then
+    if render_chart "$component_name" "$source_dir" "$output_file" "$values_file"; then
         log_info "✓ Successfully rendered $component_name"
         split_manifest_by_source "$output_file" "$manifest_dir"
         ((rendered_count += 1))
@@ -166,8 +168,57 @@ while IFS= read -r chart_file; do
         log_error "✗ Failed to render $component_name"
         ((error_count += 1))
     fi
+done < <(find "$PROJECT_ROOT/kubernetes" -type f -path "*/sources/Chart.yaml" 2> /dev/null | sort)
 
-done <<< "$chart_files"
+# New layout: gitops/<group>/<component>/sources/ renders once for each
+# values/<instance>.yaml to rendered/<instance>/. The task deletes rendered/
+# first, so the folder of a removed instance goes away.
+while IFS= read -r chart_file; do
+    [ -n "$chart_file" ] || continue
+    log_info "Processing: $chart_file"
+
+    source_dir=$(dirname "$chart_file")
+    component_dir=$(dirname "$source_dir")
+    component_name=$(basename "$component_dir")
+
+    if [ ! -f "$source_dir/values.yaml" ]; then
+        log_error "Missing required values file: $source_dir/values.yaml"
+        ((error_count += 1))
+        continue
+    fi
+
+    log_info "Updating chart dependencies in: $source_dir"
+    if ! helm dependency update "$source_dir" > /dev/null 2>&1; then
+        log_error "Failed to update chart dependencies for $component_name"
+        ((error_count += 1))
+        continue
+    fi
+
+    rm -rf "$component_dir/rendered"
+    for instance_values in "$component_dir"/values/*.yaml; do
+        [ -f "$instance_values" ] || continue
+        instance="$(basename "$instance_values" .yaml)"
+        output_dir="$component_dir/rendered/$instance"
+        output_file="$(mktemp)"
+        mkdir -p "$output_dir"
+
+        log_info "Rendering $component_name for $instance to: $output_dir"
+        if render_chart "$component_name" "$source_dir" "$output_file" "$source_dir/values.yaml" "$instance_values"; then
+            split_manifest_by_source "$output_file" "$output_dir"
+            log_info "✓ Successfully rendered $component_name for $instance"
+            ((rendered_count += 1))
+        else
+            log_error "✗ Failed to render $component_name for $instance"
+            ((error_count += 1))
+        fi
+        rm -f "$output_file"
+    done
+done < <(find "$PROJECT_ROOT/gitops" -type f -path "*/sources/Chart.yaml" 2> /dev/null | sort)
+
+if [ $((rendered_count + error_count)) -eq 0 ]; then
+    log_warn "No Chart.yaml files found in **/sources/ directories"
+    exit 0
+fi
 
 # Summary
 echo ""

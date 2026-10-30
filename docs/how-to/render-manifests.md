@@ -22,6 +22,14 @@ You do **not** need to re-render when you:
 
 ---
 
+## The `gitops/` Layout
+
+A component in `gitops/platform/` or `gitops/apps/` renders one time for each file in its `values/` folder. The task merges `sources/values.yaml` and `values/<instance>.yaml`, and writes one file for each resource to `rendered/<instance>/`. The task deletes `rendered/` first, thus the folder of a removed instance goes away. Refer to [gitops/README.md](../../gitops/README.md).
+
+`manifests:check` also checks `gitops/**/rendered/`.
+
+---
+
 ## Re-render with mise
 
 From the repository root:
