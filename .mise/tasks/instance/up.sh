@@ -27,4 +27,8 @@ log_info "Applying all layers..."
 # shellcheck disable=SC2046 # The flag is empty or one word.
 terraform -chdir="$INSTANCE_DIR" apply -input=false $(instance_approve_flag)
 
+if instance_uses_kind; then
+    kind_context_export
+fi
+
 log_info "✓ Instance is up: $usage_instance"

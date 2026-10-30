@@ -14,6 +14,7 @@ All project tools and their versions are pinned in `.mise/config.toml`. Run `mis
 | `github-cli` | 2.96.0 | GitHub CLI (`gh`) for PRs and repo management |
 | `gitleaks` | 8.30.1 | SAST secret scanner |
 | `helm` | 4.2.3 | Render Kubernetes Helm charts to plain YAML |
+| `kind` | 0.33.0 | Kind CLI: `instance:up` uses it to add the kubeconfig context of a Kind cluster |
 | `kyverno` | 1.18.1 | Kubernetes policy engine CLI |
 | `pre-commit` | 4.6.0 | Run Git hooks for linting, secret scanning, and manifest rendering |
 | `python` | 3.14.6 | Runtime for Ansible and python utilities |

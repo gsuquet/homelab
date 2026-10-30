@@ -90,10 +90,11 @@ docker_ensure() {
 # instance_preflight
 # Checks what the cluster module needs on this machine before Terraform runs.
 instance_preflight() {
-    local modules
-    modules="$(yq '.layers.cluster.modules[]' "$INSTANCE_DIR/instance.yaml")"
-
-    if grep -qx 'cluster-kind' <<< "$modules"; then
+    if instance_uses_kind; then
+        if ! command -v kind > /dev/null 2>&1; then
+            log_error "The kind command is missing. Run 'mise install' in the repository."
+            exit 1
+        fi
         docker_ensure
     fi
 }
@@ -124,6 +125,53 @@ instance_layer_targets() {
             name = ""
         }
     '
+}
+
+# instance_uses_kind
+# Returns 0 when the cluster layer of the instance uses cluster-kind.
+instance_uses_kind() {
+    yq '(.layers.cluster.modules // [])[]' "$INSTANCE_DIR/instance.yaml" | grep -qx 'cluster-kind'
+}
+
+# kind_context_export
+# Merges the kubeconfig entries of the Kind cluster (cluster, user and context
+# kind-<name>) into ~/.kube/config, or into the first file of KUBECONFIG, and
+# makes that context the current one. kind changes no other entry.
+kind_context_export() {
+    local name
+    name="$(terraform -chdir="$INSTANCE_DIR" output -raw cluster_name)"
+    log_info "Adding the kubeconfig context kind-$name..."
+    kind export kubeconfig --name "$name"
+}
+
+# kind_context_remove <name>
+# Removes the cluster, user and context kind-<name> from the kubeconfig, like
+# kind delete cluster does. It removes only the entries that exist, and no other
+# entry. If kind-<name> is the current context, no context is current after it.
+kind_context_remove() {
+    local entry="kind-$1" removed=0
+    if ! command -v kubectl > /dev/null 2>&1; then
+        log_warn "kubectl is missing: remove the kubeconfig context $entry yourself."
+        return 0
+    fi
+    if [ "$(kubectl config current-context 2> /dev/null || true)" = "$entry" ]; then
+        kubectl config unset current-context > /dev/null
+    fi
+    if kubectl config get-contexts -o name 2> /dev/null | grep -qx "$entry"; then
+        kubectl config delete-context "$entry" > /dev/null
+        removed=1
+    fi
+    if kubectl config get-clusters 2> /dev/null | grep -qx "$entry"; then
+        kubectl config delete-cluster "$entry" > /dev/null
+        removed=1
+    fi
+    if kubectl config get-users 2> /dev/null | grep -qx "$entry"; then
+        kubectl config delete-user "$entry" > /dev/null
+        removed=1
+    fi
+    if [ "$removed" -eq 1 ]; then
+        log_info "Removed the kubeconfig entries $entry."
+    fi
 }
 
 # instance_approve_flag
