@@ -32,6 +32,15 @@ resource "kind_cluster" "this" {
             protocol       = extra_port_mappings.value.protocol
           }
         }
+
+        dynamic "extra_mounts" {
+          for_each = local.extra_ca_mounts
+          content {
+            host_path      = extra_mounts.value.host_path
+            container_path = extra_mounts.value.container_path
+            read_only      = true
+          }
+        }
       }
     }
 
@@ -41,6 +50,15 @@ resource "kind_cluster" "this" {
       content {
         role                   = node.value.role
         kubeadm_config_patches = var.worker_kubeadm_config_patches
+
+        dynamic "extra_mounts" {
+          for_each = local.extra_ca_mounts
+          content {
+            host_path      = extra_mounts.value.host_path
+            container_path = extra_mounts.value.container_path
+            read_only      = true
+          }
+        }
       }
     }
   }

@@ -13,4 +13,13 @@ locals {
   # Node lists used by dynamic blocks in main.tf
   control_plane_nodes = [for i in range(var.control_plane_count) : { role = "control-plane" }]
   worker_nodes        = [for i in range(var.worker_count) : { role = "worker" }]
+
+  # Extra CA files, mounted into /etc/ssl/certs of each node. containerd (Go) reads
+  # every file in that folder, so the node trusts the CA with no update-ca-certificates.
+  extra_ca_mounts = [
+    for i, p in var.extra_ca_certificate_paths : {
+      host_path      = abspath(pathexpand(p))
+      container_path = "/etc/ssl/certs/extra-ca-${i}.pem"
+    }
+  ]
 }

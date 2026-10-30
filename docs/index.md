@@ -39,6 +39,7 @@ Task-oriented recipes that solve a specific problem. Assumes familiarity with th
 | [Add a Zigbee Device](how-to/add-zigbee-device.md) | Pair a new Zigbee device and expose it to Home Assistant |
 | [Render Manifests](how-to/render-manifests.md) | Re-render Helm charts to plain YAML after a config change |
 | [Configure Cloudflare](how-to/configure-cloudflare.md) | Set up the Cloudflare tunnel for external access |
+| [Use Kind behind a TLS-inspecting proxy](how-to/use-kind-behind-a-tls-proxy.md) | Make the Colima VM and the Kind nodes trust a company proxy CA |
 
 ---
 

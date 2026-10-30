@@ -23,6 +23,10 @@ It is used for two purposes in this repository:
 - **Networking variables default to empty** — when empty, Kind uses its own defaults.
   Set `pod_subnet` and `service_subnet` to match the production cluster when using this
   module as a staging environment.
+- **Extra CAs are mounted, not installed** — each file in `extra_ca_certificate_paths` is
+  bind-mounted read-only into `/etc/ssl/certs/extra-ca-<n>.pem`. containerd reads every file
+  in that folder, so image pulls behind a TLS-inspecting proxy work with no `docker exec`.
+  The empty default gives the same cluster as before.
 - **Port mappings apply to all control-plane nodes** — this is the standard Kind pattern
   for exposing an ingress controller.
 
@@ -34,6 +38,7 @@ It is used for two purposes in this repository:
 | `node_image_digest` | Current k8s release | Update when bumping `node_image_tag`. |
 | `disable_default_cni` | `false` | Set `true` before installing Cilium/Calico. |
 | `pod_subnet` / `service_subnet` | Kind defaults | Override for staging environments. |
+| `extra_ca_certificate_paths` | `[]` | CA files for a TLS-inspecting proxy. Mounted into `/etc/ssl/certs` of each node. A change replaces the cluster. |
 
 ## Outputs consumed by downstream modules
 

@@ -130,3 +130,14 @@ variable "enable_bpf_sysctls" {
   type        = bool
   default     = true
 }
+
+variable "extra_ca_certificate_paths" {
+  description = "PEM files of extra CAs that the nodes must trust, for example the CA of a TLS-inspecting proxy. Each file is mounted read-only into every node. The Docker daemon reads the path, so the file must be in a folder that the Docker VM mounts (for Colima: your home folder). A change replaces the cluster."
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition     = alltrue([for p in var.extra_ca_certificate_paths : fileexists(pathexpand(p))])
+    error_message = "Each path in extra_ca_certificate_paths must be an existing file."
+  }
+}

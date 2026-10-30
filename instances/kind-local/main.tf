@@ -4,6 +4,8 @@ module "kind_cluster" {
   name                = "kind-local"
   disable_default_cni = true
   worker_count        = 1
+
+  extra_ca_certificate_paths = var.extra_ca_certificate_paths
 }
 
 module "gateway_api" {
