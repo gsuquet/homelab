@@ -24,6 +24,13 @@ check_instance_terraform() {
         failures=$((failures + 1))
     fi
 
+    # instance:up reads the cluster_name output to export the kind context.
+    if grep -qx 'cluster-kind' <<< "$listed" &&
+        ! grep -Eq '^[[:space:]]*output[[:space:]]+"cluster_name"' "$dir"/*.tf 2> /dev/null; then
+        log_error "$file: the instance uses cluster-kind, but $dir/*.tf has no output \"cluster_name\""
+        failures=$((failures + 1))
+    fi
+
     backend="$(yq '.state.backend' "$file")"
     has_backend=no
     if grep -Eq '^[[:space:]]*(backend[[:space:]]+"|cloud[[:space:]]*\{)' "$dir"/*.tf 2> /dev/null; then

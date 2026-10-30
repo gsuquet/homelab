@@ -10,6 +10,10 @@ source "$MISE_PROJECT_ROOT/.mise/tasks/_base/log.sh"
 source "$MISE_PROJECT_ROOT/.mise/tasks/_base/instance.sh"
 
 instance_load "${usage_instance:?}"
+if instance_uses_kind && ! command -v kind > /dev/null 2>&1; then
+    log_error "The kind command is missing. Run 'mise install' in the repository."
+    exit 1
+fi
 instance_preflight
 instance_init
 
@@ -26,5 +30,9 @@ fi
 log_info "Applying all layers..."
 # shellcheck disable=SC2046 # The flag is empty or one word.
 terraform -chdir="$INSTANCE_DIR" apply -input=false $(instance_approve_flag)
+
+if instance_uses_kind; then
+    kind_context_export
+fi
 
 log_info "✓ Instance is up: $usage_instance"

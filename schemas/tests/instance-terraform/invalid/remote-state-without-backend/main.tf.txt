@@ -5,3 +5,7 @@ module "cluster" {
 module "cilium" {
   source = "../../modules/bootstrap-cilium"
 }
+
+output "cluster_name" {
+  value = module.cluster.name
+}

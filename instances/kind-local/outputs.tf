@@ -1,3 +1,8 @@
+output "cluster_name" {
+  description = "Name of the Kind cluster. instance:up exports its kubeconfig context."
+  value       = module.kind_cluster.name
+}
+
 output "kubeconfig_path" {
   description = "Absolute path to the written kubeconfig file."
   value       = module.kind_cluster.kubeconfig_path

@@ -73,10 +73,10 @@ done
 for case_dir in "$terraform_cases"/invalid/*/; do
     case_dir="${case_dir%/}"
     run_instance_terraform_case "$case_dir"
-    if [ "$case_errors" -gt 0 ]; then
+    if [ "$case_errors" -eq 1 ]; then
         log_info "pass (rejected as expected): $case_dir"
     else
-        log_error "fail (accepted, expected rejected): $case_dir"
+        log_error "fail (expected exactly 1 error, got $case_errors): $case_dir"
         failures=$((failures + 1))
     fi
 done

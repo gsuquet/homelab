@@ -8,3 +8,7 @@ module "cilium" {
 terraform {
   backend "s3" {}
 }
+
+output "cluster_name" {
+  value = module.cluster.name
+}

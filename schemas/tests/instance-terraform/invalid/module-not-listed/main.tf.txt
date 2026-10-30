@@ -8,3 +8,7 @@ module "cilium" {
 module "cm" {
   source = "../../modules/bootstrap-cert-manager"
 }
+
+output "cluster_name" {
+  value = module.cluster.name
+}

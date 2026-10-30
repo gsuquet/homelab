@@ -210,11 +210,17 @@ mise run lint:terraform
 Each task does these steps:
 
 1. Validates `instances/<instance>/instance.yaml` against `schemas/instance.schema.json`.
-2. If the instance uses `cluster-kind`, makes sure that Docker runs. If Docker does not run, the task starts the first runtime that it finds: Colima, OrbStack, Rancher Desktop or Docker Desktop (macOS). To start a specific runtime, set `DOCKER_RUNTIME` to `colima`, `orbstack`, `rancher-desktop` or `docker-desktop`. Set `DOCKER_NO_START=1` to stop with an error instead. If the `docker` command is missing, the task stops with an error. If image pulls fail behind a company proxy, refer to [Use Kind behind a TLS-inspecting proxy](../how-to/use-kind-behind-a-tls-proxy.md).
+2. If the instance uses `cluster-kind`, makes sure that Docker runs. `instance:up` also makes sure that the `kind` command is installed. If Docker does not run, the task starts the first runtime that it finds: Colima, OrbStack, Rancher Desktop or Docker Desktop (macOS). To start a specific runtime, set `DOCKER_RUNTIME` to `colima`, `orbstack`, `rancher-desktop` or `docker-desktop`. Set `DOCKER_NO_START=1` to stop with an error instead. If the `docker` command is missing, the task stops with an error. If image pulls fail behind a company proxy, refer to [Use Kind behind a TLS-inspecting proxy](../how-to/use-kind-behind-a-tls-proxy.md).
 3. Runs `terraform init` in `instances/<instance>/`.
 4. Runs `terraform plan`, `terraform apply` or `terraform destroy`.
 
 `instance:up` applies the modules of the `cluster` layer first, with `-target`. Then it applies all the layers. The providers of the other layers use the outputs of the cluster. If a change replaces the cluster, these outputs are not known during one full plan, and the plan fails. `instance:plan` makes one full plan, thus it can fail when a change replaces the cluster. In that case, use `instance:up`.
+
+For an instance that uses `cluster-kind`:
+
+- After the apply, `instance:up` runs `kind export kubeconfig`. kind adds the cluster, the user and the context `kind-<cluster>` to `~/.kube/config`, or to the first file in `KUBECONFIG` that exists (the last file if no file exists). kind changes no other entry. The new context becomes the current context.
+- After the destroy, `instance:down` removes the cluster, the user and the context `kind-<cluster>` from the kubeconfig. It removes no other entry. If `kind-<cluster>` was the current context, no context is current after the task.
+- Terraform also writes the kubeconfig of the cluster to `~/.kube/kind-<cluster>`.
 
 For a `test` or `demo` instance, `instance:up` and `instance:down` do not ask for approval. For a `production` instance, Terraform asks you to type `yes` for each apply that has changes.
 
