@@ -9,9 +9,9 @@ source "$MISE_PROJECT_ROOT/.mise/tasks/_base/log.sh"
 log_info "Running documentation generation check..."
 "$MISE_PROJECT_ROOT/.mise/tasks/doc/generate.sh"
 
-if ! git diff --quiet docs/reference/terraform-modules docs/reference/ansible-roles terraform/modules; then
+if ! git diff --quiet docs/reference/terraform-modules docs/reference/ansible-roles modules; then
     log_error "Documentation is out of date! Run 'mise run doc:generate' and commit the changes."
-    git diff --stat docs/reference/terraform-modules docs/reference/ansible-roles terraform/modules
+    git diff --stat docs/reference/terraform-modules docs/reference/ansible-roles modules
     exit 1
 else
     log_info "✓ Documentation is up to date."

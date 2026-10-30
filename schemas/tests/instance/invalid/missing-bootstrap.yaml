@@ -11,4 +11,5 @@ state:
   backend: local
 layers:
   cluster:
-    module: cluster-kind
+    modules:
+      - cluster-kind

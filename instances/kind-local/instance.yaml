@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=../../schemas/instance.schema.json
+---
+apiVersion: infra.gsuquet.com/v1alpha1
+kind: Instance
+name: kind-local
+description: Local Kind cluster on a laptop, to test the modules and the platform.
+purpose: test
+lifecycle:
+  type: long-lived
+# A Kind cluster lives on one laptop, so its state stays on that laptop.
+state:
+  backend: local
+layers:
+  cluster:
+    modules:
+      - cluster-kind
+  bootstrap:
+    modules:
+      - bootstrap-gateway-api
+      - bootstrap-cilium
+      - bootstrap-agent-sandbox

@@ -11,6 +11,8 @@ state:
   backend: r2
 layers:
   cluster:
-    module: cluster-kind
+    modules:
+      - cluster-kind
   bootstrap:
-    module: bootstrap-argocd
+    modules:
+      - bootstrap-argocd

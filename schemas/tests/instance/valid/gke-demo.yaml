@@ -12,8 +12,11 @@ state:
   backend: r2
 layers:
   substrate:
-    module: substrate-gcp-project
+    modules:
+      - substrate-gcp-project
   cluster:
-    module: cluster-gke
+    modules:
+      - cluster-gke
   bootstrap:
-    module: bootstrap-argocd
+    modules:
+      - bootstrap-argocd

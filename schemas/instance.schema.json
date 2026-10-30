@@ -101,7 +101,7 @@
       }
     },
     "layers": {
-      "description": "The module used for each layer. Each module must start with its layer name.",
+      "description": "The modules used for each layer, in the order of installation. Each module name must start with its layer name.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -112,24 +112,30 @@
         "substrate": {
           "$ref": "#/$defs/layerRef",
           "properties": {
-            "module": {
-              "pattern": "^substrate-"
+            "modules": {
+              "items": {
+                "pattern": "^substrate-"
+              }
             }
           }
         },
         "cluster": {
           "$ref": "#/$defs/layerRef",
           "properties": {
-            "module": {
-              "pattern": "^cluster-"
+            "modules": {
+              "items": {
+                "pattern": "^cluster-"
+              }
             }
           }
         },
         "bootstrap": {
           "$ref": "#/$defs/layerRef",
           "properties": {
-            "module": {
-              "pattern": "^bootstrap-"
+            "modules": {
+              "items": {
+                "pattern": "^bootstrap-"
+              }
             }
           }
         }
@@ -138,11 +144,14 @@
   },
   "allOf": [
     {
-      "description": "A production instance must use remote state.",
+      "description": "Only a test instance can use local state. Production and demo instances use remote state.",
       "if": {
         "properties": {
           "purpose": {
-            "const": "production"
+            "enum": [
+              "production",
+              "demo"
+            ]
           }
         },
         "required": [
@@ -193,13 +202,18 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "module"
+        "modules"
       ],
       "properties": {
-        "module": {
-          "description": "Name of a folder in modules/.",
-          "type": "string",
-          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        "modules": {
+          "description": "Names of folders in modules/, in the order of installation.",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+          }
         }
       }
     }

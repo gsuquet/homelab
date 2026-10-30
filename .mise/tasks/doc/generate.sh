@@ -11,8 +11,8 @@ log_info "Generating Terraform module documentation..."
 
 # Ensure target ref directory for terraform modules exists and copy module READMEs to reference docs
 TF_REF_DIR="$MISE_PROJECT_ROOT/docs/reference/terraform-modules"
-for module_dir in "$MISE_PROJECT_ROOT/terraform/modules"/*; do
-    if [ -d "$module_dir" ]; then
+for module_dir in "$MISE_PROJECT_ROOT/modules"/*; do
+    if [ -d "$module_dir" ] && [ "$(basename "$module_dir")" != "_template" ]; then
         mod_name="$(basename "$module_dir")"
         mkdir -p "$TF_REF_DIR/$mod_name"
         if [ -f "$module_dir/README.md" ]; then

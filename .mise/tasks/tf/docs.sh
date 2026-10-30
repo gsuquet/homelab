@@ -11,7 +11,7 @@ if ! command -v terraform-docs &> /dev/null; then
     exit 1
 fi
 
-MODULES_DIR="$MISE_PROJECT_ROOT/terraform/modules"
+MODULES_DIR="$MISE_PROJECT_ROOT/modules"
 
 if [ ! -d "$MODULES_DIR" ]; then
     log_warn "No modules directory found at $MODULES_DIR"
@@ -38,7 +38,7 @@ while IFS= read -r module_dir; do
         log_error "✗ Failed to generate docs for $module_name"
         ((error_count += 1))
     fi
-done < <(find "$MODULES_DIR" -mindepth 1 -maxdepth 1 -type d | sort)
+done < <(find "$MODULES_DIR" -mindepth 1 -maxdepth 1 -type d ! -name _template | sort)
 
 echo ""
 log_info "===================================="

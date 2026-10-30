@@ -11,6 +11,8 @@ state:
   backend: local
 layers:
   cluster:
-    module: bootstrap-argocd
+    modules:
+      - bootstrap-argocd
   bootstrap:
-    module: bootstrap-argocd
+    modules:
+      - bootstrap-argocd

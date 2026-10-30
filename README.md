@@ -15,7 +15,7 @@ While the codebase currently deploys a live smart home and personal services sta
 
 ### Key Focus Areas
 
-- **Infrastructure as Code & Modules**: Modular Terraform (`terraform/modules/`) and Ansible roles (`ansible/roles/`) designed for reuse and learning.
+- **Infrastructure as Code & Modules**: Modular Terraform (`modules/`) and Ansible roles (`ansible/roles/`) designed for reuse and learning.
 - **GitOps & Rendered Manifests**: ArgoCD-driven deployment using local Helm rendering for complete transparency and declarative auditability.
 - **Multi-Environment Ready**: Targets local dev clusters (`Kind`), bare-metal nodes (Raspberry Pi / K3s), and extensible for cloud targets.
 - **Security & Secret Hygiene**: Sealed Secrets for Git-committed secrets, UFW firewall hardening, and Zero-Trust Cloudflare Tunnels.

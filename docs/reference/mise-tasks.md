@@ -99,7 +99,7 @@ pre-commit install
 
 **What it does**:
 
-1. Scans `terraform/modules/` for module directories (one level deep)
+1. Scans `modules/` for module directories (one level deep). It skips `modules/_template/`.
 2. For each module, runs `terraform-docs markdown table --output-mode inject` to inject
    a Markdown table of inputs, outputs, providers, and requirements into the module's
    `README.md` between `<!-- BEGIN_TF_DOCS -->` / `<!-- END_TF_DOCS -->` markers
@@ -118,8 +118,8 @@ mise run tf:docs
 **Example output**:
 
 ```bash
-[INFO] Generating docs for module: kind-cluster
-[INFO] ✓ kind-cluster → /path/to/terraform/modules/kind-cluster/README.md
+[INFO] Generating docs for module: cluster-kind
+[INFO] ✓ cluster-kind → /path/to/modules/cluster-kind/README.md
 
 [INFO] ====================================
 [INFO] Documentation generation complete!
@@ -198,6 +198,32 @@ It runs these tasks:
 ```bash
 mise run lint
 mise run lint:terraform
+```
+
+---
+
+### `instance:plan`, `instance:up`, `instance:down`
+
+**Scripts**: `.mise/tasks/instance/plan.sh`, `up.sh`, `down.sh`
+**Description**: Show the changes, create or update, or destroy one instance in `instances/`.
+
+Each task does these steps:
+
+1. Validates `instances/<instance>/instance.yaml` against `schemas/instance.schema.json`.
+2. If the instance uses `cluster-kind`, makes sure that Docker runs. If Docker does not run, the task starts the first runtime that it finds: Colima, OrbStack, Rancher Desktop or Docker Desktop (macOS). To start a specific runtime, set `DOCKER_RUNTIME` to `colima`, `orbstack`, `rancher-desktop` or `docker-desktop`. Set `DOCKER_NO_START=1` to stop with an error instead. If the `docker` command is missing, the task stops with an error. If image pulls fail behind a company proxy, refer to [Use Kind behind a TLS-inspecting proxy](../how-to/use-kind-behind-a-tls-proxy.md).
+3. Runs `terraform init` in `instances/<instance>/`.
+4. Runs `terraform plan`, `terraform apply` or `terraform destroy`.
+
+`instance:up` applies the modules of the `cluster` layer first, with `-target`. Then it applies all the layers. The providers of the other layers use the outputs of the cluster. If a change replaces the cluster, these outputs are not known during one full plan, and the plan fails. `instance:plan` makes one full plan, thus it can fail when a change replaces the cluster. In that case, use `instance:up`.
+
+For a `test` or `demo` instance, `instance:up` and `instance:down` do not ask for approval. For a `production` instance, Terraform asks you to type `yes` for each apply that has changes.
+
+**Usage**:
+
+```bash
+mise run instance:plan kind-local
+mise run instance:up kind-local
+mise run instance:down kind-local
 ```
 
 ---

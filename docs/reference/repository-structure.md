@@ -60,14 +60,31 @@ homelab/
 │       ├── changelog/                # Changelog generation task
 │       ├── doc/                      # Documentation generation and check tasks
 │       ├── manifests/                # Manifest render and check tasks
-│       ├── pr/                       # PR creation helper script
-│       └── tf/                       # Terraform docs tasks
+│       ├── instance/                 # instance:plan, instance:up, instance:down
+│       ├── lint/                     # Linters and policy checks (mise run lint)
+│       ├── schemas/                  # Schema tests and checks
+│       └── tf/                       # Terraform docs and lock tasks
 │
 ├── scripts/                          # Custom utility scripts (generate-ansible-docs.sh)
 │
-├── terraform/                        # Infrastructure as Code
-│   └── modules/
-│       └── kind-cluster/             # Kind cluster dev module
+├── modules/                          # Reusable modules: <layer>-<component>/ with module.yaml
+│   ├── _template/                    # Draft template for a new module
+│   ├── cluster-kind/                 # Kind cluster
+│   ├── bootstrap-gateway-api/        # Gateway API CRDs
+│   ├── bootstrap-cilium/             # Cilium CNI
+│   ├── bootstrap-cert-manager/       # cert-manager and cluster issuers
+│   └── bootstrap-agent-sandbox/      # agent-sandbox controller
+│
+├── instances/                        # One root module for each instance, with instance.yaml
+│   └── kind-local/                   # Local Kind test instance
+│
+├── gitops/                           # Argo CD sources (filled in Phase 2)
+│   ├── platform/                     # Platform components
+│   ├── apps/                         # Applications
+│   └── instances/                    # One Argo CD entry point for each instance
+│
+├── schemas/                          # JSON Schemas for module.yaml and instance.yaml
+├── policy/                           # Conftest policies
 │
 ├── docs/                             # Project documentation (Diátaxis structure)
 │   ├── index.md                      # Landing page and navigation

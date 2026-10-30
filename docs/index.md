@@ -39,6 +39,7 @@ Task-oriented recipes that solve a specific problem. Assumes familiarity with th
 | [Add a Zigbee Device](how-to/add-zigbee-device.md) | Pair a new Zigbee device and expose it to Home Assistant |
 | [Render Manifests](how-to/render-manifests.md) | Re-render Helm charts to plain YAML after a config change |
 | [Configure Cloudflare](how-to/configure-cloudflare.md) | Set up the Cloudflare tunnel for external access |
+| [Use Kind behind a TLS-inspecting proxy](how-to/use-kind-behind-a-tls-proxy.md) | Make the Colima VM and the Kind nodes trust a company proxy CA |
 
 ---
 
@@ -69,5 +70,9 @@ Understanding-oriented documents that explain the *why* behind architectural dec
 | [Secret Management](explanation/secret-management.md) | How Sealed Secrets enables encrypted GitOps secrets |
 | [Smart Home Stack](explanation/smart-home-stack.md) | How Zigbee2MQTT, Mosquitto, and Home Assistant work together |
 | [Automated Updates](explanation/automated-updates.md) | How Renovate keeps dependencies current |
-| [Chaos Citadel](explanation/chaos-citadel.md) | Interactive multiplayer game demonstrating Cilium eBPF, Zero Trust, and Chaos Engineering |
-| [Zero Trust & Chaos Lab](explanation/zero-trust-chaos-lab.md) | R&D testbed for zero-trust networking, shadow traffic, and chaos |
+
+---
+
+## Archive
+
+Pages that are not maintained. Refer to [Archive](archive/README.md).

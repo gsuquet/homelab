@@ -1,0 +1,13 @@
+apiVersion: infra.gsuquet.com/v1alpha1
+kind: Instance
+name: test
+purpose: test
+state:
+  backend: local
+layers:
+  cluster:
+    modules:
+      - cluster-kind
+  bootstrap:
+    modules:
+      - bootstrap-cilium

@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=../../schemas/module.schema.json
+---
+apiVersion: infra.gsuquet.com/v1alpha1
+kind: Module
+name: bootstrap-cilium
+layer: bootstrap
+tool: terraform
+description: Installs Cilium as the cluster CNI with Helm.
+maturity: experimental
+contract:
+  provides:
+    - namespace
+    - release_name
+    - hubble_relay_enabled
+    - hubble_ui_enabled

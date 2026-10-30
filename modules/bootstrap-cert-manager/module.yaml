@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=../../schemas/module.schema.json
+---
+apiVersion: infra.gsuquet.com/v1alpha1
+kind: Module
+name: bootstrap-cert-manager
+layer: bootstrap
+tool: terraform
+description: Installs cert-manager with Helm and creates self-signed and Let's Encrypt cluster issuers.
+maturity: experimental
+contract:
+  provides:
+    - namespace
+    - release_name
+    - selfsigned_issuer_name
+    - letsencrypt_staging_issuer_name
+    - letsencrypt_prod_issuer_name

@@ -24,15 +24,22 @@ This page lists the JSON Schemas in `schemas/` and the tasks that use them.
 - `purpose` is `production`, `test` or `demo`.
 - `lifecycle.type` is `long-lived` or `ephemeral`.
 - An `ephemeral` instance must have a `ttl`, in hours (`8h`) or days (`2d`). A `long-lived` instance must not have a `ttl`.
-- A `production` instance must be `long-lived` and must not use `local` state.
+- A `production` instance must be `long-lived`.
+- Only a `test` instance can use `local` state. A `production` or `demo` instance must use remote state, because more than one machine or a CI job can run it.
 - `state.backend` is `r2`, `hcp-terraform` or `local`.
 - `layers.cluster` and `layers.bootstrap` are mandatory. `layers.substrate` is optional.
-- The module of each layer must start with the layer name.
+- Each layer has a `modules` list, in the order of installation. The list has one or more modules, and no module two times.
+- The name of each module must start with the layer name.
 - Other fields are not permitted.
 
 ## Rules that the schemas cannot check
 
-The `schemas:check` task also makes sure that `name` is equal to the folder name.
+The `schemas:check` task also checks these rules:
+
+- `name` is equal to the folder name. `modules/_template/` is not checked for this rule.
+- Each module in the `layers` of an `instance.yaml` has a folder in `modules/`, and its `module.yaml` has the same `layer`.
+- The Terraform files of an instance use each module of its `layers` with `source = "../../modules/<module>"`, and they use no other module.
+- The Terraform files of an instance have a `backend` block if `state.backend` is not `local`. They have no `backend` block if `state.backend` is `local`.
 
 ## Tasks
 

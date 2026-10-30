@@ -13,7 +13,7 @@ This document tells how Renovate keeps dependencies up to date, and which update
 | Tools | `.mise/config.toml` | `mise` |
 | Pre-commit hooks (commit SHAs) | `.pre-commit-config.yaml` | `pre-commit` |
 | GitHub Actions (commit SHAs) | `.github/workflows/*.yml` | `github-actions` |
-| Terraform providers and lock files | `terraform/**` | `terraform` |
+| Terraform providers and lock files | `modules/**`, `instances/**` | `terraform` |
 | Helm chart dependencies | `kubernetes/**/sources/Chart.yaml` | `helmv3` |
 | Container images (tag and digest) | `kubernetes/applications/**`, `kubernetes/system/**` | custom regex |
 | Versions with a `# renovate:` comment | any YAML, TOML, Terraform or shell file | custom regex |

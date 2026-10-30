@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=../../schemas/module.schema.json
+---
+apiVersion: infra.gsuquet.com/v1alpha1
+kind: Module
+name: bootstrap-gateway-api
+layer: bootstrap
+tool: terraform
+description: Installs the Gateway API CRDs from the upstream release.
+maturity: experimental
+contract:
+  provides:
+    - channel
+    - version
+    - crd_names

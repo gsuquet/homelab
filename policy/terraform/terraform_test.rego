@@ -25,7 +25,7 @@ test_missing_source_is_denied if {
 
 test_provider_block_in_module_is_denied if {
 	contents := {"provider": {"helm": [{}]}}
-	count(terraform.deny) == 1 with input as [{"path": "terraform/modules/cilium/providers.tf", "contents": contents}]
+	count(terraform.deny) == 1 with input as [{"path": "modules/bootstrap-cilium/providers.tf", "contents": contents}]
 }
 
 test_provider_block_in_root_is_allowed if {
