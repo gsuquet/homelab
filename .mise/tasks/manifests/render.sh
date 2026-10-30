@@ -146,8 +146,11 @@ render_chart() {
             *) args+=(-f "$arg") ;;
         esac
     done
-    namespace="$(chart_namespace "$source_dir")"
-    [ -n "$namespace" ] && args+=(--namespace "$namespace")
+    # A --namespace= flag (gitops/) wins over chart.env (kubernetes/).
+    if [[ " $* " != *" --namespace="* ]]; then
+        namespace="$(chart_namespace "$source_dir")"
+        [ -n "$namespace" ] && args+=(--namespace "$namespace")
+    fi
 
     helm template "$release" "$source_dir" "${args[@]}" > "$output_file"
 }

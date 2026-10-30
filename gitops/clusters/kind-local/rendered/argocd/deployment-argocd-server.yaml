@@ -23,7 +23,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/cmd-params: 39935b3b91bd38da18612ef09676fe4d84b5db2b1d5c311ee72d03ce49415ab3
+        checksum/cmd-params: 2e5169c2bf2cc7d43adcafcfc0d1349f909d643a5c63d195e8e8d41233379756
         checksum/cm: 7beae073ec60a4f969bb5755ddde53c2dd093295d3390bb6390e15bce794a541
       labels:
         helm.sh/chart: argo-cd-10.11.6

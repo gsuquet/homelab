@@ -113,7 +113,11 @@ Argo CD applies the resources of one Application in waves. A Conftest policy che
 
 Between components, `dependsOn` in `cluster.yaml` sets the order. The `argocd` chart gives each Application a sync wave: `1` without `dependsOn`, else the wave of its deepest dependency plus 1. The render fails when `dependsOn` names an unknown component or makes a cycle.
 
-The Applications are resources of the `argocd` Application, thus the same waves order them. A health check in `argocd-cm` gives each Application the health of its resources. Thus Argo CD starts a wave only when the Applications of the previous waves are `Healthy`. The `argocd` Application is in its own folder, thus the health check always makes it `Healthy`. Else it waits for itself.
+The Applications are resources of the `argocd` Application, thus the same waves order them. A health check in `argocd-cm` gives each Application the health of its resources. Thus Argo CD starts a wave only when the Applications of the previous waves are `Healthy`. A sync stops after 15 minutes (`controller.sync.timeout.seconds`), thus one component that is not `Healthy` does not stop all the later syncs.
+
+The waves order the syncs of the `argocd` Application only: they apply when an Application is new or when its spec changes. When one commit changes the rendered manifests of two components, their two Applications sync at the same time. To upgrade a component and a component that needs it in a fixed order, use two pull requests.
+
+`argocd` cannot have `dependsOn`: Argo CD syncs before all the other components. The `argocd` Application is in its own folder, thus the health check always makes it `Healthy`. Else it waits for itself.
 
 ### Argo CD settings
 
@@ -122,6 +126,7 @@ The Applications are resources of the `argocd` Application, thus the same waves 
 | Diff | Server-side (`controller.diff.server.side`) | It goes with server-side apply. Defaulted fields do not show as OutOfSync. |
 | Default role | `role:readonly` | A logged-in user without a role can look, but not change. |
 | Application health | Custom health check | The sync waves between components wait for each component. |
+| Sync timeout | 15 minutes (`controller.sync.timeout.seconds`) | A component that is not `Healthy` does not stop the syncs of the `argocd` Application. |
 | Resource exclusions | The chart defaults | They already exclude Endpoints, Leases, Cilium identities and endpoints, and Kyverno reports. |
 | Resources | Memory request equal to the limit, a CPU request, no CPU limit | The cluster resource policy. Sized for a Raspberry Pi 4 with 8 GiB. |
 | Admin user | On | Change the password and delete `argocd-initial-admin-secret` after the first login. SSO comes later. |

@@ -18,6 +18,9 @@ number of components is only possible in a cycle.
 {{- $_ := set $depth .name 0 -}}
 {{- end -}}
 {{- range $component := $components -}}
+{{- if and (eq $component.name "argocd") $component.dependsOn -}}
+{{- fail "argocd: remove dependsOn. Argo CD syncs before all the other components" -}}
+{{- end -}}
 {{- range ($component.dependsOn | default list) -}}
 {{- if not (hasKey $depth .) -}}
 {{- fail (printf "%s: dependsOn %s, but %s is not in the cluster" $component.name . .) -}}

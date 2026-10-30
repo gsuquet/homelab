@@ -19,9 +19,3 @@ variable "wait_for_rollout" {
   type        = bool
   default     = true
 }
-
-variable "application" {
-  description = "Name of the Argo CD Application that syncs manifests_dir. Terraform applies this Application and no other: Argo CD makes the other Applications in the order of their sync waves."
-  type        = string
-  default     = "argocd"
-}

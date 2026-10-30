@@ -34,7 +34,7 @@ argo-cd:
       # The health of an Application is the health of its resources. Thus the
       # sync waves of the argocd Application wait for each component. The argocd
       # Application is in its own folder: it is always Healthy, else it waits
-      # for itself.
+      # for itself. The bootstrap-argocd module uses the same name.
       resource.customizations.health.argoproj.io_Application: |
         hs = {}
         hs.status = "Progressing"
@@ -56,6 +56,10 @@ argo-cd:
       # The API server computes the diff. It goes with server-side apply and
       # does not show defaulted fields as OutOfSync.
       controller.diff.server.side: true
+      # A sync stops after 15 minutes. Without a timeout, one component that
+      # never becomes Healthy stops all the later syncs of the argocd
+      # Application, also the upgrades of Argo CD.
+      controller.sync.timeout.seconds: "900"
     rbac:
       # A logged-in user without a role can look, but not change.
       policy.default: role:readonly

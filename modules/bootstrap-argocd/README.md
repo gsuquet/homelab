@@ -21,7 +21,6 @@ Refer to [AGENTS.md](AGENTS.md) for the design decisions.
 
 | Name | Description | Type | Default | Required |
 | ---- | ----------- | ---- | ------- | :------: |
-| <a name="input_application"></a> [application](#input\_application) | Name of the Argo CD Application that syncs manifests\_dir. Terraform applies this Application and no other: Argo CD makes the other Applications in the order of their sync waves. | `string` | `"argocd"` | no |
 | <a name="input_force_conflicts"></a> [force\_conflicts](#input\_force\_conflicts) | Take the ownership of fields that another field manager owns, for example after a manual kubectl apply. | `bool` | `true` | no |
 | <a name="input_manifests_dir"></a> [manifests\_dir](#input\_manifests\_dir) | Folder with the rendered Argo CD manifests of the cluster: gitops/clusters/<cluster>/rendered/argocd. Argo CD syncs the same folder after the bootstrap. | `string` | n/a | yes |
 | <a name="input_wait_for_rollout"></a> [wait\_for\_rollout](#input\_wait\_for\_rollout) | Wait until the Argo CD Deployments and StatefulSets are ready before the apply completes. | `bool` | `true` | no |

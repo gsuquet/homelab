@@ -46,6 +46,10 @@ locals {
   # stay in the cluster, because the Terraform manager would still own it.
   field_manager = "argocd-controller"
 
+  # The Application of Argo CD itself. The health check of Applications in
+  # gitops/infrastructure/argocd/sources/values.yaml uses the same name.
+  application = "argocd"
+
   foundation = { for key, doc in local.manifests : key => doc if contains(local.foundation_kinds, yamldecode(doc).kind) }
   argo_documents = {
     for key, doc in local.manifests : key => doc
@@ -56,7 +60,7 @@ locals {
   # waves. If Terraform applied them, they would all sync at the same time.
   argocd_resources = {
     for key, doc in local.argo_documents : key => doc
-    if yamldecode(doc).kind != "Application" || yamldecode(doc).metadata.name == var.application
+    if yamldecode(doc).kind != "Application" || yamldecode(doc).metadata.name == local.application
   }
   components = {
     for key, doc in local.manifests : key => doc
@@ -106,7 +110,7 @@ resource "kubectl_manifest" "argocd_resources" {
 
     precondition {
       condition     = contains([for doc in values(local.argocd_resources) : yamldecode(doc).kind], "Application")
-      error_message = "manifests_dir has no Application named ${var.application}. The cluster must list argocd in infrastructure, else Argo CD does not manage itself."
+      error_message = "manifests_dir has no Application named ${local.application}. The cluster must list argocd in infrastructure, else Argo CD does not manage itself."
     }
   }
 
