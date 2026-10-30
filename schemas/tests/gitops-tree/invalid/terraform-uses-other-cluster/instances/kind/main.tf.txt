@@ -1,0 +1,4 @@
+output "argocd_manifests" {
+  description = "Rendered Argo CD manifests of the cluster."
+  value       = "${path.module}/../../gitops/clusters/other/rendered/argocd"
+}

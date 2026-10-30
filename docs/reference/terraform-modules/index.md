@@ -11,8 +11,9 @@ This page lists the Terraform modules in `modules/`. The name of each module sta
 | [`bootstrap-cilium`](bootstrap-cilium/index.md) | Installs Cilium as the cluster CNI | `modules/bootstrap-cilium/` |
 | [`bootstrap-cert-manager`](bootstrap-cert-manager/index.md) | Installs cert-manager and its cluster issuers | `modules/bootstrap-cert-manager/` |
 | [`bootstrap-agent-sandbox`](bootstrap-agent-sandbox/index.md) | Installs the agent-sandbox controller | `modules/bootstrap-agent-sandbox/` |
+| [`bootstrap-argocd`](bootstrap-argocd/index.md) | Installs Argo CD one time. Then Argo CD manages itself from `gitops/` | `modules/bootstrap-argocd/` |
 
-In Phase 2, the GitOps platform (`gitops/platform/`) takes over Gateway API, cert-manager and agent-sandbox.
+In Phase 2, the GitOps infrastructure (`gitops/infrastructure/`) takes over Gateway API, cert-manager and agent-sandbox.
 
 ---
 

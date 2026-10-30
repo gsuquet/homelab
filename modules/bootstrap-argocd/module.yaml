@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=../../schemas/module.schema.json
+---
+apiVersion: infra.gsuquet.com/v1alpha1
+kind: Module
+name: bootstrap-argocd
+layer: bootstrap
+tool: terraform
+description: Installs Argo CD once from the rendered GitOps manifests. Then Argo CD manages itself from Git.
+maturity: experimental
+contract:
+  provides:
+    - namespace
+    - manifest_keys

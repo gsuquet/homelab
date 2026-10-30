@@ -103,6 +103,7 @@
     {
       "description": "Helm charts and container images that reach the homelab: no automerge until Kind tests exist (Phase 4)",
       "matchFileNames": [
+        "gitops/**",
         "kubernetes/**"
       ],
       "semanticCommitScope": "kubernetes"

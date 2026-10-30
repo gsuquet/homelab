@@ -22,6 +22,14 @@ You do **not** need to re-render when you:
 
 ---
 
+## The `gitops/` Layout
+
+A component in `gitops/infrastructure/` or `gitops/apps/` renders one time for each cluster that lists it in `gitops/clusters/<cluster>/cluster.yaml`. The task merges `sources/values.yaml`, the content of `cluster.yaml` as `gitops.cluster`, and `gitops/clusters/<cluster>/values/<component>.yaml` if it exists. It writes one file for each resource, `<kind>-<name>.yaml`, to `gitops/clusters/<cluster>/rendered/<component>/`. The task deletes `rendered/` first, thus the folder of a removed component goes away. Refer to [gitops/README.md](../../gitops/README.md).
+
+`manifests:check` also checks `gitops/**/rendered/`.
+
+---
+
 ## Re-render with mise
 
 From the repository root:

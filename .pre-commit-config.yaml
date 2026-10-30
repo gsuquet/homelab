@@ -41,6 +41,8 @@ repos:
     rev: cba56bcde1fdd01c1deb3f945e69764c291a6530  # frozen: v1.38.0
     hooks:
       - id: yamllint
+        # Helm templates are not YAML until they render. The rendered output is checked.
+        exclude: '/sources/templates/'
 
   - repo: https://github.com/renovatebot/pre-commit-hooks
     rev: 6d15fe12fcac80fe0c349677eaa23f6d5f943818  # frozen: 41.173.1
@@ -52,9 +54,9 @@ repos:
     hooks:
       - id: render-manifests
         name: Render and split Kubernetes manifests
-        entry: bash -c 'mise run manifests:render && git add kubernetes/'
+        entry: bash -c 'mise run manifests:render && git add kubernetes/ ":(glob)gitops/**/rendered/**"'
         language: system
-        files: 'kubernetes/.*/sources/.*\.yaml$'
+        files: '^(kubernetes/.*/sources/.*\.yaml|gitops/.*/(sources|values)/.*|gitops/clusters/[^/]+/cluster\.yaml)$'
         pass_filenames: false
         stages: [commit]
 
@@ -70,14 +72,14 @@ repos:
         name: Test JSON Schemas against fixtures
         entry: mise run schemas:test
         language: system
-        files: '^(schemas/|\.mise/tasks/schemas/)'
+        files: '^(schemas/|\.mise/tasks/schemas/|\.mise/tasks/_base/instance-checks\.sh$)'
         pass_filenames: false
 
       - id: schemas-check
-        name: Validate module.yaml and instance.yaml files
+        name: Validate module.yaml, instance.yaml and the gitops/ tree
         entry: mise run schemas:check
         language: system
-        files: '^(schemas/.*\.schema\.json|modules/[^/]+/module\.yaml|instances/[^/]+/instance\.yaml)$'
+        files: '^(schemas/.*\.schema\.json|modules/[^/]+/module\.yaml|instances/[^/]+/(instance\.yaml|.*\.tf)|gitops/.*|\.mise/tasks/_base/instance-checks\.sh)$'
         pass_filenames: false
 
       - id: lint-terraform

@@ -81,6 +81,36 @@ for case_dir in "$terraform_cases"/invalid/*/; do
     fi
 done
 
+# Each case folder in schemas/tests/gitops-tree/ is a root with a gitops/ folder.
+# A valid case has no error. An invalid case has exactly one error. The check
+# runs on a copy, where each *.tf.txt becomes *.tf: TFLint does not lint the
+# fixtures.
+gitops_cases="schemas/tests/gitops-tree"
+for case_dir in "$gitops_cases"/valid/*/ "$gitops_cases"/invalid/*/; do
+    case_dir="${case_dir%/}"
+    work="$(mktemp -d)"
+    cp -R "$case_dir"/. "$work"/
+    while IFS= read -r tf; do
+        mv "$tf" "${tf%.txt}"
+    done < <(find "$work" -type f -name '*.tf.txt')
+    saved="$failures"
+    failures=0
+    check_gitops_tree "$work" > /dev/null 2>&1
+    case_errors="$failures"
+    failures="$saved"
+    rm -rf "$work"
+    case "$case_dir" in
+        */valid/*) expected=0 ;;
+        *) expected=1 ;;
+    esac
+    if [ "$case_errors" -eq "$expected" ]; then
+        log_info "pass ($case_errors error(s) as expected): $case_dir"
+    else
+        log_error "fail (expected $expected error(s), got $case_errors): $case_dir"
+        failures=$((failures + 1))
+    fi
+done
+
 if [ "$failures" -ne 0 ]; then
     log_error "$failures schema test(s) failed."
     exit 1

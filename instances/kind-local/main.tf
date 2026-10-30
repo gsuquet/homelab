@@ -28,3 +28,13 @@ module "cilium" {
 
   depends_on = [module.kind_cluster, module.gateway_api]
 }
+
+# Argo CD starts from the same rendered manifests that it syncs from Git. Then
+# it manages itself and the components in gitops/clusters/kind-local/cluster.yaml.
+module "argocd" {
+  source = "../../modules/bootstrap-argocd"
+
+  manifests_dir = "${path.module}/../../gitops/clusters/kind-local/rendered/argocd"
+
+  depends_on = [module.cilium]
+}

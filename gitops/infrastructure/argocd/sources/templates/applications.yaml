@@ -1,0 +1,47 @@
+{{/*
+App of apps: one Application for each component in
+gitops/clusters/<cluster>/cluster.yaml. The Application syncs
+gitops/clusters/<cluster>/rendered/<component>/. The sync wave comes from
+dependsOn, and the health check of Applications in values.yaml makes each wave
+wait for the previous waves.
+- No CreateNamespace: each component ships its own Namespace.
+- No resources finalizer: when a component leaves the list, Argo CD deletes the
+  Application, but not the resources of the component.
+*/}}
+{{- $cluster := include "argocd.cluster" . -}}
+{{- $waves := include "argocd.waves" . | fromJson -}}
+{{- range $group := list "infrastructure" "apps" }}
+{{- range (get $.Values.gitops.cluster $group | default list) }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ .name }}
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ get $waves .name | toString | quote }}
+spec:
+  project: {{ $group }}
+  source:
+    repoURL: {{ $.Values.gitops.repoURL }}
+    targetRevision: {{ $.Values.gitops.targetRevision }}
+    path: gitops/clusters/{{ $cluster }}/rendered/{{ .name }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: {{ .namespace }}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+    # Argo CD does not try a failed sync again for the same revision. Retry
+    # covers short failures, for example an image pull timeout in a hook.
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
+{{- end }}
+{{- end }}

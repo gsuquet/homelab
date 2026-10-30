@@ -1,0 +1,8 @@
+# yaml-language-server: $schema=../../../gitops-cluster.schema.json
+---
+apiVersion: infra.gsuquet.com/v1alpha1
+kind: GitOpsCluster
+name: kind-local
+infrastructure:
+  - argocd
+apps: []

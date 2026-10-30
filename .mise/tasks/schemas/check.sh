@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Validate every module.yaml and instance.yaml against its schema"
+#MISE description="Validate every module.yaml, instance.yaml and GitOps instance file against its schema"
 
 set -euo pipefail
 
@@ -78,9 +78,11 @@ for file in instances/*/instance.yaml; do
     check_instance_terraform "$file"
 done
 
+check_gitops_tree .
+
 if [ "$failures" -ne 0 ]; then
     log_error "$failures file(s) do not comply with their schema."
     exit 1
 fi
 
-log_info "✓ All module.yaml and instance.yaml files comply with their schema."
+log_info "✓ All module.yaml, instance.yaml and GitOps cluster files comply with their schema."

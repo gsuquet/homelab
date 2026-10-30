@@ -209,3 +209,5 @@ terragrunt-debug.tfvars.json
 
 ### Helm ###
 **/charts/*.tgz
+# manifests:render writes it with a new timestamp each time. Chart.yaml pins the exact version.
+gitops/**/sources/Chart.lock

@@ -12,6 +12,7 @@ on:
       - 'modules/**/module.yaml'
       - 'instances/**/instance.yaml'
       - 'instances/**/*.tf'
+      - 'gitops/**'
   push:
     branches:
       - main
@@ -22,6 +23,7 @@ on:
       - 'modules/**/module.yaml'
       - 'instances/**/instance.yaml'
       - 'instances/**/*.tf'
+      - 'gitops/**'
 
 permissions:
   contents: read

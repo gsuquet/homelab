@@ -3,9 +3,10 @@
 
 set -euo pipefail
 
-# Script to render umbrella Helm charts from sources to manifests
-# Finds all **/sources/Chart.yaml files in the project and renders them using
-# the sibling values.yaml into **/manifests/install.yaml
+# Renders the umbrella Helm charts in sources/ folders to plain manifests:
+# - kubernetes/**/sources/ renders with the sibling values.yaml to manifests/.
+# - gitops/<group>/<component>/sources/ renders once for each cluster that
+#   lists it, to gitops/clusters/<cluster>/rendered/<component>/.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if ! PROJECT_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2> /dev/null)"; then
@@ -91,6 +92,25 @@ split_manifest_by_source() {
     log_info "Split $file_count manifests from $manifest_file"
 }
 
+# split_manifest_by_resource <manifest file> <output dir>
+# Writes one file for each resource: <kind>-<name>.yaml, in lower case. The file
+# name does not change when the chart moves a resource to another template.
+split_manifest_by_resource() {
+    local manifest_file="$1"
+    local output_dir="$2"
+    local documents files
+
+    mkdir -p "$output_dir"
+    documents="$(yq ea '[select(. != null)] | length' "$manifest_file")"
+    (cd "$output_dir" && yq 'select(. != null)' -s '(.kind | downcase) + "-" + (.metadata.name | downcase | sub("[^a-z0-9.-]", "-")) + ".yaml"' "$manifest_file")
+    files="$(find "$output_dir" -maxdepth 1 -type f -name '*.yaml' | wc -l)"
+    if [ "$files" -ne "$documents" ]; then
+        log_error "$output_dir: $documents resources, but $files files. Two resources have the same kind and name."
+        return 1
+    fi
+    log_info "Split $files resources from $manifest_file"
+}
+
 # Check if helm is installed
 if ! command -v helm &> /dev/null; then
     log_error "helm is not installed. Please install helm first."
@@ -103,30 +123,50 @@ if ! helm repo update > /dev/null 2>&1; then
     log_warn "Failed to update helm repositories; dependency resolution may fail"
 fi
 
-# Find all Chart.yaml files in sources directories
-chart_files=$(find "$PROJECT_ROOT" -type f -path "*/sources/Chart.yaml")
+# chart_namespace <source dir>
+# Prints NAMESPACE from <source dir>/chart.env, or nothing. A subshell reads the
+# file, so a value does not leak to the next chart.
+chart_namespace() {
+    local chart_env_file="$1/chart.env"
+    [ -f "$chart_env_file" ] || return 0
+    # shellcheck disable=SC1090
+    (source "$chart_env_file" && echo "${NAMESPACE:-}")
+}
 
-if [ -z "$chart_files" ]; then
-    log_warn "No Chart.yaml files found in **/sources/ directories"
-    exit 0
-fi
+# render_chart <release name> <source dir> <output file> <values file or --flag...>
+render_chart() {
+    local release="$1" source_dir="$2" output_file="$3"
+    shift 3
+
+    local args=()
+    local arg namespace
+    for arg in "$@"; do
+        case "$arg" in
+            --*) args+=("$arg") ;;
+            *) args+=(-f "$arg") ;;
+        esac
+    done
+    # A --namespace= flag (gitops/) wins over chart.env (kubernetes/).
+    if [[ " $* " != *" --namespace="* ]]; then
+        namespace="$(chart_namespace "$source_dir")"
+        [ -n "$namespace" ] && args+=(--namespace "$namespace")
+    fi
+
+    helm template "$release" "$source_dir" "${args[@]}" > "$output_file"
+}
 
 rendered_count=0
 error_count=0
 
-# Process each chart file
+# Old layout: kubernetes/**/sources/ renders to the sibling manifests/ folder.
 while IFS= read -r chart_file; do
+    [ -n "$chart_file" ] || continue
     log_info "Processing: $chart_file"
 
-    # Get the directory containing the chart file
     source_dir=$(dirname "$chart_file")
     values_file="$source_dir/values.yaml"
-
-    # Get the parent directory (should be the component directory)
     component_dir=$(dirname "$source_dir")
     component_name=$(basename "$component_dir")
-
-    # Create manifests directory if it doesn't exist
     manifest_dir="$component_dir/manifests"
     mkdir -p "$manifest_dir"
 
@@ -136,7 +176,6 @@ while IFS= read -r chart_file; do
         continue
     fi
 
-    # Update dependencies for umbrella chart
     log_info "Updating chart dependencies in: $source_dir"
     if ! helm dependency update "$source_dir" > /dev/null 2>&1; then
         log_error "Failed to update chart dependencies for $component_name"
@@ -144,21 +183,9 @@ while IFS= read -r chart_file; do
         continue
     fi
 
-    # Render the chart
     output_file="$manifest_dir/install.yaml"
     log_info "Rendering chart to: $output_file"
-
-    helm_extra_args=""
-    chart_env_file="$source_dir/chart.env"
-    if [ -f "$chart_env_file" ]; then
-        log_info "Loading chart.env from: $chart_env_file"
-        # shellcheck disable=SC1090
-        source "$chart_env_file"
-        [ -n "${NAMESPACE:-}" ] && helm_extra_args="$helm_extra_args --namespace $NAMESPACE"
-    fi
-
-    # shellcheck disable=SC2086
-    if helm template "$component_name" "$source_dir" -f "$values_file" $helm_extra_args > "$output_file"; then
+    if render_chart "$component_name" "$source_dir" "$output_file" "$values_file"; then
         log_info "✓ Successfully rendered $component_name"
         split_manifest_by_source "$output_file" "$manifest_dir"
         ((rendered_count += 1))
@@ -166,8 +193,73 @@ while IFS= read -r chart_file; do
         log_error "✗ Failed to render $component_name"
         ((error_count += 1))
     fi
+done < <(find "$PROJECT_ROOT/kubernetes" -type f -path "*/sources/Chart.yaml" 2> /dev/null | sort)
 
-done <<< "$chart_files"
+# New layout: gitops/clusters/<cluster>/cluster.yaml lists the components of
+# the cluster. Each component in gitops/<group>/<component>/sources/ renders
+# with:
+# - sources/values.yaml, the values for all clusters,
+# - gitops.cluster, the content of cluster.yaml,
+# - gitops/clusters/<cluster>/values/<component>.yaml, if the file exists,
+# - the namespace of the component in cluster.yaml.
+# The output goes to gitops/clusters/<cluster>/rendered/<component>/. The task
+# deletes rendered/ first, so the folder of a removed component goes away.
+# Charts with updated dependencies, one per line. No associative array: macOS has Bash 3.
+updated_charts=""
+while IFS= read -r cluster_file; do
+    [ -n "$cluster_file" ] || continue
+    cluster_dir=$(dirname "$cluster_file")
+    cluster=$(basename "$cluster_dir")
+    log_info "Processing cluster: $cluster"
+
+    rm -rf "$cluster_dir/rendered"
+    cluster_values="$(mktemp)"
+    yq '{"gitops": {"cluster": .}}' "$cluster_file" > "$cluster_values"
+
+    while IFS=' ' read -r group component_name namespace; do
+        [ -n "$component_name" ] || continue
+        source_dir="$PROJECT_ROOT/gitops/$group/$component_name/sources"
+        output_dir="$cluster_dir/rendered/$component_name"
+
+        if [ ! -f "$source_dir/Chart.yaml" ]; then
+            log_error "$cluster_file: $source_dir/Chart.yaml is missing"
+            ((error_count += 1))
+            continue
+        fi
+
+        if ! grep -qxF -- "$source_dir" <<< "$updated_charts"; then
+            log_info "Updating chart dependencies in: $source_dir"
+            if ! helm dependency update "$source_dir" > /dev/null 2>&1; then
+                log_error "Failed to update chart dependencies for $component_name"
+                ((error_count += 1))
+                continue
+            fi
+            updated_charts+="$source_dir"$'\n'
+        fi
+
+        values=("$cluster_values")
+        [ -f "$cluster_dir/values/$component_name.yaml" ] && values+=("$cluster_dir/values/$component_name.yaml")
+
+        output_file="$(mktemp)"
+        log_info "Rendering $component_name for $cluster to: $output_dir"
+        # --include-crds: the CRDs in the crds/ folder of a chart go to rendered/ too.
+        if render_chart "$component_name" "$source_dir" "$output_file" "${values[@]}" --include-crds "--namespace=$namespace" &&
+            split_manifest_by_resource "$output_file" "$output_dir"; then
+            log_info "✓ Successfully rendered $component_name for $cluster"
+            ((rendered_count += 1))
+        else
+            log_error "✗ Failed to render $component_name for $cluster"
+            ((error_count += 1))
+        fi
+        rm -f "$output_file"
+    done < <(yq '(.infrastructure[] | "infrastructure " + .name + " " + .namespace), (.apps[] | "apps " + .name + " " + .namespace)' "$cluster_file")
+    rm -f "$cluster_values"
+done < <(find "$PROJECT_ROOT/gitops/clusters" -mindepth 2 -maxdepth 2 -type f -name cluster.yaml 2> /dev/null | sort)
+
+if [ $((rendered_count + error_count)) -eq 0 ]; then
+    log_warn "No Chart.yaml files found in **/sources/ directories"
+    exit 0
+fi
 
 # Summary
 echo ""
