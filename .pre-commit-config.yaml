@@ -70,14 +70,14 @@ repos:
         name: Test JSON Schemas against fixtures
         entry: mise run schemas:test
         language: system
-        files: '^(schemas/|\.mise/tasks/schemas/)'
+        files: '^(schemas/|\.mise/tasks/schemas/|\.mise/tasks/_base/instance-checks\.sh$)'
         pass_filenames: false
 
       - id: schemas-check
-        name: Validate module.yaml and instance.yaml files
+        name: Validate module.yaml, instance.yaml and GitOps instance files
         entry: mise run schemas:check
         language: system
-        files: '^(schemas/.*\.schema\.json|modules/[^/]+/module\.yaml|instances/[^/]+/instance\.yaml)$'
+        files: '^(schemas/.*\.schema\.json|modules/[^/]+/module\.yaml|instances/[^/]+/instance\.yaml|gitops/instances/.*|gitops/.*/(values|rendered)/.*|\.mise/tasks/_base/instance-checks\.sh)$'
         pass_filenames: false
 
       - id: lint-terraform
