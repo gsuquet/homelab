@@ -11,11 +11,10 @@ Do the steps in this guide only on a computer that is behind such a proxy. On ot
 
 ## 1. Export the CA and make the Colima VM trust it
 
-The `colima:trust-ca` task in the [dotfiles repository](https://github.com/gsuquet/dotfiles) does this step. It finds the CA, writes it to `~/.config/certs/proxy-ca.pem` and adds a provision script to the Colima profile:
+The `proxy:trust-ca` task in the [dotfiles repository](https://github.com/gsuquet/dotfiles) does this step. It finds the CA, writes it to `~/.config/certs/proxy-ca.pem` and adds a provision script to the Colima profile:
 
 ```bash
-mise run colima:trust-ca
-colima restart
+mise run proxy:trust-ca --restart
 ```
 
 To do this step manually:
