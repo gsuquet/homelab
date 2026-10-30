@@ -16,12 +16,12 @@ locals {
 
   # Extra CA files, mounted into /etc/ssl/certs of each node. containerd (Go) reads
   # every file in that folder, so the node trusts the CA with no update-ca-certificates.
-  # The file name comes from a hash of the path, so a new order of the list does not
-  # replace the cluster.
+  # The paths are sorted and each file name comes from a hash of its path, so a new
+  # order of the list does not replace the cluster.
   extra_ca_mounts = [
-    for p in var.extra_ca_certificate_paths : {
-      host_path      = abspath(pathexpand(p))
-      container_path = "/etc/ssl/certs/extra-ca-${substr(sha256(abspath(pathexpand(p))), 0, 12)}.pem"
+    for p in sort(distinct([for x in var.extra_ca_certificate_paths : abspath(pathexpand(x))])) : {
+      host_path      = p
+      container_path = "/etc/ssl/certs/extra-ca-${substr(sha256(p), 0, 12)}.pem"
     }
   ]
 }

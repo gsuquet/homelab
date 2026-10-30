@@ -24,7 +24,7 @@ It is used for two purposes in this repository:
   Set `pod_subnet` and `service_subnet` to match the production cluster when using this
   module as a staging environment.
 - **Extra CAs are mounted, not installed** — each file in `extra_ca_certificate_paths` is
-  bind-mounted read-only into `/etc/ssl/certs/extra-ca-<hash>.pem`, where `<hash>` comes from the path. Thus a new order of the list does not replace the cluster. containerd reads every file
+  bind-mounted read-only into `/etc/ssl/certs/extra-ca-<hash>.pem`, where `<hash>` comes from the path. The module sorts the paths. Thus a new order of the list does not replace the cluster. containerd reads every file
   in that folder, so image pulls behind a TLS-inspecting proxy work with no `docker exec`.
   The empty default gives the same cluster as before.
 - **Port mappings apply to all control-plane nodes** — this is the standard Kind pattern
