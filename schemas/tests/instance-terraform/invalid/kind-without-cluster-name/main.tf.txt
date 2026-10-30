@@ -1,0 +1,8 @@
+module "cluster" {
+  source = "../../modules/cluster-kind"
+}
+
+module "cilium" {
+  source = "../../modules/bootstrap-cilium"
+}
+

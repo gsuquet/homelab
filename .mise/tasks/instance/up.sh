@@ -10,6 +10,10 @@ source "$MISE_PROJECT_ROOT/.mise/tasks/_base/log.sh"
 source "$MISE_PROJECT_ROOT/.mise/tasks/_base/instance.sh"
 
 instance_load "${usage_instance:?}"
+if instance_uses_kind && ! command -v kind > /dev/null 2>&1; then
+    log_error "The kind command is missing. Run 'mise install' in the repository."
+    exit 1
+fi
 instance_preflight
 instance_init
 

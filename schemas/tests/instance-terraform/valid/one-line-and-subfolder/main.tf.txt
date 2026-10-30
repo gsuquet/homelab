@@ -3,3 +3,7 @@ module "cilium" {
   source = "../../modules/bootstrap-cilium//chart"
 }
 # source = "../../modules/bootstrap-cert-manager"
+
+output "cluster_name" {
+  value = module.cluster.name
+}

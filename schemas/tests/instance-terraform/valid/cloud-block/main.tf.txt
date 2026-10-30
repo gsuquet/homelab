@@ -8,3 +8,7 @@ module "cilium" {
 terraform {
   cloud {}
 }
+
+output "cluster_name" {
+  value = module.cluster.name
+}

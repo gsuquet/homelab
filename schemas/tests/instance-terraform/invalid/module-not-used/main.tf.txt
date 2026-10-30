@@ -1,3 +1,7 @@
 module "cluster" {
   source = "../../modules/cluster-kind"
 }
+
+output "cluster_name" {
+  value = module.cluster.name
+}

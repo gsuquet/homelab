@@ -91,10 +91,6 @@ docker_ensure() {
 # Checks what the cluster module needs on this machine before Terraform runs.
 instance_preflight() {
     if instance_uses_kind; then
-        if ! command -v kind > /dev/null 2>&1; then
-            log_error "The kind command is missing. Run 'mise install' in the repository."
-            exit 1
-        fi
         docker_ensure
     fi
 }
@@ -130,12 +126,14 @@ instance_layer_targets() {
 # instance_uses_kind
 # Returns 0 when the cluster layer of the instance uses cluster-kind.
 instance_uses_kind() {
-    yq '(.layers.cluster.modules // [])[]' "$INSTANCE_DIR/instance.yaml" | grep -qx 'cluster-kind'
+    # grep reads a string, not a pipe: with pipefail, grep -q can stop the writer
+    # with SIGPIPE and make the test fail.
+    grep -qx 'cluster-kind' <<< "$(yq '(.layers.cluster.modules // [])[]' "$INSTANCE_DIR/instance.yaml")"
 }
 
 # kind_context_export
 # Merges the kubeconfig entries of the Kind cluster (cluster, user and context
-# kind-<name>) into ~/.kube/config, or into the first file of KUBECONFIG, and
+# kind-<name>) into ~/.kube/config, or into the first existing file of KUBECONFIG, and
 # makes that context the current one. kind changes no other entry.
 kind_context_export() {
     local name
@@ -157,15 +155,15 @@ kind_context_remove() {
     if [ "$(kubectl config current-context 2> /dev/null || true)" = "$entry" ]; then
         kubectl config unset current-context > /dev/null
     fi
-    if kubectl config get-contexts -o name 2> /dev/null | grep -qx "$entry"; then
+    if grep -qx "$entry" <<< "$(kubectl config get-contexts -o name 2> /dev/null || true)"; then
         kubectl config delete-context "$entry" > /dev/null
         removed=1
     fi
-    if kubectl config get-clusters 2> /dev/null | grep -qx "$entry"; then
+    if grep -qx "$entry" <<< "$(kubectl config get-clusters 2> /dev/null || true)"; then
         kubectl config delete-cluster "$entry" > /dev/null
         removed=1
     fi
-    if kubectl config get-users 2> /dev/null | grep -qx "$entry"; then
+    if grep -qx "$entry" <<< "$(kubectl config get-users 2> /dev/null || true)"; then
         kubectl config delete-user "$entry" > /dev/null
         removed=1
     fi
