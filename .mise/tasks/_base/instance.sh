@@ -110,11 +110,12 @@ instance_init() {
 # whose source is a module of <layer> in instance.yaml.
 instance_layer_targets() {
     local layer="$1" modules
-    modules="$(yq ".layers.${layer}.modules[]" "$INSTANCE_DIR/instance.yaml" 2> /dev/null || true)"
+    modules="$(yq "(.layers.${layer}.modules // [])[]" "$INSTANCE_DIR/instance.yaml")"
     [ -n "$modules" ] || return 0
 
-    cat "$INSTANCE_DIR"/*.tf | awk -v modules="$modules" '
-        BEGIN { n = split(modules, list, "\n"); for (i = 1; i <= n; i++) wanted[list[i]] = 1 }
+    # The list goes in the environment: the macOS awk rejects a newline in -v.
+    cat "$INSTANCE_DIR"/*.tf | MODULES="$modules" awk '
+        BEGIN { n = split(ENVIRON["MODULES"], list, "\n"); for (i = 1; i <= n; i++) wanted[list[i]] = 1 }
         /^[[:space:]]*(#|\/\/)/ { next }
         /^[[:space:]]*module[[:space:]]+"/ { name = $0; sub(/^[[:space:]]*module[[:space:]]+"/, "", name); sub(/".*/, "", name) }
         /source[[:space:]]*=[[:space:]]*"\.\.\/\.\.\/modules\// {

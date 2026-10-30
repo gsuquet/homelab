@@ -7,16 +7,21 @@ on:
       - '.github/workflows/schemas.yml'
       - '.mise/config.toml'
       - '.mise/tasks/schemas/**'
+      - '.mise/tasks/_base/instance-checks.sh'
       - 'schemas/**'
       - 'modules/**/module.yaml'
       - 'instances/**/instance.yaml'
+      - 'instances/**/*.tf'
   push:
     branches:
       - main
     paths:
+      - '.mise/tasks/schemas/**'
+      - '.mise/tasks/_base/instance-checks.sh'
       - 'schemas/**'
       - 'modules/**/module.yaml'
       - 'instances/**/instance.yaml'
+      - 'instances/**/*.tf'
 
 permissions:
   contents: read

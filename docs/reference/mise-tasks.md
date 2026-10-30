@@ -216,7 +216,7 @@ Each task does these steps:
 
 `instance:up` applies the modules of the `cluster` layer first, with `-target`. Then it applies all the layers. The providers of the other layers use the outputs of the cluster. If a change replaces the cluster, these outputs are not known during one full plan, and the plan fails. `instance:plan` makes one full plan, thus it can fail when a change replaces the cluster. In that case, use `instance:up`.
 
-For a `test` or `demo` instance, `instance:up` and `instance:down` do not ask for approval. For a `production` instance, Terraform asks you to type `yes` for each apply.
+For a `test` or `demo` instance, `instance:up` and `instance:down` do not ask for approval. For a `production` instance, Terraform asks you to type `yes` for each apply that has changes.
 
 **Usage**:
 
