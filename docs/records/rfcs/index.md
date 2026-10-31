@@ -18,7 +18,7 @@ These steps follow the flow that RFC 0001 proposes.
 
 | RFC | Title | Status |
 | --- | --- | --- |
-| [0001](0001-records-process.md) | Records process | `review` |
+| [0001](0001-records-process.md) | Records process | `accepted` |
 
 ## Source of the template
 
