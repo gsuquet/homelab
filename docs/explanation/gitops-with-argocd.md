@@ -146,7 +146,8 @@ The waves order the syncs of the `argocd` Application only: they apply when an A
 - All components use the rendered manifests pattern: `mise run schemas:check` makes sure that each folder in `gitops/infrastructure/` and `gitops/apps/` has `sources/Chart.yaml`.
 - Each Application tries a failed sync again, up to 5 times. Argo CD does not try a failed sync again for the same revision without this setting.
 - The Applications have no resources finalizer. When a component goes out of `cluster.yaml`, Argo CD deletes its Application, but the resources stay in the cluster. A Conftest policy denies the finalizer.
-- The repository has no Argo CD `Secret`. Argo CD makes `argocd-secret` and `argocd-initial-admin-secret` when it starts.
+- The chart renders `argocd-secret` with no data. `argocd-server` does not start without this `Secret`. When it starts, it adds its keys, for example `server.secretkey`, and it makes `argocd-initial-admin-secret`.
+- The annotation `Prune=false,Delete=false` on `argocd-secret` stops Argo CD from deleting the `Secret` when a commit removes it or when the Application is deleted. A Conftest policy denies a `Secret` with plain values in Git.
 
 ### Test a branch on Kind
 

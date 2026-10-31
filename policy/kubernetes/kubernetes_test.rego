@@ -162,3 +162,173 @@ test_application_with_resources_finalizer_is_denied if {
 		"contents": object.union(application("main"), {"metadata": {"finalizers": ["resources-finalizer.argocd.argoproj.io/background"]}}),
 	}]
 }
+
+secret_path := "gitops/clusters/kind-local/rendered/demo/secret-demo.yaml"
+
+secret(fields) := object.union({"apiVersion": "v1", "kind": "Secret", "metadata": {"name": "demo"}, "type": "Opaque"}, fields)
+
+sops_metadata := {"age": [{"recipient": "age1example", "enc": "-----BEGIN AGE ENCRYPTED FILE-----"}], "version": "3.9.0"}
+
+secret_denial(field) := named_secret_denial("demo", field)
+
+named_secret_denial(name, field) := sprintf("%s: the Secret %q has values in %s that are not SOPS-encrypted. Remove %s, or encrypt it with SOPS.", [secret_path, name, field, field])
+
+encrypted_value := "ENC[AES256_GCM,data:abc=,iv:def=,tag:ghi=,type:str]"
+
+test_secret_without_data_is_allowed if {
+	count(kubernetes.deny) == 0 with input as [{"path": secret_path, "contents": secret({})}]
+}
+
+test_secret_with_empty_data_is_allowed if {
+	count(kubernetes.deny) == 0 with input as [{"path": secret_path, "contents": secret({"data": {}})}]
+}
+
+test_secret_with_data_is_denied if {
+	kubernetes.deny == {secret_denial("data")} with input as [{
+		"path": secret_path,
+		"contents": secret({"data": {"key": "dmFsdWU="}}),
+	}]
+}
+
+test_secret_with_string_data_is_denied if {
+	kubernetes.deny == {secret_denial("stringData")} with input as [{
+		"path": secret_path,
+		"contents": secret({"stringData": {"key": "value"}}),
+	}]
+}
+
+test_sops_encrypted_secret_is_allowed if {
+	count(kubernetes.deny) == 0 with input as [{
+		"path": secret_path,
+		"contents": secret({
+			"data": {"key": encrypted_value},
+			"stringData": {"other": encrypted_value},
+			"sops": sops_metadata,
+		}),
+	}]
+}
+
+test_sops_secret_with_plain_value_is_denied if {
+	kubernetes.deny == {secret_denial("data")} with input as [{
+		"path": secret_path,
+		"contents": secret({
+			"data": {
+				"key": encrypted_value,
+				"plain": "dmFsdWU=",
+			},
+			"sops": sops_metadata,
+		}),
+	}]
+}
+
+test_encrypted_values_without_sops_metadata_are_denied if {
+	kubernetes.deny == {secret_denial("data")} with input as [{
+		"path": secret_path,
+		"contents": secret({"data": {"key": encrypted_value}}),
+	}]
+}
+
+test_sops_metadata_not_an_object_is_denied if {
+	kubernetes.deny == {secret_denial("data")} with input as [{
+		"path": secret_path,
+		"contents": secret({"data": {"key": encrypted_value}, "sops": "x"}),
+	}]
+}
+
+test_empty_sops_metadata_is_denied if {
+	kubernetes.deny == {secret_denial("stringData")} with input as [{
+		"path": secret_path,
+		"contents": secret({"stringData": {"key": "ENC[ plaintext"}, "sops": {}}),
+	}]
+}
+
+test_sops_metadata_without_version_is_denied if {
+	kubernetes.deny == {secret_denial("data")} with input as [{
+		"path": secret_path,
+		"contents": secret({"data": {"key": encrypted_value}, "sops": {"age": []}}),
+	}]
+}
+
+test_enc_value_without_aes256_gcm_prefix_is_denied if {
+	kubernetes.deny == {secret_denial("stringData")} with input as [{
+		"path": secret_path,
+		"contents": secret({"stringData": {"key": "ENC[ plaintext"}, "sops": sops_metadata}),
+	}]
+}
+
+test_non_string_data_value_is_denied if {
+	kubernetes.deny == {secret_denial("data")} with input as [{
+		"path": secret_path,
+		"contents": secret({"data": {"key": 42}, "sops": sops_metadata}),
+	}]
+}
+
+test_multi_document_file_with_plain_secret_is_denied if {
+	kubernetes.deny == {named_secret_denial("plain", "data")} with input as [{
+		"path": secret_path,
+		"contents": [
+			{"apiVersion": "v1", "kind": "ConfigMap", "metadata": {"name": "demo"}, "data": {"key": "value"}},
+			secret({"metadata": {"name": "empty"}}),
+			secret({"metadata": {"name": "plain"}, "data": {"key": "dmFsdWU="}}),
+		],
+	}]
+}
+
+test_list_with_plain_secret_is_denied if {
+	kubernetes.deny == {named_secret_denial("plain", "stringData")} with input as [{
+		"path": secret_path,
+		"contents": {"apiVersion": "v1", "kind": "List", "items": [
+			secret({"metadata": {"name": "empty"}}),
+			secret({"metadata": {"name": "plain"}, "stringData": {"key": "value"}}),
+		]},
+	}]
+}
+
+test_list_with_sops_secret_is_allowed if {
+	count(kubernetes.deny) == 0 with input as [{
+		"path": secret_path,
+		"contents": {"apiVersion": "v1", "kind": "List", "items": [secret({"data": {"key": encrypted_value}, "sops": sops_metadata})]},
+	}]
+}
+
+test_secret_with_plain_data_and_string_data_is_denied_twice if {
+	kubernetes.deny == {secret_denial("data"), secret_denial("stringData")} with input as [{
+		"path": secret_path,
+		"contents": secret({"data": {"key": "dmFsdWU="}, "stringData": {"other": "value"}}),
+	}]
+}
+
+test_secret_with_string_as_data_is_denied if {
+	kubernetes.deny == {secret_denial("data")} with input as [{
+		"path": secret_path,
+		"contents": secret({"data": "cGxhaW4="}),
+	}]
+}
+
+test_secret_with_null_data_and_plain_string_data_is_denied_once if {
+	kubernetes.deny == {secret_denial("stringData")} with input as [{
+		"path": secret_path,
+		"contents": secret({"data": null, "stringData": {"key": "value"}}),
+	}]
+}
+
+test_list_with_null_items_is_allowed if {
+	count(kubernetes.deny) == 0 with input as [{
+		"path": secret_path,
+		"contents": {"apiVersion": "v1", "kind": "List", "items": null},
+	}]
+}
+
+test_multi_document_file_with_null_document_is_allowed if {
+	count(kubernetes.deny) == 0 with input as [{
+		"path": secret_path,
+		"contents": [null, secret({})],
+	}]
+}
+
+test_configmap_with_data_is_allowed if {
+	count(kubernetes.deny) == 0 with input as [{
+		"path": "gitops/clusters/kind-local/rendered/demo/configmap-demo.yaml",
+		"contents": {"apiVersion": "v1", "kind": "ConfigMap", "metadata": {"name": "demo"}, "data": {"key": "value"}},
+	}]
+}

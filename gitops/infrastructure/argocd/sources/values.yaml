@@ -63,9 +63,13 @@ argo-cd:
     rbac:
       # A logged-in user without a role can look, but not change.
       policy.default: role:readonly
-    # Argo CD creates argocd-secret when it starts. Thus the repository has no Secret.
+    # The chart default. An override to false stopped argocd-server: it reads
+    # argocd-secret at startup and fails if it is missing. No data in Git.
     secret:
-      createSecret: false
+      createSecret: true
+      annotations:
+        # Keep the runtime keys. Delete=false is defence in depth.
+        argocd.argoproj.io/sync-options: Prune=false,Delete=false
 
   # Resources: memory request equal to the limit, a CPU request and no CPU
   # limit (the cluster resource policy). Sized for a Raspberry Pi 4 with 8 GiB.

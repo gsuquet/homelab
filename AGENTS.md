@@ -15,7 +15,7 @@ The repository is in migration to a new design. The new design uses `modules/`, 
 1. Run `mise run lint` before you commit. The `Lint` workflow runs the same task. A pull request (PR) cannot merge when it fails.
 2. Pin each dependency to an exact version. Use a commit SHA for GitHub Actions and pre-commit hooks, and a digest for container images. The Conftest policies in `policy/` check this.
 3. Do not edit the files in `kubernetes/**/manifests/`. Change `sources/Chart.yaml` or `sources/values.yaml`, then run `mise run manifests:render`.
-4. Do not commit secrets. Do not commit a plain Kubernetes `Secret`. Use `kubeseal` to make a `SealedSecret`. Refer to [Manage secrets](docs/how-to/manage-secrets.md).
+4. Do not commit secrets. A Kubernetes `Secret` in Git must have no `data` and no `stringData`, or it must be encrypted with SOPS (a top-level `sops` key, and each value starts with `ENC[`). A Conftest policy checks this. Refer to [Policies](docs/reference/policies.md).
 5. Write all text in English. Write documentation in ASD-STE100 (Simplified Technical English) and put it in the correct Diátaxis section of `docs/`. `mise run lint:docs` checks the word list and the sentence rules. Refer to [Writing rules](docs/reference/writing-rules.md).
 6. Use Conventional Commits for commit messages and PR titles, for example `feat(cilium): enable host firewall`.
 7. When you change a Terraform module, run `mise run doc:generate`. When you change a provider version, run `mise run tf:lock`.

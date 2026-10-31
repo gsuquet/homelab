@@ -16,6 +16,8 @@ This page lists the Conftest policies in `policy/`. The policies are written in 
 | `kubernetes` | Applications in `gitops/` | The Application has no `resources-finalizer.argocd.argoproj.io` finalizer. When a component leaves `cluster.yaml`, its resources stay in the cluster. |
 | `kubernetes` | Namespaces in `gitops/` | The labels `pod-security.kubernetes.io/enforce`, `audit` and `warn` are `privileged`, `baseline` or `restricted`. The annotation `argocd.argoproj.io/sync-wave` is `"-2"`. |
 | `kubernetes` | CRDs in `gitops/` | The annotation `argocd.argoproj.io/sync-wave` is `"-1"`. |
+| `kubernetes` | `kubernetes/**/*.yaml`, `gitops/**/*.yaml` | A `Secret` has no values in `data` or `stringData` (`data: {}` is allowed), or it is encrypted with SOPS. This rule is a guard against accidents, not a security control. |
+| `kubernetes` | `kubernetes/**/*.yaml`, `gitops/**/*.yaml` | A SOPS-encrypted `Secret` has a `sops` object with a `version`, and each value starts with `ENC[AES256_GCM,`. The rule also checks multi-document files and the `items` of a `List`. |
 | `precommit` | `.pre-commit-config.yaml` | Each hook repository must use a 40-character commit SHA as `rev`. `local` and `meta` repositories are not affected. |
 | `precommit` | `.pre-commit-config.yaml` | Each `additional_dependencies` entry must use an exact version (`@x.y.z` or `==x.y.z`). |
 | `mise` | `.mise/config.toml` | Each tool must use an exact version. |
