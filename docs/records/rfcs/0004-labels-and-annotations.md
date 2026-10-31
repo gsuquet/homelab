@@ -90,7 +90,7 @@ Each sub-group has one subject. A key goes into a sub-group only when a tool, a 
 | `ownership` | The person or the team to contact | `owner` (label), `contact` (annotation) | Both | Persons, alerts |
 | `network` | The trust zone and the exposure, for the zero-trust RFC | `zone`, `exposure` | Label, on `Namespace` only | `CiliumNetworkPolicy`, Conftest |
 | `backup` | The backup policy of a volume or a namespace | `policy` (label), `retention` (annotation) | Both | The backup tool |
-| `cost` | The cost center, for the cloud instances | `center` | Label | Cloud billing reports |
+| `cost` | The cost center. No file of the repository holds it yet, thus Q4 reserves it. | `center` | Label | Cloud billing reports |
 
 The sub-group names are singular nouns, as `node`, `topology` and `notice` in the examples above.
 
@@ -193,7 +193,7 @@ Since Argo CD 3.0, the default method is `annotation` ([Argo CD: upgrade from 2.
 | `Prune=confirm`, `Delete=confirm` | A person must confirm the prune or the delete. | None |
 | `ServerSideApply=true` | Argo CD uses server-side apply for the object. | The Argo CD CRDs, and each `Application` at the `Application` level |
 | `SkipDryRunOnMissingResource=true` | Argo CD skips the dry run when the CRD is not in the cluster yet. | None |
-| `Replace=true`, `Force=true` | Argo CD replaces or deletes and creates the object again. These options can destroy data. | None. This RFC proposes to forbid them in hand-written objects and in the `Application` objects (check K10). |
+| `Replace=true`, `Force=true` | Argo CD replaces or deletes and creates the object again. These options can destroy data. | None. Check K10 forbids them in all rendered objects and in `Application` objects, with an allowlist for upstream exceptions. |
 | `PruneLast=true` | Argo CD prunes the object at the end of the sync. | None |
 | `Validate=false` | Argo CD skips the validation of the object. | None |
 
@@ -310,7 +310,6 @@ The root module of an instance builds the map in a local value, for example `loc
 | `app.kubernetes.io/part-of` | `app_kubernetes_io_part-of` |
 | `instance.<p>/name` | `instance_<p>_name`, for example `instance_infra_gsuquet_com_name` |
 | `instance.<p>/purpose` | `instance_<p>_purpose` |
-| `cost.<p>/center` | `cost_<p>_center` |
 
 The rule can give the same cloud key for two keys of other tools, for example `foo.io/bar_baz` and `foo.io.bar/baz`. The keys of the repository have no `_`, no `.` and no uppercase letter in the name, thus they do not collide with each other or with `app.kubernetes.io/*`. Check K13 refuses two keys with the same cloud form in one map.
 
@@ -329,11 +328,11 @@ A label cannot give the origin. The Argo CD CRDs have no `helm.sh/chart` label, 
 
 Known holes and their requirements:
 
-- The values of an upstream chart can add objects, for example `extraObjects` of the `argo-cd` chart. These objects have an upstream source path, but their content is hand-written. Thus K10 and K15 apply to all rendered objects, with an allowlist for upstream exceptions.
+- The values of an upstream chart can add objects, for example `extraObjects` of the `argo-cd` chart. These objects have an upstream source path, but their content is hand-written. Thus K4, K10 and K15 apply to all rendered objects, with an allowlist for upstream exceptions.
 - Helm accepts a chart that somebody copies into `charts/` as a dependency ([Helm: charts](https://helm.sh/docs/topics/charts/)). Requirement: Git tracks no file in `gitops/*/*/sources/charts/`, and each `dependencies[].repository` starts with `https://` or `oci://`. `instance-checks.sh` checks this.
 - Today, `split_manifest_by_resource` fails when two objects have the same kind and name. This guard must stay on the kind and the name, not on the file name. Else an upstream and a hand-written `Namespace` with the same name both pass.
 
-The checks K2 to K6 apply to the hand-written objects. The legacy files in `kubernetes/` get only K1, because the migration removes them.
+The checks K2, K3, K5 and K6 apply to the hand-written objects. The legacy files in `kubernetes/` get only K1, because the migration removes them.
 
 The checks read the keys in `metadata.labels` and `metadata.annotations`, also in pod templates. They do not read the keys in selectors, for example `nodeSelector` or `namespaceSelector`. Thus `kubernetes.io/os` in a `nodeSelector` is not a K2 problem.
 
@@ -352,7 +351,7 @@ The checks read the keys in `metadata.labels` and `metadata.annotations`, also i
 | K10 Sync options | All rendered objects and `Application` objects in `gitops/`, with an allowlist for upstream exceptions | No `Replace=true` and no `Force=true`, in the annotation `argocd.argoproj.io/sync-options` and in `spec.syncPolicy.syncOptions` of an `Application`. | `deny` |
 | K11 Cloud defaults | `provider "google"` blocks and module calls in `instances/` | `default_labels` and each `tags` argument of a module call are exactly `local.cloud_labels`. A `merge()` that overrides keys fails. Conftest does not read the values of the local. Refer to [Rollout](#rollout). | `deny` |
 | K12 Cloud tags | `azurerm` resources in `modules/` with a `tags` argument | The argument comes from the `tags` variable of the module. Azure DNS resources can need an exemption. Refer to [Rollout](#rollout). | `deny` |
-| K13 Cloud keys | The keys of the `cloud_labels` local in `instances/` | The keys match the required keys of `data.labels`. The cloud form of each key has max. 63 characters. No two keys have the same cloud form. | `deny` |
+| K13 Cloud keys | The keys of the `cloud_labels` local in `instances/` | The required keys of `data.labels` are present, and each key is in the permitted set of `data.labels`. The cloud form of each key has max. 63 characters. No two keys have the same cloud form. | `deny` |
 | K14 Pod Security of applications | `Namespace` objects of the components in `apps` | `pod-security.kubernetes.io/enforce` is `restricted` or `baseline`, except for the namespaces in the allowlist of `data.labels`. | `deny` |
 | K15 Namespace of a component | All `Namespace` objects in `rendered/<component>/`, and `cluster.yaml` | `metadata.name` is the `namespace` of the component in `cluster.yaml`. Each namespace in `cluster.yaml` is unique. An `apps` namespace is not in the reserved list of `data.labels`: `default`, `kube-*`, `argocd` and the namespaces that Terraform creates. A second `Namespace` from an upstream chart needs an entry in the allowlist. | `deny` |
 
@@ -404,7 +403,7 @@ This table is the draft of a future reference page, `docs/reference/labels-and-a
 | `network.<p>/exposure` | Label | `Namespace` | Refer to the zero-trust RFC | Repository | No | Yes |
 | `backup.<p>/policy` | Label | `Namespace`, `PersistentVolumeClaim` | Refer to a later backup RFC | Repository | No | Yes |
 | `backup.<p>/retention` | Annotation | `Namespace`, `PersistentVolumeClaim` | Refer to a later backup RFC | Repository | No | Not applicable |
-| `cost.<p>/center` | Label | Cloud resources, `Namespace` | Lowercase, digits, `-` | Instance | No | Yes |
+| `cost.<p>/center` | Label | None yet. Refer to Q4. | Lowercase, digits, `-` | Not defined | No | Yes |
 | `instance.<p>/name` | Label | Cloud resources | `name` of `instance.yaml` | Instance | Yes | Yes |
 | `instance.<p>/purpose` | Label | Cloud resources | `production`, `test`, `demo` | Instance | Yes | Yes |
 | `instance.<p>/lifecycle` | Label | Cloud resources | `long-lived`, `ephemeral` | Instance | Yes | Yes |
@@ -431,7 +430,7 @@ This table is the draft of a future reference page, `docs/reference/labels-and-a
 - A node label for isolation must use `node-restriction.kubernetes.io/`. A kubelet cannot change this prefix. Thus a compromised node cannot attract the pods of another trust zone with this label. An administrator identity sets the label, not the node configuration.
 - The custom prefix uses a domain. If the owner does not control the domain, another party can use the same keys with a different meaning. Refer to Q1.
 - The Argo CD `annotation` tracking method stops a chart or an operator from changing the owner of an object through `app.kubernetes.io/instance`. Thus Argo CD does not prune objects of another tool by mistake.
-- The sync options `Replace=true` and `Force=true` can delete objects and their data. Check K10 forbids them in hand-written objects and in `Application` objects.
+- The sync options `Replace=true` and `Force=true` can delete objects and their data. Check K10 forbids them in all rendered objects and in `Application` objects, with an allowlist for upstream exceptions.
 
 ## Rollout
 
@@ -454,6 +453,7 @@ Verify in the implementation PR:
 - The duplicate guard of `render.sh` on kind and name, and the behavior of Argo CD with two objects of the same kind and name.
 - The `hcl2` string of `default_labels = local.cloud_labels` for K11.
 - The values of `cloud_labels`. Recommendation: one canonical `labels.tf`, equal byte for byte in each cloud instance, that `instance-checks.sh` compares. The alternative is a `terraform console` check after `terraform init`.
+- Open item: how the canonical `labels.tf` adds `ttl` only for an ephemeral instance. A `for` expression that drops null values can do it, but `hcl2` gives it as one string, thus K13 cannot read the keys. If so, `instance-checks.sh` checks the keys of the canonical file. This RFC did not verify if `default_labels` accepts a null value.
 - If the destination rules `!argocd` and `!kube-system` apply to `Namespace` objects.
 - With a plan, that `default_labels` do not reach `node_config.resource_labels`.
 
