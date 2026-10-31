@@ -7,9 +7,12 @@ A request for comments (RFC) proposes a change before somebody does the work. [R
 1. Copy [`0000-template.md`](0000-template.md) to `NNNN-short-title.md`. Use the next free number.
 2. Write each section of the template.
 3. Add a row for the RFC to the table on this page.
-4. Ask a different agent to review the RFC. Correct it until the reviewer finds no problem.
-5. Run `mise run lint`.
-6. Set the status to `review`, and open a PR.
+4. Open a GitHub draft PR. Put its number in the `pr` field.
+5. Ask a different agent to review the RFC. Correct it until the reviewer finds no problem.
+6. Run `mise run lint`.
+7. Set the status to `review`, and mark the PR as ready for review.
+
+These steps follow the flow that RFC 0001 proposes.
 
 ## List
 
@@ -19,4 +22,4 @@ A request for comments (RFC) proposes a change before somebody does the work. [R
 
 ## Source of the template
 
-The template is an adaptation of the [Rust RFC template](https://github.com/rust-lang/rfcs/blob/master/0000-template.md), and its license is not confirmed: refer to unresolved question 8 of [RFC 0001](0001-records-process.md#unresolved-questions).
+The template is an adaptation of the [Rust RFC template](https://github.com/rust-lang/rfcs/blob/master/0000-template.md), and its license is not confirmed: refer to unresolved question 7 of [RFC 0001](0001-records-process.md#unresolved-questions).
