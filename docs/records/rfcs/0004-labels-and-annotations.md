@@ -317,7 +317,7 @@ The rule can give the same cloud key for two keys of other tools, for example `f
 
 Rule 8 of `AGENTS.md` asks for a check for each rule. This RFC describes the checks. It does not implement them. All the checks go in `policy/kubernetes/kubernetes.rego` and `policy/terraform/terraform.rego`, with a test for each case that must pass and each case that must fail. Conftest supports `deny` rules, which fail the check, and `warn` rules, which do not fail it ([Conftest](https://www.conftest.dev/)).
 
-A data file, for example `policy/data/labels.yaml`, holds the reference table: the sub-groups, the keys, their type, their kinds and their permitted values. It also holds the allowlists of K2, K3 and K14. `conftest --data` loads it, and the policies read it as `data.labels`. Thus the table and the checks have one source. Today `.mise/tasks/lint/policy.sh` gives no `--data` option to Conftest. The implementation PR adds it.
+A data file, for example `policy/data/labels.yaml`, holds the reference table: the sub-groups, the keys, their type, their kinds and their permitted values. It also holds the allowlists of K2, K3, K4, K10, K14 and K15. `conftest --data` loads it, and the policies read it as `data.labels`. Thus the table and the checks have one source. Today `.mise/tasks/lint/policy.sh` gives no `--data` option to Conftest. The implementation PR adds it.
 
 **Input of the checks.** `.mise/tasks/lint/policy.sh` runs the `kubernetes` namespace on `kubernetes/*.yaml` and `gitops/*.yaml`, but not on `gitops/*/sources/templates/*`, because Helm templates are not YAML before they render. Thus the objects of the hand-written charts of `gitops/` exist only in `rendered/<component>/`. The checks find the origin of a rendered object in this way:
 
@@ -332,7 +332,7 @@ Known holes and their requirements:
 - Helm accepts a chart that somebody copies into `charts/` as a dependency ([Helm: charts](https://helm.sh/docs/topics/charts/)). Requirement: Git tracks no file in `gitops/*/*/sources/charts/`, and each `dependencies[].repository` starts with `https://` or `oci://`. `instance-checks.sh` checks this.
 - Today, `split_manifest_by_resource` fails when two objects have the same kind and name. This guard must stay on the kind and the name, not on the file name. Else an upstream and a hand-written `Namespace` with the same name both pass.
 
-The checks K2, K3, K5 and K6 apply to the hand-written objects. The legacy files in `kubernetes/` get only K1, because the migration removes them.
+The checks K2, K3 and K6 apply to the hand-written objects. K5 applies to all `Namespace` objects in `gitops/`. The legacy files in `kubernetes/` get only K1, because the migration removes them.
 
 The checks read the keys in `metadata.labels` and `metadata.annotations`, also in pod templates. They do not read the keys in selectors, for example `nodeSelector` or `namespaceSelector`. Thus `kubernetes.io/os` in a `nodeSelector` is not a K2 problem.
 
@@ -342,7 +342,7 @@ The checks read the keys in `metadata.labels` and `metadata.annotations`, also i
 | K2 Reserved prefixes | Hand-written objects in `gitops/` | No key with the prefix `kubernetes.io/`, `k8s.io/` or one of their subdomains, except the allowlist in `data.labels`: `app.kubernetes.io/`, the Pod Security labels, `kubernetes.io/metadata.name`, `kubernetes.io/os`, `kubectl.kubernetes.io/default-container`, `node-restriction.kubernetes.io/` and `gateway.networking.k8s.io/`. The last entry is for hand-written Gateway API objects. | `deny` |
 | K3 No prefix | Hand-written objects in `gitops/` | No key without a prefix, except the allowlist in `data.labels`. Conftest has no earlier state to compare with, thus the check refuses all keys without a prefix, not only new keys. | `deny` |
 | K3w No prefix in upstream charts | Upstream objects in `gitops/` | The same rule as K3. | `warn` |
-| K4 Custom keys | All objects in `gitops/` | Each key with the custom prefix uses a sub-group and a name from `data.labels`, on a permitted kind, with a permitted value. The `tenant` and `network` keys are only permitted on a `Namespace`. | `deny` |
+| K4 Custom keys | All objects in `gitops/`, with an allowlist for upstream exceptions | Each key with the custom prefix uses a sub-group and a name from `data.labels`, on a permitted kind, with a permitted value. The `tenant` and `network` keys are only permitted on a `Namespace`. | `deny` |
 | K5 Required keys | `Namespace` objects in `gitops/` | The required labels of the table in [Required keys](#required-keys). `tenant.<p>/name` is `platform` for an `infrastructure` component, and a tenant of `data.labels` other than `platform` for an `apps` component. | `deny` |
 | K6 Required keys of workloads | Pod templates and objects of the hand-written objects in `gitops/` | The required `app.kubernetes.io/*` labels. | `deny` |
 | K7 Required keys in upstream charts | Rendered upstream objects | The same keys as K6. Upstream charts do not always let the repository set them. | `warn` |
@@ -443,7 +443,7 @@ This table is the draft of a future reference page, `docs/reference/labels-and-a
 3. In a separate PR, an author adds `policy/data/labels.yaml` and the `--data policy/data` option in `.mise/tasks/lint/policy.sh`. The same PR changes `render.sh` for the `upstream--` prefix, and adds the checks K1 to K10, K14 and K15, with tests. The checks start as `warn` for one PR if the existing files fail them. Then they change to `deny`.
 4. An author adds the reference page `docs/reference/labels-and-annotations.md` from the reference table, and updates `docs/reference/policies.md`.
 5. An author adds the required labels to the `argocd` Namespace and to the later components, through the chart sources and `mise run manifests:render`.
-6. The checks K11 to K13 come with the first GKE or Azure instance. Before the ADR for Azure, an author tests a tag name with `_` and `-` on an Azure DNS zone. If Azure refuses it, K12 and K13 exempt the Azure DNS resources.
+6. The checks K11 to K13 come with the first GKE or Azure instance. Before the ADR for Azure, an author tests a tag name with `_` and `-` on an Azure DNS zone. If Azure refuses it, K11 and K12 exempt the Azure DNS resources, and these resources get their tags from a separate map.
 7. The legacy manifests in `kubernetes/` do not change. The migration removes them.
 
 Verify in the implementation PR:
