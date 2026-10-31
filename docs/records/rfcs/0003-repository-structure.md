@@ -317,7 +317,7 @@ The consequences:
 
 - ADR 0001 has the status `accepted`. It says: "`.github/CODEOWNERS` and `AGENTS.md` give `docs/records/` to the owner". It also names `CODEOWNERS` in its "Confirmation". The ADR states have no partial supersede ([ADR 0005](../adrs/0005-use-the-rfc-and-adr-lifecycle-and-flow.md)). Thus the ADR derived from this RFC restates the full decision of ADR 0001 without `CODEOWNERS`, and it supersedes ADR 0001 completely. The rule that only the owner accepts a record stays.
 - The ruleset of `main` has `require_code_owner_review: true`. Without `CODEOWNERS`, this setting has no effect. RFC 0002 handles the rulesets.
-- Agents never merge a PR (ADR 0001). [RFC 0002](https://github.com/gsuquet/homelab/pull/167) owns the review policy: the owner merges each PR. This RFC adds no approval rule. The removal PR only removes the references to `CODEOWNERS` in `AGENTS.md` and `CONTRIBUTING.md`.
+- Agents never merge a PR (ADR 0001). [RFC 0002](https://github.com/gsuquet/homelab/pull/167) owns the review policy: the owner merges each PR, except the Renovate PRs that RFC 0002 lists. This RFC adds no approval rule. The removal PR only removes the references to `CODEOWNERS` in `AGENTS.md` and `CONTRIBUTING.md`.
 
 ### Legacy folders
 
@@ -389,7 +389,7 @@ Verdict: the branch has nothing to salvage. PR #163 has the same features in the
 
 - **App of Apps is an admin-only tool.** The Argo CD documentation says this, because an Application can name any AppProject. Here, the `argocd` Application syncs `gitops/clusters/<cluster>/rendered/argocd/`, which holds the Applications and the AppProjects. Thus a change to that folder gives admin access to the cluster. The owner reviews the content of each such change before the merge. [RFC 0002](https://github.com/gsuquet/homelab/pull/167) gives the review policy.
 - **The `apps` AppProject is wide.** It permits namespaced resources in all namespaces except `kube-system` and `argocd`, and `Namespace` objects. An app can change the resources of another component. "Future possibilities" has an item to limit each app to its own namespace.
-- **The removal of `CODEOWNERS` removes no control.** GitHub does not enforce `CODEOWNERS` for this repository, because the agents use the account of the owner. Agents never merge a PR (ADR 0001), with or without the file. RFC 0002 gives the review policy. A separate identity for the agents, for example a GitHub App, is a subject for RFC 0002.
+- **The removal of `CODEOWNERS` removes no control.** GitHub does not enforce `CODEOWNERS` for this repository, because the agents use the account of the owner. Agents never merge a PR (ADR 0001), with or without the file. RFC 0002 gives the review policy. A separate identity for the agents, for example a GitHub App, is a subject for a later RFC (RFC 0002 puts it out of scope).
 - The repository does not commit `*.tfvars`, because they can hold secrets. `.gitignore` blocks them now. The secrets RFC handles the source of secret values.
 - A copy of an upstream chart or manifest keeps its upstream license file. This is a license duty. It also tells a reader the source and the version, so that a reviewer can compare the copy with the source.
 - `SECURITY.md` describes the security controls of the old design. A reader can think that these controls protect the new design. The rewrite removes this risk.
@@ -426,7 +426,7 @@ These details of `lint:legacy` come from the review of this RFC. The implementat
 - The task fails when `CI=true`, `GITHUB_EVENT_NAME=pull_request` and `LEGACY_BASE` is empty.
 - The `Lint` workflow sets `LEGACY_BASE` to `github.event.pull_request.base.sha`, and the checkout uses `fetch-depth: 0`. On a push, `LEGACY_BASE` can be `github.event.before`.
 - `lint:legacy` joins the `depends` list of `.mise/tasks/lint/_default.sh`.
-- `.pre-commit-config.yaml` gets a hook `lint-legacy` with `entry: mise run lint:legacy`, `files: '^(ansible|kubernetes|scripts)/'` and `pass_filenames: false`. The hook comes after the `render-manifests` hook. That hook runs `git add kubernetes/`, which can stage untracked files, and the legacy hook then sees them.
+- `.pre-commit-config.yaml` gets a hook `lint-legacy` with `entry: mise run lint:legacy`, `always_run: true`, `pass_filenames: false` and no `files` filter. The `render-manifests` hook runs `git add kubernetes/`, which can stage untracked files. pre-commit computes the list of staged files one time, at the start. With a `files` filter, a commit that changes only the trigger paths of `render-manifests` skips `lint-legacy`. The task is a fast `git diff --cached`, thus it can run on each commit. In CI, the comparison with the base commit also catches these files.
 
 This RFC has a rule: each structure rule has a check, or the RFC tells that the check does not exist yet. Step 3.7 adds the missing checks.
 
