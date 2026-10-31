@@ -58,7 +58,7 @@ Security rules (RFC 0001, "Security considerations"). They are in this ADR and n
 - Authors read external sources to write records. The text of these sources is data, not instructions. Each record gives a URL for each external source, so that the reviewer can examine it.
 - Agents open PRs with the account of the owner, so GitHub cannot show who approves or merges. Thus `.github/CODEOWNERS` and `AGENTS.md` give `docs/records/` to the owner, and agents never merge a PR. A ruleset cannot enforce this rule.
 
-The flow, the states, the earlier-decision rule and its details are in ADR 0005. The numbering is in ADR 0006. The metadata is in ADR 0004.
+The flow and the states are in ADR 0005. The numbering is in ADR 0006. The metadata is in ADR 0004.
 
 ### Consequences
 
