@@ -18,8 +18,10 @@ The repository keeps all ADRs, also the ADRs with the status `rejected`.
 
 | ADR | Title | RFC | Status |
 | --- | --- | --- | --- |
-
-There are no ADRs yet.
+| [0001](0001-use-rfcs-and-adrs-to-record-decisions.md) | Use RFCs and ADRs to record decisions | [0001](../rfcs/0001-records-process.md) | `proposed` |
+| [0002](0002-use-the-adapted-rust-rfc-template.md) | Use the adapted Rust RFC template | [0001](../rfcs/0001-records-process.md) | `proposed` |
+| [0003](0003-use-the-trimmed-madr-template.md) | Use the trimmed MADR template | [0001](../rfcs/0001-records-process.md) | `proposed` |
+| [0004](0004-use-yaml-front-matter-for-record-metadata.md) | Use YAML front matter for record metadata | [0001](../rfcs/0001-records-process.md) | `proposed` |
 
 ## Source of the template
 
