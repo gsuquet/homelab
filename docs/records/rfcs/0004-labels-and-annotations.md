@@ -2,7 +2,7 @@
 rfc: "0004"
 status: draft
 start-date: 2026-10-31
-pr: null
+pr: 169
 ---
 
 # RFC 0004: Kubernetes labels and annotations reference
