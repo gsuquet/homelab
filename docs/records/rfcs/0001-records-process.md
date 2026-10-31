@@ -202,8 +202,8 @@ The Rust process also has a "postponed" disposition. This RFC proposes no such s
 | --- | --- | --- |
 | `proposed` | The author derived the ADR from an accepted RFC. The owner did not accept it yet. | The author |
 | `accepted` | The owner accepted the ADR. | The author, when the owner asks. The merge of the owner makes it final. |
-| `superseded` | A later ADR replaces this ADR. `superseded-by` gives its number. | The author of the later ADR, in its ADR PR, after the acceptance of the later RFC |
-| `deprecated` | The decision does not apply any more, and no ADR replaces it. | The author of the later RFC, in a separate ADR PR, after the acceptance of that RFC |
+| `superseded` | A later ADR replaces this ADR. `superseded-by` gives its number. | The author of the later ADR, in its ADR PR, after the merge of the later RFC |
+| `deprecated` | The decision does not apply any more, and no ADR replaces it. | The author of the later RFC, in a separate ADR PR, after the merge of that RFC |
 
 ```mermaid
 stateDiagram-v2
