@@ -1,7 +1,7 @@
 ---
 # Copy this file to NNNN-short-title.md. Refer to docs/records/adrs/index.md.
 adr: "NNNN"
-status: proposed # proposed | accepted | superseded | deprecated
+status: proposed # proposed | accepted | rejected | superseded | deprecated
 date: YYYY-MM-DD # The date of the last change of the status.
 rfc: "NNNN" # The number of the accepted RFC that this decision comes from.
 supersedes: [] # The numbers of the ADRs that this ADR replaces, for example ["0004"].

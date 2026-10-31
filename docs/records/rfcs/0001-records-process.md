@@ -53,8 +53,8 @@ No earlier decision stays in force on its own authority. Each earlier decision m
 6. The author answers each comment with a change or with a reason. The owner does not accept the RFC while a comment has no answer.
 7. When the owner asks, the author sets the final status in the last commit: `accepted`, `rejected` or `withdrawn`. The owner merges the PR. The merge records the outcome.
 8. If the RFC has the status `accepted`, the author derives one or more ADRs from it, with the status `proposed`, in a new PR. A reviewer reviews them, in the same loop as step 3.
-9. The owner reviews the ADRs, as in steps 5 to 7.
-10. The implementation starts.
+9. The owner reviews the ADRs, as in steps 5 and 6. When the owner asks, the author sets `accepted` or `rejected` in the last commit. The owner merges the PR, and the merge records the outcome.
+10. The implementation starts. The implementation can be in the same PR as its ADRs. RFC 0002 gives the rules for atomic PRs.
 
 The diagram shows the same flow, with the three roles. The numbered list is its text version.
 
@@ -90,10 +90,12 @@ sequenceDiagram
             Owner->>Author: Comments on the ADR PR
             Author-->>Owner: Change or reason
         end
-        Owner->>Author: Ask for accepted
-        Author->>Author: Set accepted in the last commit
-        Owner->>Owner: Merge the ADR PR (ADRs accepted)
-        Author->>Owner: Implementation PRs that link to the ADRs
+        Owner->>Author: Ask for the final status
+        Author->>Author: Set accepted or rejected in the last commit
+        Owner->>Owner: Merge the ADR PR (outcome recorded)
+        opt ADR accepted
+            Author->>Owner: Implementation, in the ADR PR or in later PRs (RFC 0002)
+        end
     else RFC rejected or withdrawn
         Note over Owner,Author: No ADR. The RFC stays in the records.
     end
@@ -104,7 +106,6 @@ An ADR is never in the same PR as its RFC.
 This RFC proposes these parts of the flow:
 
 - The GitHub draft PR at step 2, and the step 4 change to "ready for review".
-- A separate PR for the ADRs, before the implementation PR (steps 8 to 10). Refer to unresolved question 2.
 - Each implementation PR links to its ADRs.
 - The diagram rule. Each template has the rule: "Include a diagram when the text describes a flow, a state, a structure or an interaction." The owner asked for diagrams on 2026-10-31.
 
@@ -155,7 +156,7 @@ This RFC proposes that each record starts with YAML front matter, with the field
 | ADR field | Value |
 | --- | --- |
 | `adr` | The number, as a string with four digits. It is equal to the number in the file name. |
-| `status` | `proposed`, `accepted`, `superseded` or `deprecated`. |
+| `status` | `proposed`, `accepted`, `rejected`, `superseded` or `deprecated`. |
 | `date` | The date of the last change of the status, in the format `YYYY-MM-DD`. |
 | `rfc` | The number of the accepted RFC that the ADR comes from. |
 | `supersedes` | A list of the ADR numbers that this ADR replaces. |
@@ -201,7 +202,8 @@ The Rust process also has a "postponed" disposition. This RFC proposes no such s
 | Status | Meaning | Who sets it |
 | --- | --- | --- |
 | `proposed` | The author derived the ADR from an accepted RFC. The owner did not accept it yet. | The author |
-| `accepted` | The owner accepted the ADR. | The author, when the owner asks. The merge of the owner makes it final. |
+| `accepted` | The owner accepted the ADR. | The author, when the owner asks. The merge of the owner records it. |
+| `rejected` | The owner refused the ADR. | The author, when the owner asks. The merge of the owner records it. |
 | `superseded` | A later ADR replaces this ADR. `superseded-by` gives its number. | The author of the later ADR, in its ADR PR, after the merge of the later RFC |
 | `deprecated` | The decision does not apply any more, and no ADR replaces it. | The author of the later RFC, in a separate ADR PR, after the merge of that RFC |
 
@@ -209,15 +211,17 @@ The Rust process also has a "postponed" disposition. This RFC proposes no such s
 stateDiagram-v2
     [*] --> proposed
     proposed --> accepted
+    proposed --> rejected
     accepted --> superseded
     accepted --> deprecated
+    rejected --> [*]
     superseded --> [*]
     deprecated --> [*]
 ```
 
-In text: `proposed` goes to `accepted`. `accepted` goes to `superseded` or `deprecated`.
+In text: `proposed` goes to `accepted` or `rejected`. `accepted` goes to `superseded` or `deprecated`.
 
-The owner can refuse an ADR. Then the owner writes comments, and the author changes the ADR in its PR. Unresolved question 1 asks what occurs to an ADR that the owner refuses at the end.
+The repository keeps all ADRs, as it keeps all RFCs. The owner merges a refused ADR with the status `rejected`.
 
 This RFC proposes that an ADR changes to `superseded` or `deprecated` only through a later accepted RFC. The change occurs in an ADR PR after the merge of that RFC, as in step 8 of the flow. It never occurs in the PR of the RFC. For `superseded`, the PR of the new ADR also changes the old ADR: `status` and `superseded-by`.
 
@@ -294,12 +298,11 @@ To go back, revert the PR of step 1. No code depends on the records yet.
 
 ## Unresolved questions
 
-1. **Do refused ADRs merge?** Recommendation: a refused ADR does not merge, because its RFC already holds the discussion. The owner closes its PR.
-2. **Can an ADR be in the same PR as its implementation?** Recommendation: no, as the flow proposes. A separate PR lets the owner accept the decision before the code exists.
+None.
 
 ## Future possibilities
 
-- RFC 0002 specifies how the team works: the orchestration of the agents, the identity of the agents, the issues, the milestones and the PR rules. It can add an issue field to the records, as the "Rust Issue" field of the Rust template.
+- RFC 0002 specifies how the team works: the orchestration of the agents, the identity of the agents, the issues, the milestones and the PR rules. It can add an issue field to the records, as the "Rust Issue" field of the Rust template. RFC 0002 also defines the order of work after an ADR, and the rules for atomic PRs.
 - After ADRs exist, the explanation pages and `AGENTS.md` can link to them, and not repeat the reasons. Then each decision has one source.
 - A template repository can hold the records process, the templates and the checks. Then the other personal repositories of the owner can use the same process.
 - A task can create a new record from the template with the next free number.
