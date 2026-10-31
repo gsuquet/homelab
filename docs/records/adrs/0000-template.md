@@ -10,6 +10,8 @@ superseded-by: null # The number of the ADR that replaces this ADR.
 
 # ADR NNNN: Short title of the problem and the solution
 
+Include a diagram when the text describes a flow, a state, a structure or an interaction. Use a fenced code block with the language `mermaid`, and add a short text version below it.
+
 ## Context and problem statement
 
 Tell the context and the problem in two or three sentences, or as a short story. You can write the problem as a question.

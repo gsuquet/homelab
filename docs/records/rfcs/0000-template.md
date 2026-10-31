@@ -8,6 +8,8 @@ pr: null # The number of the PR that holds this RFC.
 
 # RFC NNNN: Short title
 
+Include a diagram when the text describes a flow, a state, a structure or an interaction. Use a fenced code block with the language `mermaid`, and add a short text version below it.
+
 ## Summary
 
 Write one paragraph that tells what this RFC changes.
