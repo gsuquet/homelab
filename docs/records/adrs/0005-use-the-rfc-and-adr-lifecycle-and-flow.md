@@ -9,7 +9,7 @@ superseded-by: null
 
 # ADR 0005: Use the RFC and ADR lifecycle and flow
 
-The first diagram shows the flow in text form below it. The two state diagrams follow. Each has a text version.
+Three diagrams show the flow, the RFC states and the ADR states. Each has a text version next to it.
 
 Flow in text: the owner and the author refine the subject. The author writes the RFC as `draft` in a draft PR. A reviewer and the author loop until the reviewer finds no problem. The author sets `review`. The owner comments, and the author answers each comment. The author sets the final status when the owner asks, and the owner merges. For an accepted RFC, the author derives the ADRs in a new PR with the same loop, and the owner decides in the same way.
 
@@ -64,13 +64,25 @@ The records of ADR 0001 need a fixed flow and fixed states. Without them, author
 
 ## Considered options
 
-RFC 0001 names no alternative for the flow and the states. It adapts the Rust process, and it sets the rules below. The one named alternative is the Rust "postponed" disposition, which it rejects.
+- The flow and the states of RFC 0001. RFC 0001 names no other flow as an alternative.
+- The Rust "postponed" state, which RFC 0001 rejects.
 
 ## Decision outcome
 
 Chosen option: the flow and the states of RFC 0001. They give the owner a control point at each decision, and they keep the history complete.
 
-The flow has ten steps (RFC 0001, "The flow"): refine; research and write the `draft` RFC in a GitHub draft PR; review loop; set `review` and mark the PR ready; the owner comments; the author answers each comment; the author sets the final status and the owner merges; derive the ADRs in a new PR; the owner decides on the ADRs; later implementation PRs (RFC 0002 gives the rules).
+The flow has ten steps (RFC 0001, "The flow"):
+
+1. Refine the subject.
+2. Research, then write the `draft` RFC in a GitHub draft PR.
+3. Loop with the reviewer.
+4. Set `review` and mark the PR ready.
+5. The owner comments.
+6. The author answers each comment.
+7. The author sets the final status. The owner merges.
+8. Derive the ADRs in a new PR.
+9. The owner decides on the ADRs.
+10. Later implementation PRs follow. RFC 0002 gives the rules.
 
 The rules:
 
@@ -80,9 +92,8 @@ The rules:
 - An accepted RFC does not change, except for typing errors and broken links. The replacement of a decision occurs at the ADR level, because one RFC gives many ADRs.
 - There is no `postponed` state. An RFC that must wait gets `withdrawn`.
 - An ADR changes to `superseded` or `deprecated` only through a later accepted RFC, in a separate ADR PR after the merge of that RFC. It never occurs in the PR of the RFC. For `superseded`, the PR of the new ADR also changes `status` and `superseded-by` of the old ADR. For `deprecated`, the author of the later RFC makes the change.
-- An earlier decision stays in force only if an RFC confirms it. Until later RFCs redo the setup of the repository and the agent instructions, the rules in `AGENTS.md` are temporary operating rules. They have no decision authority. An RFC that conflicts with them wins.
+- An earlier decision stays in force only if an RFC confirms it. [ADR 0001](0001-use-rfcs-and-adrs-to-record-decisions.md) has this rule and the status of `AGENTS.md`.
 - Each implementation PR links to its ADRs.
-- Diagrams: each template has the rule "Include a diagram when the text describes a flow, a state, a structure or an interaction." A diagram is a Mermaid fenced code block with the language `mermaid`, or an SVG file. Both are text formats that other tools can render, and GitHub renders Mermaid in Markdown. Vale does not check code blocks, so each diagram has a short text version next to it. The owner asked for diagrams on 2026-10-31.
 
 ### Consequences
 

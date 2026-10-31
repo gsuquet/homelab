@@ -29,8 +29,9 @@ This decision comes from RFC 0001, sections "The RFC template" and "Prior art".
 ## Considered options
 
 - The Rust RFC template, adapted.
+- The Rust RFC template, unchanged. RFC 0001 does not discuss it, but it justifies each change below.
 
-RFC 0001 names no other template as an alternative. It justifies each change to the Rust template (see below).
+RFC 0001 names no other template as an alternative.
 
 ## Decision outcome
 
@@ -40,7 +41,7 @@ Chosen option: "The Rust RFC template, adapted", because it keeps a known proces
 - "Reference-level explanation" is now "Detailed design". Rust RFC 0002 used this name.
 - "Security considerations" is new. A part of the homelab is open to the internet, and each change must tell its effect on security.
 - "Rollout" is new. The repository is in a migration, and each change must tell its order of PRs, its checks and how to go back.
-- YAML front matter replaces the header list, and the Rust anchor lines are removed (see ADR 0004).
+- YAML front matter replaces the header list, and the template has no Rust anchor lines (see ADR 0004).
 - The guide text uses ASD-STE100.
 
 The two new sections come after "Detailed design", because they apply to the design.
@@ -49,7 +50,8 @@ The two new sections come after "Detailed design", because they apply to the des
 
 - Good, because the Rust process is a known base ("Prior art").
 - Good, because the new sections make each RFC state its security effect and its rollout.
-- Bad, because the license of the Rust `0000-template.md` is not clear: the rust-lang/rfcs README does not tell if it is MIT or Apache-2.0. The owner accepts this risk (RFC 0001, "Licenses").
+- Bad, because the license of the Rust `0000-template.md` is not clear. The rust-lang/rfcs README does not tell if it is MIT or Apache-2.0.
+- Bad, because the owner accepts this license risk (RFC 0001, "Licenses").
 - Bad, because the template can drift from the Rust template over time.
 
 ### Confirmation

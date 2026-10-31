@@ -53,7 +53,6 @@ The ADR fields are:
 | `supersedes` | A list of the ADR numbers that this ADR replaces. |
 | `superseded-by` | The number of the ADR that replaces this ADR, or `null`. |
 
-
 ### Consequences
 
 - Good, because tools can read the front matter, so a schema can validate it.
@@ -66,6 +65,10 @@ The ADR fields are:
 RFC 0001 ("Rollout", step 4) plans these checks as future work. They are not part of this ADR:
 
 - `schemas/rfc.schema.json` and `schemas/adr.schema.json` for the front matter. An ADR with `superseded` must have `superseded-by`.
-- An extension of `schemas:check` with `yq --front-matter=extract` and `check-jsonschema`. It checks that the number in the front matter is equal to the number in the file name, that no two records have the same number, that the `rfc` field of each ADR points to an accepted RFC, and that each index lists each record with the correct status. It skips `0000-template.md`.
+- An extension of `schemas:check` with `yq --front-matter=extract` and `check-jsonschema`. It skips `0000-template.md`. It checks these rules:
+  - The number in the front matter is equal to the number in the file name.
+  - No two records have the same number.
+  - The `rfc` field of each ADR points to an accepted RFC.
+  - Each index lists each record with the correct status.
 
 Until these checks exist, the reviewer checks the fields by hand against the tables above.

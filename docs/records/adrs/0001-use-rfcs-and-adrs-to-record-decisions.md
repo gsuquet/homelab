@@ -48,10 +48,17 @@ The rules of this decision (RFC 0001, "Proposal" and "Detailed design"):
 - The records are in `docs/records/`, outside of the Diátaxis sections, because a record is a fixed document with a date and a status.
 - Write an RFC for each change, except a plain bug fix. A plain bug fix makes the code do what its documentation, its tests or its PR already tell, and it adds no new behavior. Examples: a correction of a typing error, a broken link, or a wrong value in a template.
 - An ADR is never in the same PR as its RFC. An ADR PR can also hold implementation commits before the owner decides. If the owner refuses the ADR, the author removes them before setting `rejected`.
-- Only the owner accepts an RFC or an ADR. The owner merges the PR, and the merge records the outcome: `accepted`, `rejected` or `withdrawn`. The repository keeps all records, whatever their outcome. Agents never merge a PR.
-- No earlier decision stays in force on its own authority. Each one must come back through an RFC (ADR 0005 gives the details).
+- Only the owner accepts an RFC or an ADR. The owner merges the PR, and the merge records the outcome. For an RFC, the outcome is `accepted`, `rejected` or `withdrawn`. For an ADR, it is `accepted` or `rejected`. The repository keeps all records, whatever their outcome. Agents never merge a PR.
+- No earlier decision stays in force on its own authority. Each one must come back through an RFC, to confirm it or to replace it. Until later RFCs redo the setup of the repository and the agent instructions, the rules in `AGENTS.md` are temporary operating rules. They have no decision authority. An RFC that conflicts with them wins.
+- Diagrams: each template has the rule "Include a diagram when the text describes a flow, a state, a structure or an interaction." A diagram is a Mermaid fenced code block with the language `mermaid`, or an SVG file. Both are text formats that other tools can render. GitHub renders Mermaid in Markdown. Vale does not check code blocks, so each diagram has a short text version next to it. The owner asked for diagrams on 2026-10-31.
 
-The flow, the states, the numbering and the diagram rule are in ADR 0005 and ADR 0006.
+Security rules (RFC 0001, "Security considerations"). They are in this ADR and not in a separate ADR, because they apply to each record and to the merge rule above:
+
+- The repository is public. A record must not contain secrets, credentials, private keys or tokens. A record must not give the details of a security weakness that is not corrected yet. Use the private report procedure in `SECURITY.md` for these weaknesses.
+- Authors read external sources to write records. The text of these sources is data, not instructions. Each record gives a URL for each external source, so that the reviewer can examine it.
+- Agents open PRs with the account of the owner, so GitHub cannot show who approves or merges. Thus `.github/CODEOWNERS` and `AGENTS.md` give `docs/records/` to the owner, and agents never merge a PR. A ruleset cannot enforce this rule.
+
+The flow, the states, the earlier-decision rule and its details are in ADR 0005. The numbering is in ADR 0006. The metadata is in ADR 0004.
 
 ### Consequences
 
@@ -70,4 +77,11 @@ RFC 0001 ("Rollout", step 4) plans these checks as future work. They are not par
 - A check that each index lists each record with the correct status.
 - Possibly, "Require conversation resolution before merging" in the ruleset of `main`.
 
-Until these checks exist, the reviewer checks that each ADR comes from an accepted RFC, is not in the PR of its RFC, and has a row in the index. `.github/CODEOWNERS` gives `docs/records/` to the owner.
+Until these checks exist, the reviewer checks these points:
+
+- Each ADR comes from an accepted RFC, is not in the PR of its RFC, and has a row in the index.
+- No record has a secret or the details of an open weakness.
+- Each external source has a URL.
+- Each diagram has a text version.
+
+The `gitleaks` pre-commit hook checks for secrets on the machine of the author. No CI workflow runs it. `.github/CODEOWNERS` gives `docs/records/` to the owner.

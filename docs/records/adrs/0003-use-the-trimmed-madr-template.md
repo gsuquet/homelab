@@ -31,7 +31,7 @@ This decision comes from [RFC 0001](../rfcs/0001-records-process.md), sections "
 
 ## Decision outcome
 
-Chosen option: "The minimal MADR template, with changes", because RFC 0001 ("The ADR template") selected it, and rejected the full template because it repeats the content of the RFC ("Rationale and alternatives"). The [ADR template](0000-template.md) starts from the [minimal template](https://github.com/adr/madr/blob/2475fe1973f66a12aaf58a91d8fa7b42c0f5ea3d/template/adr-template-minimal.md) of [MADR](https://adr.github.io/madr/) 4.0.0. The changes are:
+Chosen option: "The minimal MADR template, with changes", because the full template repeats the content of the RFC (RFC 0001, "Rationale and alternatives"). The [ADR template](0000-template.md) starts from the [minimal template](https://github.com/adr/madr/blob/2475fe1973f66a12aaf58a91d8fa7b42c0f5ea3d/template/adr-template-minimal.md) of [MADR](https://adr.github.io/madr/) 4.0.0. The changes are:
 
 - It keeps all the sections of the minimal template, and "Consequences" is mandatory.
 - From the [full template](https://github.com/adr/madr/blob/2475fe1973f66a12aaf58a91d8fa7b42c0f5ea3d/template/adr-template.md), it takes the front matter and "Confirmation". Rule 8 of `AGENTS.md` requires a check for each rule, and "Confirmation" names it.
