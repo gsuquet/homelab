@@ -11,7 +11,8 @@ While the primary active deployment target is a single-node [K3s](https://k3s.io
 | [Tutorials](#tutorials) | Step-by-step guides for setting up the homelab from scratch |
 | [How-to Guides](#how-to-guides) | Recipes for specific operational tasks |
 | [Reference](#reference) | Technical specifications and lookup tables |
-| [Explanation](#explanation) | Conceptual background and architecture decisions |
+| [Explanation](#explanation) | Conceptual background: how the system works, and why |
+| [Records](#records) | RFCs and ADRs: the proposals and the decisions |
 
 ---
 
@@ -62,7 +63,7 @@ Information-oriented documentation for looking up technical details.
 
 ## Explanation
 
-Understanding-oriented documents that explain the *why* behind architectural decisions.
+Understanding-oriented documents that explain how the system works, and why. The decisions are in [Records](#records).
 
 | Document | Description |
 | -------- | ----------- |
@@ -72,6 +73,12 @@ Understanding-oriented documents that explain the *why* behind architectural dec
 | [Secret Management](explanation/secret-management.md) | How Sealed Secrets enables encrypted GitOps secrets |
 | [Smart Home Stack](explanation/smart-home-stack.md) | How Zigbee2MQTT, Mosquitto, and Home Assistant work together |
 | [Automated Updates](explanation/automated-updates.md) | How Renovate keeps dependencies current |
+
+---
+
+## Records
+
+The RFCs and the ADRs record the proposals and the decisions of the repository. This section is outside of the four Diátaxis sections. Refer to [Records](records/index.md).
 
 ---
 

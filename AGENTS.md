@@ -16,7 +16,7 @@ The repository is in migration to a new design. The new design uses `modules/`, 
 2. Pin each dependency to an exact version. Use a commit SHA for GitHub Actions and pre-commit hooks, and a digest for container images. The Conftest policies in `policy/` check this.
 3. Do not edit the files in `kubernetes/**/manifests/`. Change `sources/Chart.yaml` or `sources/values.yaml`, then run `mise run manifests:render`.
 4. Do not commit secrets. A Kubernetes `Secret` in Git must have no `data` and no `stringData`, or it must be encrypted with SOPS (a top-level `sops` key, and each value starts with `ENC[`). A Conftest policy checks this. Refer to [Policies](docs/reference/policies.md).
-5. Write all text in English. Write documentation in ASD-STE100 (Simplified Technical English) and put it in the correct Diátaxis section of `docs/`. `mise run lint:docs` checks the word list and the sentence rules. Refer to [Writing rules](docs/reference/writing-rules.md).
+5. Write all text in English. Write documentation in ASD-STE100 (Simplified Technical English) and put it in the correct Diátaxis section of `docs/`. The RFCs and the ADRs go in the records section, `docs/records/`. `mise run lint:docs` checks the word list and the sentence rules. Refer to [Writing rules](docs/reference/writing-rules.md).
 6. Use Conventional Commits for commit messages and PR titles, for example `feat(cilium): enable host firewall`.
 7. When you change a Terraform module, run `mise run doc:generate`. When you change a provider version, run `mise run tf:lock`.
 8. When you add a rule, add a check for it. Prefer a schema, a policy or a linter to a written rule.
@@ -27,7 +27,8 @@ An agent does not review its own work. A different agent reviews each PR.
 
 | Change | Who can approve the merge |
 | --- | --- |
-| Documentation only (`docs/`) | A reviewing agent |
+| Documentation only (`docs/`), but not `docs/records/` | A reviewing agent |
+| An RFC or an ADR (`docs/records/`) | The repository owner. Refer to [RFC 0001](docs/records/rfcs/0001-records-process.md) |
 | A test or demo instance only | A reviewing agent |
 | The homelab, a module, CI, the standards, or this file | The repository owner |
 | Renovate updates of dev tools (patch, minor, digest) | Automatic, after all checks pass |

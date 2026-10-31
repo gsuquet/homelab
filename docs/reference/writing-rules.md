@@ -13,6 +13,8 @@ The documentation in `docs/` uses the [Diátaxis](https://diataxis.fr/) structur
 | Reference | `docs/reference/` | Facts: tasks, schemas, policies, modules. |
 | Explanation | `docs/explanation/` | Design decisions and the reasons for them. |
 
+The RFCs and the ADRs are in `docs/records/`, outside of the Diátaxis sections. A record is a fixed document with a date and a status. Refer to [RFC 0001](../records/rfcs/0001-records-process.md).
+
 ## Language
 
 The documentation uses [ASD-STE100](https://www.asd-ste100.org/) (Simplified Technical English). Vale checks a part of the rules. The Vale rules are in `.vale/styles/STE/`.

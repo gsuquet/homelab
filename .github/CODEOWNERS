@@ -14,6 +14,9 @@
 /docs/reference/schemas.md @gsuquet
 /docs/reference/writing-rules.md @gsuquet
 
+# Only the owner accepts an RFC or an ADR. Refer to RFC 0001.
+/docs/records/ @gsuquet
+
 # Test and demo instances. A reviewing agent can approve them.
 /instances/kind-local/
 /gitops/clusters/kind-local/
