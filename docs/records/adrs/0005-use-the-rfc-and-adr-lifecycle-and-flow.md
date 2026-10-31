@@ -1,6 +1,6 @@
 ---
 adr: "0005"
-status: proposed
+status: accepted
 date: 2026-10-31
 rfc: "0001"
 supersedes: []
