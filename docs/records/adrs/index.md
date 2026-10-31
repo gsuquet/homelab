@@ -9,8 +9,8 @@ An architecture decision record (ADR) records one decision. Each ADR comes from 
 3. Write each section of the template. Put the RFC number in the `rfc` field.
 4. Add a row for the ADR to the table on this page.
 5. Ask a reviewer, a person or an agent that is not the author, to review the ADR. Correct it until the reviewer finds no problem.
-6. Run `mise run lint`, and open a PR. The PR must not hold the RFC. It can also hold the implementation.
-7. When the owner asks, set the status to `accepted` or `rejected`, and update the row on this page. The owner merges the PR in both cases.
+6. Run `mise run lint`, and open a PR. The PR must not hold the RFC. Before the owner decides, it can also hold implementation commits.
+7. When the owner asks, set the status to `accepted` or `rejected`, and update the row on this page. For `rejected`, first remove the implementation commits. The owner merges the PR in both cases.
 
 The repository keeps all ADRs, also the ADRs with the status `rejected`.
 

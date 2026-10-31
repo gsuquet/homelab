@@ -52,9 +52,9 @@ No earlier decision stays in force on its own authority. Each earlier decision m
 5. The owner reviews the RFC and writes comments on the PR.
 6. The author answers each comment with a change or with a reason. The owner does not accept the RFC while a comment has no answer.
 7. When the owner asks, the author sets the final status in the last commit: `accepted`, `rejected` or `withdrawn`. The owner merges the PR. The merge records the outcome.
-8. If the RFC has the status `accepted`, the author derives one or more ADRs from it, with the status `proposed`, in a new PR. A reviewer reviews them, in the same loop as step 3.
-9. The owner reviews the ADRs, as in steps 5 and 6. When the owner asks, the author sets `accepted` or `rejected` in the last commit. The owner merges the PR, and the merge records the outcome.
-10. The implementation starts. The implementation can be in the same PR as its ADRs. RFC 0002 gives the rules for atomic PRs.
+8. If the RFC has the status `accepted`, the author derives one or more ADRs from it, with the status `proposed`, in a new PR. A reviewer reviews them, in the same loop as step 3. The ADR PR can also hold implementation commits, before the owner decides.
+9. The owner reviews the ADRs, as in steps 5 and 6. When the owner asks, the author sets `accepted` or `rejected` in the last commit. If the status is `rejected`, the author first removes the implementation commits. The owner merges the PR, and the merge records the outcome.
+10. After an accepted ADR, more implementation can follow in later PRs. RFC 0002 gives the rules for atomic PRs.
 
 The diagram shows the same flow, with the three roles. The numbered list is its text version.
 
@@ -85,16 +85,23 @@ sequenceDiagram
             Author->>Reviewer: Ask for a review
             Reviewer-->>Author: Findings
         end
+        opt Implementation in the ADR PR
+            Author->>Author: Add implementation commits
+        end
         Author->>Owner: ADR PR ready
         loop Until each comment has an answer
             Owner->>Author: Comments on the ADR PR
             Author-->>Owner: Change or reason
         end
         Owner->>Author: Ask for the final status
-        Author->>Author: Set accepted or rejected in the last commit
+        alt ADR accepted
+            Author->>Author: Set accepted in the last commit
+        else ADR rejected
+            Author->>Author: Remove the implementation commits, set rejected
+        end
         Owner->>Owner: Merge the ADR PR (outcome recorded)
         opt ADR accepted
-            Author->>Owner: Implementation, in the ADR PR or in later PRs (RFC 0002)
+            Author->>Owner: Later implementation PRs (RFC 0002)
         end
     else RFC rejected or withdrawn
         Note over Owner,Author: No ADR. The RFC stays in the records.
@@ -107,6 +114,7 @@ This RFC proposes these parts of the flow:
 
 - The GitHub draft PR at step 2, and the step 4 change to "ready for review".
 - Each implementation PR links to its ADRs.
+- If the owner refuses an ADR, the author removes the implementation commits from the ADR PR before setting `rejected` (step 9). Thus a rejected ADR merges without code.
 - The diagram rule. Each template has the rule: "Include a diagram when the text describes a flow, a state, a structure or an interaction." The owner asked for diagrams on 2026-10-31.
 
 ## Detailed design
@@ -223,7 +231,7 @@ In text: `proposed` goes to `accepted` or `rejected`. `accepted` goes to `supers
 
 The repository keeps all ADRs, as it keeps all RFCs. The owner merges a refused ADR with the status `rejected`.
 
-This RFC proposes that an ADR changes to `superseded` or `deprecated` only through a later accepted RFC. The change occurs in an ADR PR after the merge of that RFC, as in step 8 of the flow. It never occurs in the PR of the RFC. For `superseded`, the PR of the new ADR also changes the old ADR: `status` and `superseded-by`.
+This RFC proposes that an ADR changes to `superseded` or `deprecated` only through a later accepted RFC. The change occurs in an ADR PR, as in steps 8 and 9, after the merge of that RFC. It never occurs in the PR of the RFC. For `superseded`, the PR of the new ADR also changes the old ADR: `status` and `superseded-by`.
 
 ### The RFC template
 
