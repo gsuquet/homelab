@@ -79,14 +79,24 @@ sequenceDiagram
     Owner->>Author: Ask for the final status
     Author->>Author: Set accepted, rejected or withdrawn
     Owner->>Owner: Merge the RFC PR (outcome recorded)
-    Author->>Author: Derive the ADRs (proposed), open a new PR
-    loop Until the reviewer finds no problem
-        Author->>Reviewer: Ask for a review
-        Reviewer-->>Author: Findings
+    alt RFC accepted
+        Author->>Author: Derive the ADRs (proposed), open a new PR
+        loop Until the reviewer finds no problem
+            Author->>Reviewer: Ask for a review
+            Reviewer-->>Author: Findings
+        end
+        Author->>Owner: ADR PR ready
+        loop Until each comment has an answer
+            Owner->>Author: Comments on the ADR PR
+            Author-->>Owner: Change or reason
+        end
+        Owner->>Author: Ask for accepted
+        Author->>Author: Set accepted in the last commit
+        Owner->>Owner: Merge the ADR PR (ADRs accepted)
+        Author->>Owner: Implementation PRs that link to the ADRs
+    else RFC rejected or withdrawn
+        Note over Owner,Author: No ADR. The RFC stays in the records.
     end
-    Author->>Owner: ADR PR ready
-    Owner->>Owner: Review, then merge the ADR PR (ADRs accepted)
-    Author->>Owner: Implementation PRs that link to the ADRs
 ```
 
 An ADR is never in the same PR as its RFC.
@@ -192,8 +202,8 @@ The Rust process also has a "postponed" disposition. This RFC proposes no such s
 | --- | --- | --- |
 | `proposed` | The author derived the ADR from an accepted RFC. The owner did not accept it yet. | The author |
 | `accepted` | The owner accepted the ADR. | The author, when the owner asks. The merge of the owner makes it final. |
-| `superseded` | A later ADR replaces this ADR. `superseded-by` gives its number. | The author of the later ADR, in its PR |
-| `deprecated` | The decision does not apply any more, and no ADR replaces it. | The author of the RFC that ends the decision, in a PR of that RFC |
+| `superseded` | A later ADR replaces this ADR. `superseded-by` gives its number. | The author of the later ADR, in its ADR PR, after the acceptance of the later RFC |
+| `deprecated` | The decision does not apply any more, and no ADR replaces it. | The author of the later RFC, in a separate ADR PR, after the acceptance of that RFC |
 
 ```mermaid
 stateDiagram-v2
@@ -209,7 +219,7 @@ In text: `proposed` goes to `accepted`. `accepted` goes to `superseded` or `depr
 
 The owner can refuse an ADR. Then the owner writes comments, and the author changes the ADR in its PR. Unresolved question 1 asks what occurs to an ADR that the owner refuses at the end.
 
-This RFC proposes that an ADR changes to `superseded` or `deprecated` only through a later accepted RFC. The PR of the new ADR also changes the old ADR: `status` and `superseded-by`.
+This RFC proposes that an ADR changes to `superseded` or `deprecated` only through a later accepted RFC. The change occurs in an ADR PR after the merge of that RFC, as in step 8 of the flow. It never occurs in the PR of the RFC. For `superseded`, the PR of the new ADR also changes the old ADR: `status` and `superseded-by`.
 
 ### The RFC template
 
