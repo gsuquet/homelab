@@ -106,14 +106,9 @@ The `tenant` and `network` keys go only on a `Namespace`, never on a pod templat
 | `instance.<p>/purpose` | `purpose` | `production`, `test`, `demo` |
 | `instance.<p>/lifecycle` | `lifecycle.type` | `long-lived`, `ephemeral` |
 | `instance.<p>/ttl` | `lifecycle.ttl`, only for an ephemeral instance | For example `24h` or `7d` |
-| `instance.<p>/type` | Derived from `layers`. Refer to the rule below. | The suffix of a `substrate-*` or `cluster-*` module in `modules/`, for example `kind` |
+| `instance.<p>/type` | The first module of `layers.cluster.modules`, without `cluster-` | For example `kind`, `talos`, `gke` |
 
-The rule for `instance.<p>/type`:
-
-1. If `layers.substrate.modules` exists, the value is its first module name without `substrate-`. For example, `substrate-rpi` gives `rpi`.
-2. Else, the value is the first module name of `layers.cluster.modules` without `cluster-`. For example, `cluster-kind` gives `kind` for `kind-local`.
-
-Thus an instance with `substrate-rpi` and a Talos cluster module gets `rpi`, not `talos`. The value set is the set of `substrate-*` and `cluster-*` modules in `modules/`, thus a check can compute it. The key is `type`, not `substrate`, because `substrate` is already the name of a layer. [Q10](#q10-the-type-of-an-instance) gives the other options.
+The `type` key always tells the cluster distribution: `cluster-kind` gives `kind`, `cluster-talos` gives `talos` and `cluster-gke` gives `gke`. It does not read the `substrate` layer, thus it has one meaning. The value set is the set of `cluster-*` modules in `modules/`, thus a check can compute it. [Q10](#q10-the-type-of-an-instance) gives the other options.
 
 The `type` key answers the instance names question of RFC 0003 (PR #168). That question keeps the free instance names and gives "labels that hold the type" to this RFC. The two RFCs must keep the same answer.
 
@@ -287,7 +282,7 @@ On GKE, two sets of labels exist, and they do not share labels ([GKE: cluster la
 
 - GKE copies the cluster labels to the nodes, the Compute Engine instances and the attached persistent disks. A background process does this once each hour, thus a label can arrive up to one hour after the VM. A clean-up job must allow for this delay on new VMs. GKE does not copy the labels to load balancer rules, IP addresses or disks that are not attached. Node pool labels override the cluster labels.
 - The `google_container_cluster` resource puts the provider `default_labels` in `terraform_labels`, with its `resource_labels`. Thus the defaults reach the cluster labels.
-- `node_config.resource_labels` is a nested field. The provider documentation shows no `terraform_labels` for it, thus the provider `default_labels` do not reach it. Node pool labels are optional: the cluster labels reach the nodes too. A module sets them only to override a cluster label, or to stop the delay of up to one hour. The implementation PR verifies this with a plan.
+- `node_config.resource_labels` is a nested field. The provider documentation shows no `terraform_labels` for it, thus the provider `default_labels` do not reach it. Node pool labels are optional: the cluster labels reach the nodes too. A module sets them only to override a cluster label, or to stop the delay of up to one hour.
 
 **Mapping.** This RFC proposes one mechanical rule from a Kubernetes key to a cloud key. [Q8](#q8-the-mapping-to-cloud-keys) gives the other options.
 
@@ -330,11 +325,15 @@ A data file, for example `policy/data/labels.yaml`, holds the reference table: t
 1. The path `gitops/clusters/<cluster>/rendered/<component>/` gives the component. `gitops/clusters/<cluster>/cluster.yaml` tells if the component is in `infrastructure` or in `apps`.
 2. The file name tells if the object comes from an upstream chart. This needs a change of `.mise/tasks/manifests/render.sh`, which the implementation PR makes. This RFC does not implement it.
 
-A label cannot give the origin. The three Argo CD CRDs come from the upstream chart, but they have no `helm.sh/chart` label. The objects of a subchart carry the name of the subchart. A hand-written template can also set `helm.sh/chart` to the value of a dependency, and then skip the checks. The only reliable marker is the `# Source:` comment that `helm template` writes, for example `# Source: argocd/charts/argo-cd/templates/crds/crd-application.yaml`. Conftest drops comments, and `split_manifest_by_resource` in `render.sh` names each file `<kind>-<name>.yaml`.
+A label cannot give the origin. The Argo CD CRDs have no `helm.sh/chart` label, subcharts use their own name, and a hand-written template can copy the label. The only reliable marker is the `# Source:` comment of `helm template`, for example `# Source: argocd/charts/argo-cd/templates/crds/crd-application.yaml`. Conftest drops comments. Thus `render.sh` must keep the origin in the file name, for example with the prefix `upstream--`, and the checks read it from `file.path`. An object is upstream only when the second segment of its source path is `charts`. Thus a hand-written file in `sources/templates/charts/` stays hand-written. The rename changes all the files in `rendered/` one time.
 
-The proposed change: `render.sh` reads the `# Source:` comment of each object. If the source path contains `/charts/`, the object comes from a dependency, and the file name gets the prefix `upstream--`, for example `upstream--customresourcedefinition-applications.argoproj.io.yaml`. The checks then read the origin from `file.path`. The files stay in one folder. A subfolder such as `rendered/<component>/upstream/` also works, but the `Application` must then set `directory.recurse: true`. A local subchart in `sources/charts/` also counts as upstream, thus a review must refuse local subcharts that hold hand-written objects.
+Known holes and their requirements:
 
-The implementation PR verifies the rule on the `argocd` component. The checks K2 to K6 and K10 apply to the hand-written objects. The legacy files in `kubernetes/` get only K1, because the migration removes them.
+- The values of an upstream chart can add objects, for example `extraObjects` of the `argo-cd` chart. These objects have an upstream source path, but their content is hand-written. Thus K10 and K15 apply to all rendered objects, with an allowlist for upstream exceptions.
+- Helm accepts a chart that somebody copies into `charts/` as a dependency ([Helm: charts](https://helm.sh/docs/topics/charts/)). Requirement: Git tracks no file in `gitops/*/*/sources/charts/`, and each `dependencies[].repository` starts with `https://` or `oci://`. `instance-checks.sh` checks this.
+- Today, `split_manifest_by_resource` fails when two objects have the same kind and name. This guard must stay on the kind and the name, not on the file name. Else an upstream and a hand-written `Namespace` with the same name both pass.
+
+The checks K2 to K6 apply to the hand-written objects. The legacy files in `kubernetes/` get only K1, because the migration removes them.
 
 The checks read the keys in `metadata.labels` and `metadata.annotations`, also in pod templates. They do not read the keys in selectors, for example `nodeSelector` or `namespaceSelector`. Thus `kubernetes.io/os` in a `nodeSelector` is not a K2 problem.
 
@@ -350,12 +349,12 @@ The checks read the keys in `metadata.labels` and `metadata.annotations`, also i
 | K7 Required keys in upstream charts | Rendered upstream objects | The same keys as K6. Upstream charts do not always let the repository set them. | `warn` |
 | K8 Stable selectors | `spec.selector.matchLabels` of workloads, and `spec.selector` of a `Service` | No `app.kubernetes.io/version` and no `helm.sh/chart`. | `deny` |
 | K9 Argo CD tracking | The rendered `argocd-cm` ConfigMap | `application.resourceTrackingMethod` is `annotation`, if the owner selects this in Q6. | `deny` |
-| K10 Sync options | Hand-written objects and `Application` objects in `gitops/` | No `Replace=true` and no `Force=true`, in the annotation `argocd.argoproj.io/sync-options` and in `spec.syncPolicy.syncOptions` of an `Application`. | `deny` |
-| K11 Cloud defaults | `provider "google"` blocks and module calls in `instances/` | `default_labels` and each `tags` argument of a module call reference `local.cloud_labels`. The `hcl2` parser gives the expression as a string, for example `${local.cloud_labels}`. The Terraform run of Conftest does not read `instance.yaml`. Thus `.mise/tasks/_base/instance-checks.sh`, which `schemas:check` runs, checks the values of the map against `instance.yaml`. | `deny` |
+| K10 Sync options | All rendered objects and `Application` objects in `gitops/`, with an allowlist for upstream exceptions | No `Replace=true` and no `Force=true`, in the annotation `argocd.argoproj.io/sync-options` and in `spec.syncPolicy.syncOptions` of an `Application`. | `deny` |
+| K11 Cloud defaults | `provider "google"` blocks and module calls in `instances/` | `default_labels` and each `tags` argument of a module call are exactly `local.cloud_labels`. A `merge()` that overrides keys fails. Conftest does not read the values of the local. Refer to [Rollout](#rollout). | `deny` |
 | K12 Cloud tags | `azurerm` resources in `modules/` with a `tags` argument | The argument comes from the `tags` variable of the module. Azure DNS resources can need an exemption. Refer to [Rollout](#rollout). | `deny` |
-| K13 Cloud keys | Keys and values of `default_labels` and `tags` | The cloud form of each key has max. 63 characters. Each value is a valid Google Cloud value. No two keys in one map have the same cloud form. | `deny` |
+| K13 Cloud keys | The keys of the `cloud_labels` local in `instances/` | The keys match the required keys of `data.labels`. The cloud form of each key has max. 63 characters. No two keys have the same cloud form. | `deny` |
 | K14 Pod Security of applications | `Namespace` objects of the components in `apps` | `pod-security.kubernetes.io/enforce` is `restricted` or `baseline`, except for the namespaces in the allowlist of `data.labels`. | `deny` |
-| K15 Namespace of a component | `Namespace` objects in `gitops/clusters/<cluster>/rendered/<component>/` | `metadata.name` is equal to the `namespace` of the component in `cluster.yaml`. | `deny` |
+| K15 Namespace of a component | All `Namespace` objects in `rendered/<component>/`, and `cluster.yaml` | `metadata.name` is the `namespace` of the component in `cluster.yaml`. Each namespace in `cluster.yaml` is unique. An `apps` namespace is not in the reserved list of `data.labels`: `default`, `kube-*`, `argocd` and the namespaces that Terraform creates. A second `Namespace` from an upstream chart needs an entry in the allowlist. | `deny` |
 
 The existing checks stay: the Pod Security labels on a `Namespace`, the sync waves, no `CreateNamespace=true` in an `Application`, and no `resources-finalizer.argocd.argoproj.io` finalizer.
 
@@ -393,7 +392,7 @@ This table is the draft of a future reference page, `docs/reference/labels-and-a
 | `app.kubernetes.io/instance` | Label | All | Release name | Chart | Yes | Yes |
 | `app.kubernetes.io/part-of` | Label | All | Higher-level application | Chart | Pod templates | Yes |
 | `app.kubernetes.io/component` | Label | All | Role in the architecture | Chart | No | Yes |
-| `app.kubernetes.io/managed-by` | Label | All | Refer to Q5 | Chart | Yes | Yes |
+| `app.kubernetes.io/managed-by` | Label | All | Refer to Q5 | Chart | Objects other than pod templates | Yes |
 | `app.kubernetes.io/version` | Label | All | Version of the application | Chart | No | No |
 | `helm.sh/chart` | Label | All | `<chart>-<version>` | Chart | No | No |
 | `pod-security.kubernetes.io/enforce`, `audit`, `warn` | Label | `Namespace` | `privileged`, `baseline`, `restricted` | Repository | Yes | Yes |
@@ -410,7 +409,7 @@ This table is the draft of a future reference page, `docs/reference/labels-and-a
 | `instance.<p>/purpose` | Label | Cloud resources | `production`, `test`, `demo` | Instance | Yes | Yes |
 | `instance.<p>/lifecycle` | Label | Cloud resources | `long-lived`, `ephemeral` | Instance | Yes | Yes |
 | `instance.<p>/ttl` | Label | Cloud resources | For example `24h`, `7d` | Instance | Ephemeral instances | Yes |
-| `instance.<p>/type` | Label | Cloud resources | Derived from `layers` of `instance.yaml`, for example `kind`, `rpi` | Instance | Yes | Yes |
+| `instance.<p>/type` | Label | Cloud resources | The `cluster-*` module of `instance.yaml`, for example `kind`, `talos`, `gke` | Instance | Yes | Yes |
 | `argocd.argoproj.io/sync-wave` | Annotation | All | Integer as a string | Repository | `Namespace`, CRD | Not applicable |
 | `argocd.argoproj.io/sync-options` | Annotation | All | Options with `,` between them | Repository | No | Not applicable |
 | `argocd.argoproj.io/tracking-id` | Annotation | All | `<app>:<group>/<kind>:<namespace>/<name>` | Argo CD | Not applicable | Not applicable |
@@ -448,13 +447,23 @@ This table is the draft of a future reference page, `docs/reference/labels-and-a
 6. The checks K11 to K13 come with the first GKE or Azure instance. Before the ADR for Azure, an author tests a tag name with `_` and `-` on an Azure DNS zone. If Azure refuses it, K12 and K13 exempt the Azure DNS resources.
 7. The legacy manifests in `kubernetes/` do not change. The migration removes them.
 
+Verify in the implementation PR:
+
+- The `# Source:` paths of the `argocd` component, also of the CRDs from `--include-crds`, with the rule "second segment is `charts`".
+- The `extraObjects` value in the current `argo-cd` chart. The cached chart 9.0.5 has it.
+- The duplicate guard of `render.sh` on kind and name, and the behavior of Argo CD with two objects of the same kind and name.
+- The `hcl2` string of `default_labels = local.cloud_labels` for K11.
+- The values of `cloud_labels`. Recommendation: one canonical `labels.tf`, equal byte for byte in each cloud instance, that `instance-checks.sh` compares. The alternative is a `terraform console` check after `terraform init`.
+- If the destination rules `!argocd` and `!kube-system` apply to `Namespace` objects.
+- With a plan, that `default_labels` do not reach `node_config.resource_labels`.
+
 To go back, revert the PRs of steps 3 to 5. Labels and annotations do not change the behavior of the workloads, except for the Argo CD tracking method and the Cilium policies. After a change of the tracking method, Argo CD writes new tracking keys at the next sync. Refer to the [Argo CD 3.0 upgrade notes](https://argo-cd.readthedocs.io/en/stable/operator-manual/upgrading/2.14-3.0/).
 
 ## Drawbacks
 
 - The required keys add lines to each `Namespace` and each hand-written chart.
 - The custom prefix is long. A key such as `instance.infra.gsuquet.com/purpose` has 34 characters.
-- The cloud keys are long and not easy to read, for example `tenant_infra_gsuquet_com_name`.
+- The cloud keys are long and not easy to read, for example `instance_infra_gsuquet_com_name`.
 - The upstream charts do not always let the repository add labels to all their objects. Thus check K7 is only a warning.
 - A data file and its checks are more code to maintain.
 
@@ -574,8 +583,8 @@ Recommendation: A. The `Namespace` holds the tenant and the trust zone for all i
 
 RFC 0003 keeps free instance names and gives the type of an instance to this RFC.
 
-- **A.** Derive `instance.<p>/type` from `layers`: the first `substrate-*` module, else the first `cluster-*` module, without the layer prefix. No change of the schema.
-- **B.** Add a `type` field with an enum to `schemas/instance.schema.json`, for example `kind`, `rpi`, `gke`, `aks`. The label copies the field. A check makes sure that the field matches the modules.
+- **A.** Derive `instance.<p>/type` from the first `cluster-*` module, without `cluster-`. No change of the schema.
+- **B.** Add a `type` field with an enum to `schemas/instance.schema.json`, for example `kind`, `talos`, `gke`, `aks`. The label copies the field. A check makes sure that the field matches the modules.
 - **C.** No type key. A report reads `instance.yaml`.
 
 Recommendation: A. It adds no new fact, and the value set grows with the modules. B is clearer to read, but the same fact is then in two places.
