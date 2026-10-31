@@ -2,7 +2,7 @@
 rfc: "0003"
 status: draft
 start-date: 2026-10-31
-pr: null
+pr: 168
 ---
 
 # RFC 0003: Repository structure
