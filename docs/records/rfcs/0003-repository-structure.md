@@ -84,7 +84,7 @@ homelab/
 ├── policy/<input>/                  # Conftest policies and their tests
 ├── schemas/                         # JSON Schemas and their test fixtures
 ├── docs/                            # Diátaxis sections, records/, archive/
-├── .github/                         # CODEOWNERS, workflows, templates
+├── .github/                         # Workflows, labeler, templates
 ├── .mise/                           # config.toml, mise.lock, tasks/
 ├── .vale/                           # Vale styles
 ├── .vscode/extensions.json          # Recommended editor extensions
@@ -229,7 +229,6 @@ The reasons to keep the layout:
 - A component is the same for each cluster. A cluster selects its components and can override values. This separation agrees with the Argo CD use case "cluster add-ons", where one set of add-ons goes to many clusters.
 - The checks in `.mise/tasks/_base/instance-checks.sh` and the fixtures in `schemas/tests/gitops-tree/` already use this layout.
 - The `argocd` chart renders the Applications from `cluster.yaml`. Thus the layout needs no ApplicationSet controller. Refer to unresolved question 2.
-- `.github/CODEOWNERS` gives `/gitops/clusters/kind-local/` to a reviewing agent with one line. With a layout by component, `CODEOWNERS` needs one line for each component. This reason is secondary: GitHub does not enforce `CODEOWNERS` here, because the agents use the account of the owner. The agents read the file to know which PRs they must not merge, and [ADR 0001](../adrs/0001-use-rfcs-and-adrs-to-record-decisions.md) uses it for `docs/records/`.
 
 A component in `infrastructure/` can change cluster-scoped resources, for example CRDs, `ClusterRole` objects or webhooks. The `apps` AppProject permits namespaced resources in all namespaces except `kube-system` and `argocd`, and the cluster-scoped `Namespace` kind. Thus an app can now write into the namespace of another component, for example `cert-manager`. The AppProject does not limit an app to its own namespace. "Future possibilities" has an item to close this gap.
 
@@ -281,7 +280,7 @@ The general rule: the base of a folder or file name uses lowercase letters, digi
 
 Exceptions to the general rule:
 
-- Names that a tool or GitHub requires keep their form, for example `README.md`, `CODEOWNERS`, `Chart.yaml`, `LICENSE` and `.terraform.lock.hcl`.
+- Names that a tool or GitHub requires keep their form, for example `README.md`, `SECURITY.md`, `Chart.yaml`, `LICENSE` and `.terraform.lock.hcl`.
 - Names that start with `_` are not items, for example `modules/_template/` and `.mise/tasks/_base/`.
 - Rego file names use underscores, for example `kubernetes_test.rego`, because a Rego package name cannot have a hyphen.
 - A file extension can have more than one part, for example `.schema.json` or `.yaml.tftpl`.
@@ -302,9 +301,23 @@ GitHub reads most of these files from `.github/`, from the root or from `docs/`,
 | `SECURITY.md` | Describes Sealed Secrets, UFW and Trivy. Names only email as the report channel, but GitHub private vulnerability reporting is already on. | Rewrite: the scope and the report channels. Refer to unresolved question 10. The security RFC gives the rest of the content, for example the answer time. |
 | `CODE_OF_CONDUCT.md` | Contributor Covenant 2.0. | Refer to unresolved question 9. |
 | `SUPPORT.md` | None | Add. It tells that the repository is a personal homelab, without support, and where to ask a question. |
-| `.github/CODEOWNERS` | Current | Keep in `.github/`. Update the paths with each structure change. |
+| `.github/CODEOWNERS` | Gives most paths to the owner. Gives `docs/` (except the records and the standards) and the `kind-local` test instance to a reviewing agent. | Remove. Refer to "Remove `CODEOWNERS`". |
 | `.github/FUNDING.yml` | None | Do not add. The owner does not ask for money for this repository. |
 | Issue and PR templates | PR template only | RFC 0002 designs them. |
+
+### Remove `CODEOWNERS`
+
+The owner asked to remove `.github/CODEOWNERS` (2026-10-31). The reasons:
+
+- The repository has one human: the owner. A code owner file names the persons who review a path. With one person, it names the same person for each path.
+- The agents open PRs with the account of the owner. Thus GitHub cannot ask for the review of the owner on a PR that the owner opened, and it enforces nothing.
+- [ADR 0001](../adrs/0001-use-rfcs-and-adrs-to-record-decisions.md) already says that a ruleset cannot enforce the rule that only the owner accepts a record.
+
+The consequences:
+
+- ADR 0001 has the status `accepted`. It says: "`.github/CODEOWNERS` and `AGENTS.md` give `docs/records/` to the owner". It also names `CODEOWNERS` in its "Confirmation". An ADR derived from this RFC must supersede that part of ADR 0001. The rule that only the owner accepts a record stays. Only the file that records it changes.
+- The ruleset of `main` has `require_code_owner_review: true`. Without `CODEOWNERS`, this setting has no effect. RFC 0002 handles the rulesets.
+- The agents use the review table in `AGENTS.md` to know which PRs they must not merge. The agents RFC decides where that table goes. The removal PR only removes the references to `CODEOWNERS` in `AGENTS.md` and `CONTRIBUTING.md`.
 
 ### Legacy folders
 
@@ -372,9 +385,9 @@ Verdict: the branch has nothing to salvage. PR #163 has the same features in the
 
 ## Security considerations
 
-- **App of Apps is an admin-only tool.** The Argo CD documentation says this, because an Application can name any AppProject. Here, the `argocd` Application syncs `gitops/clusters/<cluster>/rendered/argocd/`, which holds the Applications and the AppProjects. Thus write access to that folder gives admin access to the cluster. `.github/CODEOWNERS` gives `/gitops/clusters/kind-local/` to a reviewing agent. This is acceptable only for a test cluster. The folder of a production cluster stays with the owner.
+- **App of Apps is an admin-only tool.** The Argo CD documentation says this, because an Application can name any AppProject. Here, the `argocd` Application syncs `gitops/clusters/<cluster>/rendered/argocd/`, which holds the Applications and the AppProjects. Thus write access to that folder gives admin access to the cluster. The review table of `AGENTS.md` lets a reviewing agent approve a change to a test instance, for example `kind-local`. This is acceptable only for a test cluster. A change to the folder of a production cluster needs the owner.
 - **The `apps` AppProject is wide.** It permits namespaced resources in all namespaces except `kube-system` and `argocd`, and `Namespace` objects. An app can change the resources of another component. "Future possibilities" has an item to limit each app to its own namespace.
-- **`CODEOWNERS` is not enforced.** The structure puts all the files of one cluster in one folder, thus `CODEOWNERS` has one line for each cluster. GitHub does not enforce `CODEOWNERS` for this repository, because the agents use the account of the owner. The agents obey it as a rule.
+- **The removal of `CODEOWNERS` removes no control.** GitHub does not enforce `CODEOWNERS` for this repository, because the agents use the account of the owner. The agents obey the review table of `AGENTS.md` as a rule, with or without the file. A separate identity for the agents, for example a GitHub App, is a subject for RFC 0002.
 - The repository does not commit `*.tfvars`, because they can hold secrets. `.gitignore` blocks them now. The secrets RFC handles the source of secret values.
 - A copy of an upstream chart or manifest keeps its upstream license file. This is a license duty. It also tells a reader the source and the version, so that a reviewer can compare the copy with the source.
 - `SECURITY.md` describes the security controls of the old design. A reader can think that these controls protect the new design. The rewrite removes this risk.
@@ -390,17 +403,19 @@ Verdict: the branch has nothing to salvage. PR #163 has the same features in the
    - "Make the Applications with a rendered App of Apps".
    - "Use the naming rules".
    - "Use the community health files", with the license.
+   - "Remove `CODEOWNERS`". It supersedes the `CODEOWNERS` part of ADR 0001.
 3. Implementation PRs, in this order. Each one is small and links to its ADR:
    1. Add the deprecation `README.md` files and the `lint:legacy` check.
    2. Delete `modules/bootstrap-agent-sandbox/` and `docs/reference/terraform-modules/bootstrap-agent-sandbox/`, in a separate PR. The owner decided this on 2026-10-31.
    3. Apply the license decision.
    4. Rewrite `README.md` and `SECURITY.md`. Update `CONTRIBUTING.md`. Add `SUPPORT.md`. Update `CODE_OF_CONDUCT.md` as the decision says.
    5. Rewrite `docs/reference/repository-structure.md` in ASD-STE100, with the target tree and a legacy section.
-   6. Add the checks for the naming rules that have no check yet. Examples: a TFLint rule for the Terraform file names, a check of the Rego file names.
+   6. After the owner accepts the ADR "Remove `CODEOWNERS`": delete `.github/CODEOWNERS`, and remove the references to it in `AGENTS.md` and `CONTRIBUTING.md`.
+   7. Add the checks for the naming rules that have no check yet. Examples: a TFLint rule for the Terraform file names, a check of the Rego file names.
 4. The owner changes the GitHub settings. Set a description: it is empty now. Replace the topics, which name Ansible and K3s. Correct the documentation link of the community profile, which points to `tree/master/docs`.
 5. After the migration of the Raspberry Pi, one PR removes the legacy folders and their rules. Refer to "Legacy folders".
 
-This RFC has a rule: each structure rule has a check, or the RFC tells that the check does not exist yet. Step 3.6 adds the missing checks.
+This RFC has a rule: each structure rule has a check, or the RFC tells that the check does not exist yet. Step 3.7 adds the missing checks.
 
 To go back: each implementation PR is a separate revert. No step moves a folder that a live system reads.
 
@@ -545,7 +560,7 @@ Recommendation: B. The report stays in GitHub with the repository. A person with
 - **A. The `lint:legacy` check, with an allowlist file for exceptions.** Refer to "The legacy check".
 - **B. The `lint:legacy` check, with a commit trailer for exceptions.** Any author can add a trailer, and the PR diff does not show it as a change of a file.
 - **C. Only the `README.md` mark, without a check.**
-- **D. `CODEOWNERS` gives the legacy folders to the owner, without a check.** The owner already approves these paths now, but GitHub does not enforce it here.
+- **D. Only the review table of `AGENTS.md`, without a check.** The owner already approves these paths now, but nothing enforces it.
 
 Recommendation: A. This RFC has the rule that each structure rule has a check. The allowlist makes each exception visible in the diff.
 
