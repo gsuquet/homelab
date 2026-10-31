@@ -34,9 +34,9 @@ A reader who wants only the decision reads the ADR. A reader who wants the full 
 
 ### When to write an RFC
 
-Write an RFC for each change, except a plain bug fix. Unresolved question 6 asks for a definition of a plain bug fix.
+Write an RFC for each change, except a plain bug fix. Unresolved question 4 asks for a definition of a plain bug fix.
 
-No earlier decision stays in force on its own authority. Each earlier decision must come back through an RFC, to confirm it or to replace it. Unresolved question 7 asks which rules apply until then.
+No earlier decision stays in force on its own authority. Each earlier decision must come back through an RFC, to confirm it or to replace it. Unresolved question 5 asks which rules apply until then.
 
 ### The flow
 
@@ -45,17 +45,13 @@ No earlier decision stays in force on its own authority. Each earlier decision m
 3. A different agent reviews the RFC. The author agent corrects it. They repeat this loop until the reviewer finds no more problems. The RFC must pass `mise run lint`, thus also the Vale rules of ASD-STE100.
 4. The author sets the status to `review` and opens the PR for review.
 5. The owner reviews the RFC and writes comments on the PR.
-6. The author answers each comment. The owner does not accept the RFC while a comment has no answer.
-7. The owner merges the PR. This merge accepts the RFC, and the RFC has the status `accepted` on `main`. Unresolved questions 1 and 2 ask how the owner approves and when the status changes.
+6. The author answers each comment with a change or with a reason. The owner does not accept the RFC while a comment has no answer.
+7. When the owner asks, the author sets `accepted` or `rejected` in the last commit. The merge of the owner makes the status final.
 8. An agent derives one or more ADRs from the accepted RFC, with the status `proposed`. A different agent reviews them, in the same loop as step 3.
-9. The owner reviews the ADRs and merges their PR. They have the status `accepted` on `main`.
+9. The owner reviews the ADRs. Steps 6 and 7 apply, with the status `accepted`.
 10. The implementation starts. Each implementation PR links to its ADRs.
 
-Only the owner accepts an RFC or an ADR. An agent does not review its own record.
-
-### Example
-
-This example is not a real decision. The owner wants backups of the cluster volumes. An agent writes `docs/records/rfcs/0007-back-up-cluster-volumes.md` and opens a PR. The owner asks a question about the encryption of the backups. The author adds a paragraph to "Security considerations" and answers the comment. The owner merges the PR. Then an agent writes two ADRs: `0009-back-up-volumes-every-night.md` and `0010-encrypt-backups-before-upload.md`. The owner merges them. After that, an agent changes the code.
+Only the owner accepts an RFC or an ADR. An agent does not review its own record. Steps 6 and 7 are a proposal. Unresolved question 1 asks how the owner approves while agents use the account of the owner.
 
 ## Detailed design
 
@@ -102,9 +98,7 @@ Each record starts with YAML front matter.
 | `supersedes` | A list of the ADR numbers that this ADR replaces. |
 | `superseded-by` | The number of the ADR that replaces this ADR, or `null`. |
 
-The title is only in the first heading of the file. Thus it has only one source.
-
-Front matter, instead of a header list or a table, has these advantages. `yq --front-matter=extract` reads it, and `check-jsonschema` can validate the result. The repository pins both tools already. MADR uses YAML front matter too. Vale 3.25.1 checks the YAML values, but not the YAML comments (`#`). Thus the guide comments in the templates have no Vale check. A future ADR records this decision.
+The title is only in the first heading of the file. Thus it has only one source. Vale 3.25.1 checks the YAML values, but not the YAML comments (`#`). Thus the guide comments in the templates have no Vale check.
 
 ### RFC states
 
@@ -112,8 +106,8 @@ Front matter, instead of a header list or a table, has these advantages. `yq --f
 | --- | --- | --- |
 | `draft` | An agent writes and reviews the RFC. The PR can be a draft PR. | The author |
 | `review` | The RFC is ready for the owner. | The author |
-| `accepted` | The owner accepted the RFC. | The owner |
-| `rejected` | The owner refused the RFC. | The owner |
+| `accepted` | The owner accepted the RFC. | The author, when the owner asks. The merge of the owner makes it final. |
+| `rejected` | The owner refused the RFC. | The author, when the owner asks. The merge of the owner makes it final. |
 | `withdrawn` | The author or the owner stopped the RFC before a decision. | The author or the owner |
 
 ```text
@@ -122,7 +116,7 @@ draft → review → accepted
             └──→ withdrawn
 ```
 
-An accepted RFC does not change, as in the Rust process. The only permitted changes are corrections of typing errors and broken links. The replacement of a decision occurs at the ADR level. One RFC gives many ADRs, and a later RFC can replace only some of them. Thus a `superseded` status for a full RFC is not clear. Unresolved question 12 asks if RFCs need it.
+An accepted RFC does not change, as in the Rust process. The only permitted changes are corrections of typing errors and broken links. The replacement of a decision occurs at the ADR level. One RFC gives many ADRs, and a later RFC can replace only some of them. Thus a `superseded` status for a full RFC is not clear.
 
 The Rust process also has a "postponed" disposition. This repository does not use it. An RFC that must wait gets the status `withdrawn`.
 
@@ -139,6 +133,8 @@ The Rust process also has a "postponed" disposition. This repository does not us
 proposed → accepted → superseded
                 └──→ deprecated
 ```
+
+The owner can refuse an ADR. Then the owner writes comments, and the author changes the ADR in its PR until the owner accepts it. Or the owner closes the PR, and the repository keeps no record of the ADR.
 
 A later ADR comes from a later accepted RFC. Thus an ADR changes to `superseded` or `deprecated` only through an RFC. The PR of the new ADR also changes the old ADR: `status` and `superseded-by`.
 
@@ -159,19 +155,12 @@ The two new sections come after "Detailed design", because they apply to the des
 
 The [ADR template](../adrs/0000-template.md) starts from the [minimal template](https://github.com/adr/madr/blob/2475fe1973f66a12aaf58a91d8fa7b42c0f5ea3d/template/adr-template-minimal.md) of [MADR](https://adr.github.io/madr/) 4.0.0.
 
-- It keeps all the sections of the minimal template. "Consequences" is mandatory, because a decision without consequences gives no help to a reader.
-- It takes two parts from the [full template](https://github.com/adr/madr/blob/2475fe1973f66a12aaf58a91d8fa7b42c0f5ea3d/template/adr-template.md). The front matter with `status` and `date`, because the ADR states need them. "Confirmation", because rule 8 of `AGENTS.md` requires a check for each rule.
-- It does not take `decision-makers`, `consulted` and `informed`. The owner makes all decisions, and the PR shows who took part.
-- It does not take "Decision drivers", "Pros and cons of the options" and "More information". The RFC has this content, and a copy can become different from the RFC.
-- It adds the `adr`, `rfc`, `supersedes` and `superseded-by` fields. MADR writes "superseded by ADR-0123" in `status`. A separate field is easier to check with a schema.
+- It keeps all the sections of the minimal template, and "Consequences" is mandatory. From the [full template](https://github.com/adr/madr/blob/2475fe1973f66a12aaf58a91d8fa7b42c0f5ea3d/template/adr-template.md), it takes the front matter and "Confirmation". Rule 8 of `AGENTS.md` requires a check for each rule, and "Confirmation" names it.
+- It removes the other parts of the full template. The owner makes all decisions, and the RFC holds the discussion. It adds the `adr`, `rfc`, `supersedes` and `superseded-by` fields, because a schema can check them.
 
 ### Licenses
 
-The [rust-lang/rfcs README](https://github.com/rust-lang/rfcs#license) tells that the repository moves to the MIT license or the Apache License 2.0. Some parts have these licenses already. It does not tell if `0000-template.md` is one of these parts. This RFC could not confirm the license of the template. Unresolved question 13 asks the owner to accept or reduce this risk.
-
-MADR has the license `MIT OR CC0-1.0` ([LICENSE](https://github.com/adr/madr/blob/main/LICENSE)). This repository uses the MADR template under CC0-1.0.
-
-Each template has an HTML comment at its end with the source, the upstream commit, the license and the changes. A future ADR records the license decisions.
+The license of the Rust template is not confirmed, and this repository uses the MADR template under CC0-1.0. The HTML comment at the end of each template and the indexes give the details. Unresolved question 8 asks the owner about the Rust template.
 
 ## Security considerations
 
@@ -182,7 +171,7 @@ Each template has an HTML comment at its end with the source, the upstream commi
 ## Rollout
 
 1. This PR adds the records section, the two templates, this RFC and the indexes. It also changes `docs/index.md`, the writing rules, the repository structure page, `AGENTS.md` and `.github/CODEOWNERS`. The current `CODEOWNERS` file gives no owner to `docs/`, and the review policy lets an agent approve a change in `docs/`. Without this change, an agent can merge an RFC.
-2. The owner merges this PR. RFC 0001 gets the status `accepted`.
+2. When the owner asks, the author sets `accepted` in the last commit, and the owner merges this PR.
 3. An agent derives the ADRs from RFC 0001 in a new PR. Possible ADRs:
    - "Use RFCs and ADRs to record decisions".
    - "Use the adapted Rust RFC template".
@@ -190,7 +179,7 @@ Each template has an HTML comment at its end with the source, the upstream commi
    - "Use YAML front matter for record metadata".
 4. An agent adds the checks for the rules of this RFC, in a separate PR, as rule 8 of `AGENTS.md` requires:
    - `schemas/rfc.schema.json` and `schemas/adr.schema.json` for the front matter. An ADR with `superseded` must have `superseded-by`.
-   - An extension of `schemas:check` with `yq --front-matter=extract` and `check-jsonschema`. It also checks these rules: the number in the front matter is equal to the number in the file name. No two records have the same number. The `rfc` field of each ADR points to an accepted RFC. Each index lists each record with the correct status. The check skips `0000-template.md`.
+   - An extension of `schemas:check` with `yq --front-matter=extract` and `check-jsonschema`. It also checks these rules: the number in the front matter is equal to the number in the file name. No two records have the same number. The `rfc` field of each ADR points to an accepted RFC. Each index lists each record with the correct status, so the PR that changes a status also changes the index row. The check skips `0000-template.md`.
    - Possibly, "Require conversation resolution before merging" in the ruleset of `main` ([GitHub rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets)). It applies only to review threads, not to the top-level comments of a PR. Also, while agents use the account of the owner, it cannot show who resolved a thread.
 5. Later RFCs bring back the earlier decisions, one subject at a time. RFC 0002 is the first. It specifies how the team works: the orchestration of the agents, the issues, the milestones and the PR rules. This RFC does not specify them.
 
@@ -219,26 +208,20 @@ If the repository does not do this, the decisions stay in many places, and the a
 
 - **Rust RFC process.** The [rust-lang/rfcs README](https://github.com/rust-lang/rfcs) tells the process: an RFC is a PR, the discussion is in the PR comments, and the team decides. [Rust RFC 0002](https://rust-lang.github.io/rfcs/0002-rfc-process.html) started the process with an RFC about the process. This repository does not use the "final comment period" of ten days, because one owner makes the decisions.
 - **MADR.** [Markdown Architectural Decision Records](https://adr.github.io/madr/) gives templates for ADRs in Markdown, from minimal to full. The [MADR repository](https://github.com/adr/madr) has the templates.
-- **Nygard ADRs.** [Documenting Architecture Decisions](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions), by Michael Nygard, started the ADR format: context, decision, status, consequences.
-- **Python PEP 1.** [PEP 1](https://peps.python.org/pep-0001/) defines the Python Enhancement Proposal process. It has a header with a status, and the states "Withdrawn", "Rejected" and "Superseded".
+- **Nygard ADRs.** [Documenting Architecture Decisions](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions) started the ADR format.
+- **Python PEP 1.** [PEP 1](https://peps.python.org/pep-0001/) also uses a status header, with "Rejected" and "Withdrawn" states.
 
 ## Unresolved questions
 
-1. **How does the owner approve?** Agents open PRs with the account of the owner, and GitHub does not let an author approve their own PR (`AGENTS.md`). Recommendation: a merge by the owner accepts the record, as the flow tells. A long-term solution is a separate account for the agents. Then a GitHub approval can show the acceptance of the owner.
-2. **When does the status change to `accepted`?** Recommendation: when all comments have an answer, the author sets `accepted` in one last commit, and then the owner merges.
-3. **What does "address a comment" mean, and who resolves the thread?** Recommendation: the author answers each comment with a change or with a reason. Only the owner resolves a thread. While agents use the account of the owner, no tool can enforce this.
-4. **Do rejected and withdrawn RFCs merge?** Rust closes these PRs without a merge. Recommendation: merge them with the final status, so that the record stays in `docs/records/`.
-5. **When does an RFC get its number?** Recommendation: the author takes the next free number when the work starts. If two open PRs have the same number, the PR that merges second changes its number. A withdrawn draft or a new number can leave a gap. A gap is not a problem.
-6. **What is a plain bug fix?** Recommendation: a change that makes the repository agree with an accepted decision or with the documentation, and that adds no new behavior. A correction of a typing error and a Renovate patch update are examples.
-7. **Which rules apply until an RFC brings back an earlier decision?** Earlier decisions have no authority. But the agents need rules to work. Recommendation: the rules in `AGENTS.md` stay as temporary operating rules. They have no decision authority. An RFC that conflicts with them wins. An RFC must confirm each of them, or replace it.
-8. **What occurs when the owner refuses an ADR?** The ADR states have no `rejected` status, but the MADR status list has one. Recommendation: add `rejected` to the ADR states. The author can also change the ADR in the same PR until the owner accepts it.
-9. **Can an ADR be in the same PR as its implementation?** Recommendation: no. A separate PR lets the owner accept the decision before the code exists. A small change can come back to this question later.
-10. **Is the change to `AGENTS.md` and `.github/CODEOWNERS` in the scope of this RFC?** Recommendation: yes, keep it. `CODEOWNERS` gives no owner to `docs/`. Without the change, an agent can approve and merge an RFC.
-11. **Does each record link to an issue?** The Rust template has a "Rust Issue" field. Recommendation: no issue field now. RFC 0002 decides how the team uses issues, and it can add the field.
-12. **Do RFCs need a `superseded` status?** Recommendation: no. The ADRs carry the replacement of decisions. An RFC stays as the record of a discussion.
-13. **Does the owner accept the license risk of the Rust template?** The license of `0000-template.md` in rust-lang/rfcs is not confirmed. Options: accept the risk, ask the Rust project, or write a new template with the same section names. Recommendation: accept the risk. The template is a short list of section names and questions, and the text of this repository is a new ASD-STE100 version.
-14. **After ADRs exist, do the explanation pages and `AGENTS.md` link to them?** Recommendation: yes. An explanation page or a rule links to its ADR, and it does not repeat the reasons. Thus each decision has one source.
-15. **Who updates the index rows when a status changes?** Recommendation: the PR that changes the status also changes the index row. The check of Rollout step 4 enforces it.
+1. **How does the owner approve while agents use the account of the owner?** GitHub does not let an author approve their own PR (`AGENTS.md`). Thus GitHub cannot show who approves, who merges or who resolves a thread. Steps 6 and 7 of the flow are the proposal. The merge of the owner accepts a record. The author sets the status when the owner asks. Only the owner resolves a thread. No tool can enforce this proposal. A separate account for the agents can solve the problem. Then a GitHub approval can show the acceptance of the owner.
+2. **Do rejected and withdrawn RFCs merge?** Rust closes these PRs without a merge. Recommendation: merge them with the final status, so that the record stays in `docs/records/`.
+3. **When does an RFC get its number?** Recommendation: the author takes the next free number when the work starts. If two open PRs have the same number, the PR that merges second changes its number. A withdrawn draft or a new number can leave a gap. A gap is not a problem.
+4. **What is a plain bug fix?** Recommendation: a change that makes the repository agree with an accepted decision or with the documentation, and that adds no new behavior. A correction of a typing error and a Renovate patch update are examples.
+5. **Which rules apply until an RFC brings back an earlier decision?** Earlier decisions have no authority. But the agents need rules to work. Recommendation: the rules in `AGENTS.md` stay as temporary operating rules. They have no decision authority. An RFC that conflicts with them wins. An RFC must confirm each of them, or replace it.
+6. **Can an ADR be in the same PR as its implementation?** Recommendation: no. A separate PR lets the owner accept the decision before the code exists.
+7. **Does each record link to an issue?** The Rust template has a "Rust Issue" field. Recommendation: no issue field now. RFC 0002 decides how the team uses issues, and it can add the field.
+8. **Does the owner accept the license risk of the Rust template?** The [rust-lang/rfcs README](https://github.com/rust-lang/rfcs#license) tells that some parts of the repository have the MIT or Apache-2.0 license already. It does not tell if `0000-template.md` is one of them. Options: accept the risk, ask the Rust project, or write a new template with the same section names. Recommendation: accept the risk. The template is a short list of section names and questions, and the text of this repository is a new ASD-STE100 version.
+9. **After ADRs exist, do the explanation pages and `AGENTS.md` link to them?** Recommendation: yes. An explanation page or a rule links to its ADR, and it does not repeat the reasons. Thus each decision has one source.
 
 ## Future possibilities
 
