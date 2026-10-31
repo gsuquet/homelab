@@ -63,9 +63,16 @@ argo-cd:
     rbac:
       # A logged-in user without a role can look, but not change.
       policy.default: role:readonly
-    # Argo CD creates argocd-secret when it starts. Thus the repository has no Secret.
+    # argocd-server does not start without argocd-secret: it only adds its keys
+    # (server.secretkey, the admin password) to a Secret that exists. The chart
+    # makes the Secret with no data, thus Git has no secret values. Set webhook,
+    # SSO or admin values with SOPS, not here.
     secret:
-      createSecret: false
+      createSecret: true
+      annotations:
+        # The Secret holds the keys that argocd-server makes at runtime. Argo CD
+        # must not delete it, for example when a commit removes it from Git.
+        argocd.argoproj.io/sync-options: Prune=false,Delete=false
 
   # Resources: memory request equal to the limit, a CPU request and no CPU
   # limit (the cluster resource policy). Sized for a Raspberry Pi 4 with 8 GiB.

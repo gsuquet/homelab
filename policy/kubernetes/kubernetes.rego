@@ -112,3 +112,13 @@ deny contains msg if {
 	startswith(finalizer, "resources-finalizer.argocd.argoproj.io")
 	msg := sprintf("%s: remove the finalizer %s. A deleted Application must not delete the resources of the component.", [file.path, finalizer])
 }
+
+# Git must not hold secret values: the data of a Secret is only base64. A Secret
+# with no data is allowed, for example argocd-secret, which argocd-server fills.
+deny contains msg if {
+	some file in input
+	file.contents.kind == "Secret"
+	some field in ["data", "stringData"]
+	count(object.get(file.contents, field, {})) > 0
+	msg := sprintf("%s: the Secret has %s. Do not commit secret values. Refer to docs/how-to/manage-secrets.md.", [file.path, field])
+}

@@ -162,3 +162,26 @@ test_application_with_resources_finalizer_is_denied if {
 		"contents": object.union(application("main"), {"metadata": {"finalizers": ["resources-finalizer.argocd.argoproj.io/background"]}}),
 	}]
 }
+
+secret_path := "gitops/clusters/kind-local/rendered/demo/secret-demo.yaml"
+
+test_secret_without_data_is_allowed if {
+	count(kubernetes.deny) == 0 with input as [{
+		"path": secret_path,
+		"contents": {"kind": "Secret", "metadata": {"name": "demo"}, "type": "Opaque"},
+	}]
+}
+
+test_secret_with_data_is_denied if {
+	count(kubernetes.deny) == 1 with input as [{
+		"path": secret_path,
+		"contents": {"kind": "Secret", "metadata": {"name": "demo"}, "data": {"key": "dmFsdWU="}},
+	}]
+}
+
+test_secret_with_string_data_is_denied if {
+	count(kubernetes.deny) == 1 with input as [{
+		"path": secret_path,
+		"contents": {"kind": "Secret", "metadata": {"name": "demo"}, "stringData": {"key": "value"}},
+	}]
+}
