@@ -41,7 +41,7 @@ The author read the settings of the repository and of the project with `gh` on 2
 | Local Git configuration of the owner | `commit.gpgsign=true` and `gpg.format=openpgp`. Agents sign with the GPG key of the owner. |
 | Token of `gh` | The classic token of the owner, with the scopes `repo`, `project`, `gist` and `read:org`. The owner is an administrator of the repository. Each agent that runs as the owner can use this token. |
 | Renovate | The GitHub App `renovate-gsuquet` opens PRs and merges the dev tool PRs itself, for example #152, #153, #154 and #156. |
-| Commit message check | The `commitlint` pre-commit hook, at the `commit-msg` stage, on the machine of the author. No CI check. `.pre-commit-config.yaml` has no `default_install_hook_types`. |
+| Commit message check | `.pre-commit-config.yaml` holds the `commitlint` hook at the `commit-msg` stage, but the hook is not installed on the machine of the owner. No CI check. `.pre-commit-config.yaml` has no `default_install_hook_types`. |
 | Git hooks on the machine of the owner | `pre-commit` comes from pre-commit. `commit-msg` and `pre-push` come from the Entire CLI, so `commitlint` does not run there today. |
 | Issue templates | None. A PR template exists. |
 | Private vulnerability reporting | On. |
@@ -82,11 +82,11 @@ In text: the owner refines subjects, makes decisions and merges. The orchestrato
 | Orchestrator | An agent, or the owner | Split a milestone into issues. Give an issue to an implementing agent. Start a reviewing agent. Move items on the board. | Merge. Change settings or rulesets. Do the review of a PR that it implemented. |
 | Implementing agent | An agent | Push a branch. Open a draft PR. Fix review findings. Mark a PR ready for review when no finding stays open. | Merge. Push to `main`. Push tags. Force-push. Delete a remote branch or tag. Change settings or rulesets. Review its own work. |
 | Reviewing agent | A new agent, with no context of the implementation | Read the PR, run the checks, write findings. | Change the branch. Merge. |
-| Renovate | The GitHub App `renovate-gsuquet` | Open dependency PRs. Merge the PRs that "The Renovate exception" lists, after all the checks of the branch pass. | Merge other PRs. |
+| Renovate | The GitHub App `renovate-gsuquet` | Open dependency PRs. Merge the PRs that "The Renovate exception" lists, after the required checks pass. | Merge other PRs. |
 
 One agent can be the orchestrator and the implementing agent of the same task. The reviewing agent is always a different agent from the implementing agent, as [ADR 0005](../adrs/0005-use-the-rfc-and-adr-lifecycle-and-flow.md) requires.
 
-This RFC replaces the review policy table of `AGENTS.md`. In that table, a reviewing agent can approve the merge of documentation and test instance PRs. With this RFC, a reviewing agent approves only the end of the review loop, and the owner merges each PR. This rule does not use `CODEOWNERS`. RFC 0003 proposes to remove that file. A derived ADR of RFC 0003 then changes the `CODEOWNERS` sentence of [ADR 0001](../adrs/0001-use-rfcs-and-adrs-to-record-decisions.md).
+This RFC replaces the review policy table of `AGENTS.md`. In that table, a reviewing agent can approve the merge of documentation and test instance PRs. With this RFC, a reviewing agent approves only the end of the review loop, and the owner merges each PR. This rule does not use `CODEOWNERS`. RFC 0003 proposes to remove that file. ADR 0005 has no partial supersede. Thus a derived ADR of RFC 0003 restates [ADR 0001](../adrs/0001-use-rfcs-and-adrs-to-record-decisions.md) without `CODEOWNERS`, and it supersedes ADR 0001 in full.
 
 ### The work items
 
@@ -186,19 +186,18 @@ sequenceDiagram
     Orch->>Impl: Give the issue
     Impl->>Impl: Branch, commits, mise run lint
     Impl->>Impl: Open a draft PR (Closes #N)
-    loop Until no finding stays open
+    loop Until no finding stays open, or disagreement
         Impl->>Orch: Ask for a review
         Orch->>Rev: Start a new reviewing agent
         Rev-->>Impl: Findings on the PR
         Impl->>Impl: Fix each finding, or record a reason
+        opt Disagreement after one more round
+            Impl->>Owner: Add state/needs-owner, set Owner review, PR stays a draft
+            Owner-->>Impl: Decision on the open findings
+            Impl->>Impl: Apply the decision, remove state/needs-owner
+        end
     end
-    alt No finding stays open
-        Impl->>Owner: Mark the PR ready for review
-    else Disagreement after one more round
-        Impl->>Owner: Add state/needs-owner, set Owner review, PR stays a draft
-        Owner-->>Impl: Decision on the open findings
-        Impl->>Owner: Apply the decision, mark the PR ready for review
-    end
+    Impl->>Owner: Mark the PR ready for review
     loop Until each comment has an answer
         Owner->>Impl: Comments
         Impl-->>Owner: Change or reason
@@ -206,7 +205,7 @@ sequenceDiagram
     Owner->>Owner: Squash merge
 ```
 
-In text: the orchestrator gives the issue to the implementing agent. The agent opens a draft PR. The orchestrator starts a new reviewing agent. The implementing agent fixes each finding or records a reason, and asks for a new review. When no finding stays open, the agent marks the PR ready. If the implementer and the reviewer still disagree, the owner decides on the open findings, and the agent applies the decision. Then the agent marks the PR ready. The owner comments, the agent answers, and the owner merges.
+In text: the orchestrator gives the issue to the implementing agent. The agent opens a draft PR. The orchestrator starts a new reviewing agent. The implementing agent fixes each finding or records a reason, and asks for a new review. When no finding stays open, the agent marks the PR ready. If the implementer and the reviewer still disagree, the owner decides on the open findings. The agent applies the decision, removes `state/needs-owner`, and asks for a new review of the change. The loop continues until no finding stays open. The owner comments, the agent answers, and the owner merges.
 
 The rules of the loop:
 
@@ -214,9 +213,9 @@ The rules of the loop:
 - The reviewer ranks each finding: security, then correctness, then performance, then readability, then style.
 - The implementing agent answers each finding with a change or with a reason in the PR.
 - A finding with a recorded reason does not stay open, unless the next reviewer refuses the reason.
-- If the reviewer and the implementer still disagree after one more round, the implementer adds `state/needs-owner` and sets the Status to `Owner review`. The PR stays a draft. The decision of the owner ends the loop.
+- If the reviewer and the implementer still disagree after one more round, the implementer adds `state/needs-owner` and sets the Status to `Owner review`. The PR stays a draft. The decision of the owner closes the open findings. The implementer applies the decision, removes `state/needs-owner`, sets the Status to `In progress`, and asks for a new review of the change.
 - Else, the loop stops when a review finds no open finding.
-- These two exit rules change the exit of the loop in [ADR 0005](../adrs/0005-use-the-rfc-and-adr-lifecycle-and-flow.md) (flow step 3), also for record PRs. ADR 0005 loops until the reviewer finds no problem. This RFC only proposes the change. A derived ADR must supersede ADR 0005 to make it a decision.
+- These two exit rules change the exit of the loop in [ADR 0005](../adrs/0005-use-the-rfc-and-adr-lifecycle-and-flow.md) (flow step 3), also for record PRs. ADR 0005 loops until the reviewer finds no problem. This RFC only proposes the change. A derived ADR must restate all of ADR 0005 and supersede it in full to make it a decision.
 - The PR description names the implementing agent and each reviewing agent.
 - The PR stays a draft during the loop. "Ready for review" means "ready for the owner".
 
@@ -250,19 +249,28 @@ After Rollout step 5, the owner merges each PR with a squash merge, and the PR t
 Renovate is a tool, not an agent. It has its own identity, the GitHub App `renovate-gsuquet`. Today, `renovate.json` lets Renovate merge two types of PR without the owner:
 
 - **Dev tool PRs.** The files are `.mise/config.toml`, `.pre-commit-config.yaml` and `.github/workflows/**`. The managers are `mise`, `pre-commit`, `github-actions` and `custom.regex`. The update types are `minor`, `patch`, `digest`, `pin` and `pinDigest`. Renovate merges them through the API (`platformAutomerge: false`).
-- **Lock file maintenance PRs.** `lockFileMaintenance` has `automerge: true`. No file filter applies, so the PR can change `.mise/mise.lock`, the `.terraform.lock.hcl` files and `Chart.lock` files, for example `kubernetes/bootstrap/argo-cd/sources/Chart.lock`. These PRs keep the default `platformAutomerge: true`, so they can use the auto-merge of GitHub. The author did not test this.
+- **Lock file maintenance PRs.** `lockFileMaintenance` has `automerge: true`. No file filter applies, so the PR can change `.mise/mise.lock`, the `.terraform.lock.hcl` files and `Chart.lock` files, for example `kubernetes/bootstrap/argo-cd/sources/Chart.lock`. These PRs keep the default `platformAutomerge: true`, so they use the auto-merge of GitHub.
 
-Renovate merges a PR only after all the checks of the branch pass ([Renovate: automerge](https://docs.renovatebot.com/key-concepts/automerge/)). Today, `main` has no required check, so a branch with no check can merge. Major updates wait for the approval of the owner on the dependency dashboard.
+The two types wait for different checks:
+
+- With `platformAutomerge: false`, Renovate merges a dev tool PR only after the checks of the branch pass ([Renovate: automerge](https://docs.renovatebot.com/key-concepts/automerge/)).
+- With `platformAutomerge: true`, GitHub merges the PR "after all (if any) branch policies have been met" ([Renovate: configuration options](https://docs.renovatebot.com/configuration-options/)). The Renovate automerge page warns that GitHub can then merge PRs with failing tests if the branch requires no status check.
+
+Today, `main` has no required check. Thus a lock file maintenance PR can merge with no passing check, also for the Terraform provider locks and `Chart.lock`. This risk exists today. The author did not test what GitHub does in this case. If "Allow auto-merge" is off, Renovate merges through the API itself, after the checks of the branch. Thus that setting alone does not limit these PRs.
+
+Major updates wait for the approval of the owner on the dependency dashboard. The author did not verify if `vulnerabilityAlerts` changes this for vulnerability PRs. Vulnerability PRs of majors still do not merge without the owner, because no rule gives them `automerge`.
 
 `minimumReleaseAge` is three days. But `vulnerabilityAlerts` sets `minimumReleaseAge: null`, so a vulnerability PR of a dev tool can merge with no delay.
 
 This RFC proposes these conditions for the exception:
 
 - Renovate merges only the dev tool PRs with the files, managers and update types above.
-- Lock file maintenance merges without the owner only for `.mise/mise.lock`. The provider and chart lock files reach the instances, so the owner merges them.
+- Lock file maintenance merges without the owner only for `.mise/mise.lock`. The provider and chart lock files reach the instances, so the owner merges them. `lockFileMaintenance` has no file filter. Thus the configuration sets `lockFileMaintenance.automerge: false` at the top level. One `packageRules` entry then sets `automerge: true` with `matchUpdateTypes: ["lockFileMaintenance"]` and `matchManagers: ["mise"]`.
 - The required status checks of Rollout step 5 exist before the exception applies.
 
-This PR does not change `renovate.json`. A later PR makes the lock file change, and a Conftest policy and a scheduled check enforce the exception. Refer to Rollout step 10. The owner merges all the other Renovate PRs.
+The mise lock file maintenance runs `mise lock --bump`. A self-hosted Renovate must have `mise` in `allowedUnsafeExecutions` for this ([Renovate: mise manager](https://docs.renovatebot.com/modules/manager/mise/)). The owner must confirm the setup of `renovate-gsuquet`.
+
+This PR does not change `renovate.json`. The risk of the lock file maintenance PRs exists today, so the orchestrator proposes a separate fix to the owner, outside of this RFC. The owner decides on it. A Conftest policy and a scheduled check then enforce the exception. Refer to Rollout step 10. The owner merges all the other Renovate PRs.
 
 ### Commits
 
@@ -331,13 +339,13 @@ stateDiagram-v2
     AgentReview --> InProgress: findings to fix
     AgentReview --> OwnerReview: no open finding, PR ready
     AgentReview --> OwnerReview: disagreement, state/needs-owner, PR stays a draft
-    OwnerReview --> InProgress: owner asks for changes
+    OwnerReview --> InProgress: owner decides or asks for changes
     OwnerReview --> Done: PR merged or issue closed
     Backlog --> Done: closed as not planned
     Done --> [*]
 ```
 
-In text: an item starts in `Backlog`. It goes to `Ready` after the refinement, when it has a milestone. It goes to `In progress` when an agent takes it, and to `Agent review` when its draft PR is open. Findings send it back to `In progress`. With no open finding, it goes to `Owner review`. A disagreement also sends it to `Owner review`, with `state/needs-owner` and a draft PR. The merge moves it to `Done`. A closed issue also goes to `Done`.
+In text: an item starts in `Backlog`. It goes to `Ready` after the refinement, when it has a milestone. It goes to `In progress` when an agent takes it, and to `Agent review` when its draft PR is open. Findings send it back to `In progress`. With no open finding, it goes to `Owner review`. A disagreement also sends it to `Owner review`, with `state/needs-owner` and a draft PR. After a decision or a change request of the owner, it goes back to `In progress`, and the change gets a new review in `Agent review`. The merge moves it to `Done`. A closed issue also goes to `Done`.
 
 | Status | Meaning | Who moves the item here |
 | --- | --- | --- |
@@ -506,7 +514,7 @@ The owner makes these changes. Agents do not change settings or rulesets.
   - Remove "Require review from Code Owners" after RFC 0003 removes `CODEOWNERS`. Without the file, the rule has no use.
 - **New branch ruleset for `~ALL`:** "Require signed commits". As an option, restrict deletions and block force pushes. These two options must exclude `refs/heads/renovate/**`. Renovate force-pushes its branches when it rebases them (`:rebaseStalePrs`), and it deletes the branches of closed PRs.
 - **New tag ruleset for `~ALL` tags:** restrict creation, update and deletion, with an empty bypass list. Agents use the account of the owner, so a right of the owner to create tags is also a right of each agent. When the repository makes releases, a release GitHub App goes into the bypass list.
-- **Settings:** set the squash title to "PR title" and the body to "commit messages". Turn off "Allow auto-merge", because an agent could use it to merge a PR without the owner. Only the lock file maintenance PRs of Renovate can use it today. When the platform auto-merge is not available, Renovate merges through the API itself ([Renovate: configuration options](https://docs.renovatebot.com/configuration-options/), `platformAutomerge`).
+- **Settings:** set the squash title to "PR title" and the body to "commit messages". Turn off "Allow auto-merge", because an agent could use it to merge a PR without the owner. Only the lock file maintenance PRs of Renovate use it today. When the platform auto-merge is not available, Renovate merges through the API itself, after the checks of the branch ([Renovate: configuration options](https://docs.renovatebot.com/configuration-options/), `platformAutomerge`). This setting does not fix the lock file risk of "The Renovate exception".
 
 The bypass lists stay empty, except for a release App later. Agents use the account of the owner, so each bypass of the owner is also a bypass of each agent.
 
@@ -519,13 +527,20 @@ These controls do not depend on one agent:
 | Control | What it does | Limit |
 | --- | --- | --- |
 | (a) Separate credentials for the agents | A fine-grained token with "Contents: read", "Pull requests: write" and "Issues: write". Pushes go over SSH with a deploy key or a separate key. To open a PR needs "Pull requests: write". To merge a PR needs "Contents: write". Thus the token can open PRs, but it cannot merge or change settings. | It works only if the agents run as a separate OS user, in a container or in a sandbox. An agent that runs as the owner can read the keyring token of `gh` and use the SSH and GPG agents of the owner. A fine-grained token cannot access the user project "Perso". The board then needs a second classic token with only the `project` scope, which reaches all projects of the owner. Other ways: the owner moves the items, or the agents wait for the installation token of a GitHub App. |
-| (b) A plain Git `pre-push` script | It reads each line on its standard input, one line for each reference. It refuses a push to `main`, to `refs/tags/*`, a deletion (a local SHA of zeros) and a non-fast-forward push. A `mise` task installs it through `core.hooksPath`, and it calls the existing `pre-push` hook of the Entire CLI. It works for each agent and each Git client. | `git push --no-verify` skips it. |
+| (b) A plain Git `pre-push` script | It reads each line on its standard input, one line for each reference. It refuses a push to `main`, to `refs/tags/*`, a deletion (a local SHA of zeros) and a non-fast-forward push. A `mise` task installs it in the hooks folder of the repository and chains the existing `pre-push` hook of the Entire CLI. It works for each agent and each Git client. | `git push --no-verify` skips it. |
 | (c) Rulesets on `~ALL` branches and tags | GitHub refuses unsigned commits and tags. As an option, it refuses deletions and force pushes on all branches except `renovate/**`. | The token of the owner can change the rulesets. |
 | (d) Auto-merge off | No agent can set auto-merge on a PR. | The token of the owner can turn it on again. |
 
 Control (b) does not use the `pre-push` stage of the pre-commit framework. pre-commit 4.7.0 skips the references with a local SHA of zeros, so a deletion never reaches the hook. It also skips the references whose commits are already on the remote, for example a tag on a pushed commit. It gives only the first such reference to the hook. The reviewer of this RFC read this in `pre_commit/commands/hook_impl.py`.
 
-The `commit-msg` hook stays in pre-commit. `.pre-commit-config.yaml` gets `default_install_hook_types: [pre-commit, commit-msg]`, and the `commit-msg` hook must also call the Entire CLI hook.
+The installation of control (b) follows these rules:
+
+- Do not set `core.hooksPath`. With it, Git stops reading `.git/hooks`. The pre-commit `pre-commit` hook (gitleaks, `detect-private-key`, `no-commit-to-branch`) and the Entire CLI hooks then stop. pre-commit 4.7.0 also refuses to install hooks when `core.hooksPath` has a value. The reviewer of this RFC read this in `install_uninstall.py`.
+- Never point a hooks path at a folder in Git. The checked-out branch, for example a Renovate branch, then controls the hook code that runs on the machine.
+- The `mise` task writes the script to `$(git rev-parse --git-common-dir)/hooks/pre-push`. First, it moves the Entire CLI hook to a separate name. The script keeps a copy of its standard input. It calls the Entire CLI hook with the same arguments and the same input.
+- The Entire CLI can write its hooks again later and remove the chain. The author did not verify this. The test of Rollout step 10 finds this case.
+
+The `commit-msg` hook stays in pre-commit. `.pre-commit-config.yaml` gets `default_install_hook_types: [pre-commit, commit-msg]`. `pre-commit install --hook-type commit-msg` already chains the Entire CLI hook: it moves the existing hook to `commit-msg.legacy`, and it runs that hook first. Do not use `-f` or `--overwrite`, because they delete the legacy hook.
 
 Unresolved question 11 asks which controls to use. Agent identity stays out of scope.
 
@@ -552,7 +567,7 @@ Refer to "Unresolved questions" for the choice.
 - **The issues and the milestones are public.** The repository is public. The project "Perso" is private, but an issue on the board stays public. An issue, a milestone or a project field must not contain secrets, private addresses or the details of a weakness that is not corrected yet. Use the private vulnerability report form. The `config.yml` of the issue forms links to it.
 - **A token with the `project` scope can change all the projects of the owner.** The board holds only plans, not code, so the risk is small.
 - **A label workflow needs write access.** The labeler and a label sync need `pull-requests: write` or `issues: write`. They run with `pull_request`, not `pull_request_target`, so a fork PR gets no write token. Each action stays pinned to a commit SHA.
-- **Renovate merges without the owner.** Today, it merges the dev tool PRs and the lock file maintenance PRs after all the checks of the branch pass. `main` has no required check yet. A compromised dev tool can thus reach `main`. The lock file maintenance PRs can also change the provider and chart lock files that reach the instances. The `minimumReleaseAge` of three days makes the risk smaller, but vulnerability PRs skip it. "The Renovate exception" limits these merges, and Rollout step 10 checks them.
+- **Renovate merges without the owner.** Today, it merges the dev tool PRs after the checks of the branch pass. A compromised dev tool can thus reach `main`. The lock file maintenance PRs use the auto-merge of GitHub, and `main` has no required check. Thus they can merge with no passing check, and they can change the provider and chart lock files that reach the instances. This risk exists today. The orchestrator proposes a separate fix to the owner. The `minimumReleaseAge` of three days makes the risk smaller, but vulnerability PRs skip it. "The Renovate exception" limits these merges, and Rollout step 10 checks them.
 
 ## Rollout
 
@@ -577,7 +592,7 @@ In text: after the merge of this RFC, the ADRs come first. Then three lines of w
 2. An author derives the ADRs. Possible ADRs:
    - "Track work in a GitHub Project with issues and milestones".
    - "Use the order of work from RFC to code".
-   - "Use atomic PRs and the review loop". It changes the exit of the review loop of ADR 0005 (flow step 3). Thus it supersedes ADR 0005, and it repeats the rest of that flow.
+   - "Use atomic PRs and the review loop". It changes the exit of the review loop of ADR 0005 (flow step 3). ADR 0005 has no partial supersede. Thus this ADR restates all of ADR 0005 with the new exit, and it supersedes ADR 0005 in full.
    - "Use the label taxonomy".
    - "Require signed commits and squash merges".
    - "Enforce the rules with Git hooks, CI checks, policies and rulesets".
@@ -590,8 +605,8 @@ In text: after the merge of this RFC, the ADRs come first. Then three lines of w
 9. The owner deletes the Claude Docs plans. After this step, the board is the only source of plans.
 10. An author adds the checks, as rule 8 of `AGENTS.md` requires:
     - A PR title check in CI, for example `commitlint` on the PR title. It becomes a required status check. `config-conventional` limits the header to 100 characters. Renovate titles can be longer, so the check or the Renovate `commitMessage` options must agree before the check becomes required.
-    - The `pre-push` script of control (b), with its `mise` task, and `default_install_hook_types` in `.pre-commit-config.yaml`. A test pushes each refused reference type to a local bare repository, and checks the refusal.
-    - A Conftest policy on `renovate.json`. It permits `automerge: true` only in the dev tool rule, with its fixed files, managers and update types, and in `lockFileMaintenance` only for `.mise/mise.lock`.
+    - The `pre-push` script of control (b), with its `mise` task, and `default_install_hook_types` in `.pre-commit-config.yaml`. A test pushes each refused reference type to a local bare repository, and checks the refusal. The same test checks that the Entire CLI hook still runs.
+    - A Conftest policy on `renovate.json`. It permits `automerge: true` only in two places: the dev tool rule, with its fixed files, managers and update types, and one `packageRules` entry for `lockFileMaintenance` with `matchManagers: ["mise"]`. It requires `lockFileMaintenance.automerge: false` at the top level.
     - A scheduled check that lists the PRs that `app/renovate-gsuquet` merged. It fails when a merged PR changed a file outside of the files of the exception.
     - A check, after the `~ALL` ruleset exists, that GitHub can still delete the head branch after a merge. The GitHub pages do not tell if a deletion rule blocks this.
     - A check that `.github/labels.yml` is valid against a schema, in `schemas:check`.
