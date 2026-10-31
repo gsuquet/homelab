@@ -123,10 +123,10 @@ The owner requires that the records render on GitHub and in [Backstage TechDocs]
 This RFC proposes Mermaid diagrams in fenced code blocks with the language `mermaid`:
 
 - GitHub renders these blocks in Markdown files ([GitHub: creating diagrams](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-diagrams)).
-- TechDocs does not render Mermaid by default. Two options of the [TechDocs how-to guides](https://backstage.io/docs/features/techdocs/how-to-guides/) read the same `mermaid` blocks: the [`backstage-plugin-techdocs-addon-mermaid`](https://github.com/johanneswuerbach/backstage-plugin-techdocs-addon-mermaid) addon in the browser, or the `markdown-inline-mermaid` extension at build time. Unresolved question 8 asks which one.
+- TechDocs does not render Mermaid by default. Two options of the [TechDocs how-to guides](https://backstage.io/docs/features/techdocs/how-to-guides/) read the same `mermaid` blocks: the [`backstage-plugin-techdocs-addon-mermaid`](https://github.com/johanneswuerbach/backstage-plugin-techdocs-addon-mermaid) addon in the browser, or the `markdown-inline-mermaid` extension at build time. Rollout step 5 must confirm that the addon reads these blocks. Unresolved question 8 asks which option to use.
 - The Kroki option of the same guide needs `kroki-mermaid` blocks. GitHub does not render them. Thus this RFC does not use Kroki.
 
-Vale does not check the text in code blocks, and thus not the Mermaid blocks. Each diagram has a short text version below it.
+Vale does not check the text in code blocks, and thus not the Mermaid blocks. Each diagram has a short text version next to it, above or below. The numbered flow is the text version of the flow diagram.
 
 ### Names and numbers
 
@@ -291,7 +291,7 @@ To go back, revert the PR of step 1. No code depends on the records yet.
 5. **Which rules apply until an RFC brings back an earlier decision?** Recommendation: the rules in `AGENTS.md` stay as temporary operating rules. They have no decision authority. An RFC that conflicts with them wins. An RFC must confirm each of them, or replace it.
 6. **Can an ADR be in the same PR as its implementation?** Recommendation: no, as the flow proposes. A separate PR lets the owner accept the decision before the code exists.
 7. **Does the owner accept the license risk of the Rust template?** The [rust-lang/rfcs README](https://github.com/rust-lang/rfcs#license) tells that some parts of the repository have the MIT or Apache-2.0 license already. It does not tell if `0000-template.md` is one of them. Options: accept the risk, ask the Rust project, or write a new template with the same section names. Recommendation: accept the risk. The template is a short list of section names and questions, and the text of this repository is a new ASD-STE100 version.
-8. **Which TechDocs option renders the Mermaid blocks?** The browser addon needs a change in the Backstage frontend, and no change in the build. The `markdown-inline-mermaid` extension needs Chromium and `@mermaid-js/mermaid-cli` in the TechDocs build image, and no change in the frontend. Recommendation: the browser addon, because the Backstage demo site uses it, and the build image stays small. The choice depends on who runs the Backstage instance.
+8. **Which TechDocs option renders the Mermaid blocks?** The browser addon needs a change in the Backstage frontend, and no change in the build. The `markdown-inline-mermaid` extension needs Chromium and `@mermaid-js/mermaid-cli` in the TechDocs build image, and no change in the frontend. Recommendation: the browser addon, because the build image stays small. The choice depends on who runs the Backstage instance.
 
 ## Future possibilities
 

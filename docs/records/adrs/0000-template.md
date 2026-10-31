@@ -10,7 +10,7 @@ superseded-by: null # The number of the ADR that replaces this ADR.
 
 # ADR NNNN: Short title of the problem and the solution
 
-Include a diagram when the text describes a flow, a state, a structure or an interaction. Use a fenced code block with the language `mermaid`, and add a short text version below it.
+Include a diagram when the text describes a flow, a state, a structure or an interaction. Use a fenced code block with the language `mermaid`, and add a short text version next to it, above or below.
 
 ## Context and problem statement
 
