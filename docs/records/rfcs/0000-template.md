@@ -8,7 +8,7 @@ pr: null # The number of the PR that holds this RFC.
 
 # RFC NNNN: Short title
 
-Include a diagram when the text describes a flow, a state, a structure or an interaction. Use a fenced code block with the language `mermaid`, and add a short text version next to it, above or below.
+Include a diagram when the text describes a flow, a state, a structure or an interaction. Use a fenced code block with the language `mermaid`, or an SVG file. Add a short text version next to it, above or below.
 
 ## Summary
 
@@ -109,7 +109,7 @@ License: the rust-lang/rfcs README states that the repository is being
 relicensed under the MIT license or the Apache License 2.0, and that some parts
 already are: https://github.com/rust-lang/rfcs#license
 The license status of 0000-template.md could not be confirmed. Refer to the
-unresolved questions of RFC 0001. Changes: the "Guide-level
+"Licenses" section of RFC 0001. The owner accepts this risk. Changes: the "Guide-level
 explanation" section is now "Proposal", the "Reference-level explanation"
 section is now "Detailed design", the "Security considerations" and "Rollout"
 sections are new, the header list is now YAML front matter, and the text uses

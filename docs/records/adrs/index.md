@@ -8,7 +8,7 @@ An architecture decision record (ADR) records one decision. Each ADR comes from 
 2. Copy [`0000-template.md`](0000-template.md) to `NNNN-short-title.md`. Use the next free number.
 3. Write each section of the template. Put the RFC number in the `rfc` field.
 4. Add a row for the ADR to the table on this page.
-5. Ask a different agent to review the ADR. Correct it until the reviewer finds no problem.
+5. Ask a reviewer, a person or an agent that is not the author, to review the ADR. Correct it until the reviewer finds no problem.
 6. Run `mise run lint`, and open a PR.
 
 ## List
