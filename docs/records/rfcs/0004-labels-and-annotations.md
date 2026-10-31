@@ -289,7 +289,7 @@ On GKE, two sets of labels exist, and they do not share labels ([GKE: cluster la
 1. Change each `.` and `/` to `_`.
 2. Change all letters to lowercase.
 3. The result must have max. 63 characters. A Conftest check refuses a longer key.
-4. The value stays the same. The value rules of the repository already give valid Google Cloud values. Check K13 refuses a value that is not valid, for example `2.0.22`. Thus a key such as `app.kubernetes.io/version` does not go in the map of cloud labels.
+4. The value stays the same. The value rules of the repository already give valid Google Cloud values. `schemas:check` validates the values in `instance.yaml`. The permitted key set of K13 keeps keys with other values, for example `app.kubernetes.io/version` with `2.0.22`, out of the map of cloud labels.
 
 ```mermaid
 flowchart LR
@@ -317,7 +317,7 @@ The rule can give the same cloud key for two keys of other tools, for example `f
 
 Rule 8 of `AGENTS.md` asks for a check for each rule. This RFC describes the checks. It does not implement them. All the checks go in `policy/kubernetes/kubernetes.rego` and `policy/terraform/terraform.rego`, with a test for each case that must pass and each case that must fail. Conftest supports `deny` rules, which fail the check, and `warn` rules, which do not fail it ([Conftest](https://www.conftest.dev/)).
 
-A data file, for example `policy/data/labels.yaml`, holds the reference table: the sub-groups, the keys, their type, their kinds and their permitted values. It also holds the allowlists of K2, K3, K4, K10, K14 and K15. `conftest --data` loads it, and the policies read it as `data.labels`. Thus the table and the checks have one source. Today `.mise/tasks/lint/policy.sh` gives no `--data` option to Conftest. The implementation PR adds it.
+A data file, for example `policy/data/labels.yaml`, holds the reference table: the sub-groups, the keys, their type, their kinds and their permitted values. It also holds the allowlists of K2, K3, K4, K10, K14 and K15, and a map from each component to its permitted `tenant` and `network` values. `conftest --data` loads it, and the policies read it as `data.labels`. Thus the table and the checks have one source. Today `.mise/tasks/lint/policy.sh` gives no `--data` option to Conftest. The implementation PR adds it.
 
 **Input of the checks.** `.mise/tasks/lint/policy.sh` runs the `kubernetes` namespace on `kubernetes/*.yaml` and `gitops/*.yaml`, but not on `gitops/*/sources/templates/*`, because Helm templates are not YAML before they render. Thus the objects of the hand-written charts of `gitops/` exist only in `rendered/<component>/`. The checks find the origin of a rendered object in this way:
 
@@ -329,12 +329,12 @@ A label cannot give the origin. The Argo CD CRDs have no `helm.sh/chart` label, 
 Known holes and their requirements:
 
 - The values of an upstream chart can add objects, for example `extraObjects` of the `argo-cd` chart. These objects have an upstream source path, but their content is hand-written. Thus K4, K10 and K15 apply to all rendered objects, with an allowlist for upstream exceptions.
-- Helm accepts a chart that somebody copies into `charts/` as a dependency ([Helm: charts](https://helm.sh/docs/topics/charts/)). Requirement: Git tracks no file in `gitops/*/*/sources/charts/`, and each `dependencies[].repository` starts with `https://` or `oci://`. `instance-checks.sh` checks this.
+- Helm accepts a chart that somebody copies into `charts/` as a dependency ([Helm: charts](https://helm.sh/docs/topics/charts/)). Requirement: Git tracks no file in `gitops/*/*/sources/charts/`, and each `dependencies[].repository` starts with `https://` or `oci://`. The implementation PR adds this check to `instance-checks.sh`.
 - Today, `split_manifest_by_resource` fails when two objects have the same kind and name. This guard must stay on the kind and the name, not on the file name. Else an upstream and a hand-written `Namespace` with the same name both pass.
 
 The checks K2, K3 and K6 apply to the hand-written objects. K5 applies to all `Namespace` objects in `gitops/`. The legacy files in `kubernetes/` get only K1, because the migration removes them.
 
-The checks read the keys in `metadata.labels` and `metadata.annotations`, also in pod templates. They do not read the keys in selectors, for example `nodeSelector` or `namespaceSelector`. Thus `kubernetes.io/os` in a `nodeSelector` is not a K2 problem.
+K1 to K7 read the keys in `metadata.labels` and `metadata.annotations`, also in pod templates. They do not read selectors, for example `nodeSelector` or `namespaceSelector`. Only K8 reads `spec.selector`. Thus `kubernetes.io/os` in a `nodeSelector` is not a K2 problem.
 
 | Check | Input | Rule | Level |
 | --- | --- | --- | --- |
@@ -342,8 +342,8 @@ The checks read the keys in `metadata.labels` and `metadata.annotations`, also i
 | K2 Reserved prefixes | Hand-written objects in `gitops/` | No key with the prefix `kubernetes.io/`, `k8s.io/` or one of their subdomains, except the allowlist in `data.labels`: `app.kubernetes.io/`, the Pod Security labels, `kubernetes.io/metadata.name`, `kubernetes.io/os`, `kubectl.kubernetes.io/default-container`, `node-restriction.kubernetes.io/` and `gateway.networking.k8s.io/`. The last entry is for hand-written Gateway API objects. | `deny` |
 | K3 No prefix | Hand-written objects in `gitops/` | No key without a prefix, except the allowlist in `data.labels`. Conftest has no earlier state to compare with, thus the check refuses all keys without a prefix, not only new keys. | `deny` |
 | K3w No prefix in upstream charts | Upstream objects in `gitops/` | The same rule as K3. | `warn` |
-| K4 Custom keys | All objects in `gitops/`, with an allowlist for upstream exceptions | Each key with the custom prefix uses a sub-group and a name from `data.labels`, on a permitted kind, with a permitted value. The `tenant` and `network` keys are only permitted on a `Namespace`. | `deny` |
-| K5 Required keys | `Namespace` objects in `gitops/` | The required labels of the table in [Required keys](#required-keys). `tenant.<p>/name` is `platform` for an `infrastructure` component, and a tenant of `data.labels` other than `platform` for an `apps` component. | `deny` |
+| K4 Custom keys | All objects in `gitops/`, with an allowlist for upstream exceptions | Each key with the custom prefix uses a sub-group and a name from `data.labels`, on a permitted kind, with a permitted value. The `tenant` and `network` keys are only permitted on a `Namespace`, with the permitted `tenant` and `network` values of the component. | `deny` |
+| K5 Required keys | `Namespace` objects in `gitops/` | The required labels of the table in [Required keys](#required-keys). `tenant.<p>/name` is `platform` for an `infrastructure` component, and the tenant of the component in `data.labels` for an `apps` component. That tenant is not `platform`. | `deny` |
 | K6 Required keys of workloads | Pod templates and objects of the hand-written objects in `gitops/` | The required `app.kubernetes.io/*` labels. | `deny` |
 | K7 Required keys in upstream charts | Rendered upstream objects | The same keys as K6. Upstream charts do not always let the repository set them. | `warn` |
 | K8 Stable selectors | `spec.selector.matchLabels` of workloads, and `spec.selector` of a `Service` | No `app.kubernetes.io/version` and no `helm.sh/chart`. | `deny` |
@@ -440,10 +440,10 @@ This table is the draft of a future reference page, `docs/reference/labels-and-a
    - "Use the required keys and the sub-groups of the reference table".
    - "Use the `annotation` tracking method of Argo CD".
    - "Map Kubernetes keys to cloud labels and tags with one rule".
-3. In a separate PR, an author adds `policy/data/labels.yaml` and the `--data policy/data` option in `.mise/tasks/lint/policy.sh`. The same PR changes `render.sh` for the `upstream--` prefix, and adds the checks K1 to K10, K14 and K15, with tests. The checks start as `warn` for one PR if the existing files fail them. Then they change to `deny`.
+3. In a separate PR, an author adds `policy/data/labels.yaml` and the `--data policy/data` option in `.mise/tasks/lint/policy.sh`. The same PR changes `render.sh` for the `upstream--` prefix, adds the `sources/charts/` check to `instance-checks.sh`, and adds the checks K1 to K10, K14 and K15, with tests. The checks start as `warn` for one PR if the existing files fail them. Then they change to `deny`.
 4. An author adds the reference page `docs/reference/labels-and-annotations.md` from the reference table, and updates `docs/reference/policies.md`.
 5. An author adds the required labels to the `argocd` Namespace and to the later components, through the chart sources and `mise run manifests:render`.
-6. The checks K11 to K13 come with the first GKE or Azure instance. Before the ADR for Azure, an author tests a tag name with `_` and `-` on an Azure DNS zone. If Azure refuses it, K11 and K12 exempt the Azure DNS resources, and these resources get their tags from a separate map.
+6. The checks K11 to K13 come with the first GKE or Azure instance. Before the ADR for Azure, an author tests a tag name with `_` and `-` on an Azure DNS zone. If Azure refuses it, K11 and K12 exempt the Azure DNS resources, and these resources get their tags from a separate map. K13 also checks the keys of the separate map.
 7. The legacy manifests in `kubernetes/` do not change. The migration removes them.
 
 Verify in the implementation PR:
