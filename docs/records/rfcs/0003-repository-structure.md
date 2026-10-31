@@ -138,7 +138,7 @@ flowchart LR
 - To add a module, copy `modules/_template/` to `modules/<layer>-<component>/`.
 - To add an instance, create `instances/<name>/`. If the instance runs Argo CD, also create `gitops/clusters/<name>/` with the same name.
 - To add a GitOps component, create `gitops/infrastructure/<component>/sources/` or `gitops/apps/<app>/sources/`. Then add it to `cluster.yaml` of each cluster that uses it.
-- Do not add files to `ansible/`, `kubernetes/` or `scripts/`. A check stops a PR that adds a file there, except for rendered manifests and the files on an allowlist. Updates and fixes of the existing files stay possible until the migration is complete.
+- Do not add files to `ansible/`, `kubernetes/` or `scripts/`. A check fails on a PR that adds a file there, except for the rendered Argo CD manifests and the files on an allowlist. Updates and fixes of the existing files stay possible until the migration is complete.
 
 ## Detailed design
 
@@ -315,9 +315,18 @@ The owner asked to remove `.github/CODEOWNERS` (2026-10-31). The reasons:
 
 The consequences:
 
-- ADR 0001 has the status `accepted`. It says: "`.github/CODEOWNERS` and `AGENTS.md` give `docs/records/` to the owner". It also names `CODEOWNERS` in its "Confirmation". An ADR derived from this RFC must supersede that part of ADR 0001. The rule that only the owner accepts a record stays. Only the file that records it changes.
+- ADR 0001 has the status `accepted`. It says: "`.github/CODEOWNERS` and `AGENTS.md` give `docs/records/` to the owner". It also names `CODEOWNERS` in its "Confirmation". The ADR states have no partial supersede ([ADR 0005](../adrs/0005-use-the-rfc-and-adr-lifecycle-and-flow.md)). Thus the ADR derived from this RFC restates the full decision of ADR 0001 without `CODEOWNERS`, and it supersedes ADR 0001 completely. The rule that only the owner accepts a record stays.
 - The ruleset of `main` has `require_code_owner_review: true`. Without `CODEOWNERS`, this setting has no effect. RFC 0002 handles the rulesets.
-- The agents use the review table in `AGENTS.md` to know which PRs they must not merge. The agents RFC decides where that table goes. The removal PR only removes the references to `CODEOWNERS` in `AGENTS.md` and `CONTRIBUTING.md`.
+- Agents never merge a PR (ADR 0001). The review table in `AGENTS.md` tells who can approve a change. ADR 0001 also says that the rules in `AGENTS.md` have no decision authority. Thus this RFC states the approval rule for the clusters itself. Refer to "Approval of cluster changes". The agents RFC resolves the conflict between this rule and `AGENTS.md`. The removal PR only removes the references to `CODEOWNERS` in `AGENTS.md` and `CONTRIBUTING.md`.
+
+### Approval of cluster changes
+
+Without `CODEOWNERS`, the list of test instances needs a record with authority. This RFC proposes the rule for the derived ADR:
+
+- Only the owner approves a change to `gitops/clusters/<cluster>/rendered/argocd/` of a cluster that is not a test instance.
+- This list gives the test instances by path: `/instances/kind-local/` and `/gitops/clusters/kind-local/`. A reviewing agent can approve a change to these paths.
+- A new test instance gets its paths in this list through a new ADR.
+- Agents never merge a PR, also for a test instance.
 
 ### Legacy folders
 
@@ -343,26 +352,41 @@ stateDiagram-v2
 
 In the "deprecated" state:
 
-- Each legacy folder has a `README.md` with the text "Deprecated" in its first heading, the reason and a link to this RFC. `kubernetes/bootstrap/README.md` exists, but `ansible/README.md` and `kubernetes/README.md` do not.
+- Each legacy folder has a `README.md` with the text "Deprecated" in its first heading, the reason and a link to this RFC. `kubernetes/bootstrap/README.md` exists, but `ansible/README.md`, `kubernetes/README.md` and `scripts/README.md` do not.
 - A check fails when a PR adds a file in `ansible/`, `kubernetes/` or `scripts/`. A change to an existing file stays possible. Refer to "The legacy check" and unresolved question 11.
 - `docs/reference/repository-structure.md` shows the legacy folders in a separate section.
 - The current Vale, Renovate, pre-commit and render rules for these folders stay.
 
 ### The legacy check
 
-A new mise task `lint:legacy` (`.mise/tasks/lint/legacy.sh`) lists the files that a change adds:
+A new mise task `lint:legacy` (`.mise/tasks/lint/legacy.sh`) lists the files that a change adds in the legacy folders. The task has two modes. The environment variable `LEGACY_BASE` selects the mode.
+
+In CI, the workflow sets `LEGACY_BASE`, and the task compares two commits:
 
 ```bash
-git diff --no-renames --diff-filter=A --name-only "$BASE"...HEAD -- ansible kubernetes scripts
+git diff --no-renames --diff-filter=A --name-only "$LEGACY_BASE" HEAD -- \
+  ansible kubernetes scripts \
+  ':(exclude,glob)kubernetes/bootstrap/argo-cd/manifests/*.yaml'
 ```
 
-- In CI, `BASE` is `origin/main`. The `Lint` workflow runs the task through `mise run lint`.
-- In pre-commit, the task uses `git diff --cached` with the same filters, on the staged files.
+On a developer machine and in pre-commit, `LEGACY_BASE` is not set, and the task reads the staged files:
+
+```bash
+git diff --cached --no-renames --diff-filter=A --name-only -- \
+  ansible kubernetes scripts \
+  ':(exclude,glob)kubernetes/bootstrap/argo-cd/manifests/*.yaml'
+```
+
+- The `Lint` workflow sets `LEGACY_BASE` to `github.event.pull_request.base.sha` on a `pull_request` event. The checkout step needs `fetch-depth: 0`, because the default checkout has only one commit and no base. On a `push` to `main`, the workflow does not set `LEGACY_BASE`, and the staged set is empty, thus the check passes.
+- `lint:legacy` joins the `depends` list of `.mise/tasks/lint/_default.sh`. Thus `mise run lint` runs it, in CI and on a developer machine.
 - `--no-renames` makes a move into a legacy folder show as an added file.
-- The task ignores `kubernetes/**/manifests/**`. `mise run manifests:render` writes one file for each source template. Thus a chart update can add files there, and `manifests:check` makes sure that they are equal to the render.
+- The exclude covers only `kubernetes/bootstrap/argo-cd/manifests/*.yaml`. This is the only `manifests/` folder now, next to `sources/Chart.yaml`. `mise run manifests:render` writes one file for each source template in it, thus a chart update can add files there. `manifests:check` makes sure that they are equal to the render. The exclude does not cover a new `manifests/` folder, a subfolder or a file that is not YAML.
+- A new folder in `kubernetes/applications/` makes a new production Application, through the Git directory generator. The check catches it, because the folder adds files.
 - An allowlist file, `.mise/tasks/lint/legacy-allowlist.txt`, holds the paths that a migration fix can add, for example a SOPS secret for `olympus`. A change of the allowlist is visible in the diff of the PR, and the reviewer examines it.
 
 The check cannot detect the approval of the owner, because the agents use the account of the owner. Thus the exception is a file in Git, not an approval.
+
+A failed check does not stop a merge now. The ruleset of `main` has no required status check. [RFC 0002](https://github.com/gsuquet/homelab/pull/167) proposes the required check. This RFC depends on it for the enforcement.
 
 The removal PR deletes these items:
 
@@ -385,9 +409,9 @@ Verdict: the branch has nothing to salvage. PR #163 has the same features in the
 
 ## Security considerations
 
-- **App of Apps is an admin-only tool.** The Argo CD documentation says this, because an Application can name any AppProject. Here, the `argocd` Application syncs `gitops/clusters/<cluster>/rendered/argocd/`, which holds the Applications and the AppProjects. Thus write access to that folder gives admin access to the cluster. The review table of `AGENTS.md` lets a reviewing agent approve a change to a test instance, for example `kind-local`. This is acceptable only for a test cluster. A change to the folder of a production cluster needs the owner.
+- **App of Apps is an admin-only tool.** The Argo CD documentation says this, because an Application can name any AppProject. Here, the `argocd` Application syncs `gitops/clusters/<cluster>/rendered/argocd/`, which holds the Applications and the AppProjects. Thus write access to that folder gives admin access to the cluster. "Approval of cluster changes" lets a reviewing agent approve a change to the test instance `kind-local`. This is acceptable only for a test cluster. A change to the folder of another cluster needs the owner.
 - **The `apps` AppProject is wide.** It permits namespaced resources in all namespaces except `kube-system` and `argocd`, and `Namespace` objects. An app can change the resources of another component. "Future possibilities" has an item to limit each app to its own namespace.
-- **The removal of `CODEOWNERS` removes no control.** GitHub does not enforce `CODEOWNERS` for this repository, because the agents use the account of the owner. The agents obey the review table of `AGENTS.md` as a rule, with or without the file. A separate identity for the agents, for example a GitHub App, is a subject for RFC 0002.
+- **The removal of `CODEOWNERS` removes no control.** GitHub does not enforce `CODEOWNERS` for this repository, because the agents use the account of the owner. Agents never merge a PR (ADR 0001), with or without the file. The approval rule for the clusters is in this RFC and its ADR, not in `CODEOWNERS`. A separate identity for the agents, for example a GitHub App, is a subject for RFC 0002.
 - The repository does not commit `*.tfvars`, because they can hold secrets. `.gitignore` blocks them now. The secrets RFC handles the source of secret values.
 - A copy of an upstream chart or manifest keeps its upstream license file. This is a license duty. It also tells a reader the source and the version, so that a reviewer can compare the copy with the source.
 - `SECURITY.md` describes the security controls of the old design. A reader can think that these controls protect the new design. The rewrite removes this risk.
@@ -403,14 +427,14 @@ Verdict: the branch has nothing to salvage. PR #163 has the same features in the
    - "Make the Applications with a rendered App of Apps".
    - "Use the naming rules".
    - "Use the community health files", with the license.
-   - "Remove `CODEOWNERS`". It supersedes the `CODEOWNERS` part of ADR 0001.
+   - "Use RFCs and ADRs to record decisions, without `CODEOWNERS`". It restates ADR 0001 without `CODEOWNERS`, and it supersedes ADR 0001 completely. It also holds the rule of "Approval of cluster changes".
 3. Implementation PRs, in this order. Each one is small and links to its ADR:
-   1. Add the deprecation `README.md` files and the `lint:legacy` check.
+   1. Add the deprecation `README.md` files and the `lint:legacy` check. Set `fetch-depth: 0` and `LEGACY_BASE` in the `Lint` workflow.
    2. Delete `modules/bootstrap-agent-sandbox/` and `docs/reference/terraform-modules/bootstrap-agent-sandbox/`, in a separate PR. The owner decided this on 2026-10-31.
    3. Apply the license decision.
    4. Rewrite `README.md` and `SECURITY.md`. Update `CONTRIBUTING.md`. Add `SUPPORT.md`. Update `CODE_OF_CONDUCT.md` as the decision says.
    5. Rewrite `docs/reference/repository-structure.md` in ASD-STE100, with the target tree and a legacy section.
-   6. After the owner accepts the ADR "Remove `CODEOWNERS`": delete `.github/CODEOWNERS`, and remove the references to it in `AGENTS.md` and `CONTRIBUTING.md`.
+   6. After the owner accepts the ADR that supersedes ADR 0001: delete `.github/CODEOWNERS`, and remove the references to it in `AGENTS.md` and `CONTRIBUTING.md`.
    7. Add the checks for the naming rules that have no check yet. Examples: a TFLint rule for the Terraform file names, a check of the Rego file names.
 4. The owner changes the GitHub settings. Set a description: it is empty now. Replace the topics, which name Ansible and K3s. Correct the documentation link of the community profile, which points to `tree/master/docs`.
 5. After the migration of the Raspberry Pi, one PR removes the legacy folders and their rules. Refer to "Legacy folders".
@@ -475,7 +499,7 @@ Recommendation: A. Refer to "GitOps" for the reasons.
 ### 2. The mechanism that makes the Applications
 
 - **A. App of Apps, rendered (now).** The `argocd` chart renders one Application for each item of `cluster.yaml`. Good: the rendered Applications are in Git, and a reviewer sees them. `dependsOn` gives each Application a sync wave. With the Application health check in `argocd-cm`, a wave starts only when the Applications of the previous waves are `Healthy`. The repository needs no ApplicationSet controller. Bad: it departs from the upstream recommendation. App of Apps is an admin-only tool (refer to "Security considerations").
-- **B. ApplicationSet with a Git file generator on `cluster.yaml`.** A matrix of a Git file generator and a list generator, as in the branch `claude/project-thread-v2la4i`. Good: it follows the upstream recommendation, and it keeps the explicit list for each cluster. Bad: the Applications are not in Git. The order between Applications needs a different mechanism, for example progressive sync. Progressive sync orders steps by labels, and it does not use the Application health check of A.
+- **B. ApplicationSet with a Git file generator on `cluster.yaml`.** A matrix of a Git file generator and a list generator, as in the branch `claude/project-thread-v2la4i`. Good: it follows the upstream recommendation, and it keeps the explicit list for each cluster. Bad: the Applications are not in Git. The order between Applications needs [progressive sync](https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Progressive-Syncs/). Progressive sync waits until all the Applications of a step are `Healthy`, without the custom health check of A. But it is a beta feature since v3.3.0, and the ApplicationSet controller needs a setting to turn it on (`--enable-progressive-syncs`, or a key in `argocd-cmd-params-cm`).
 - **C. ApplicationSet with a Git directory generator.** Argo CD finds the components from the folders, without `cluster.yaml`. Good: no entry file. Bad: no explicit list for each cluster, and no order between components.
 
 Recommendation: A. The owner wants ApplicationSets to stay optional, and possible to switch on later (2026-10-31). A needs no ApplicationSet controller, and the layout by cluster works with A and with B. A later RFC can change to B without a change of the layout.
@@ -526,9 +550,9 @@ The repository is public. People can copy a module or a chart value file. Most l
 | **MIT (now)** | Short and well known. One duty: keep the notice in each copy. No change for the owner. | No explicit patent grant. |
 | **Apache-2.0** | Explicit patent grant. Many upstream projects use it, for example the Kubernetes projects. | Longer. A person who distributes a changed file must mark the change, and must keep a `NOTICE` file if one exists. These duties fall on the person who distributes, not on the owner. |
 | **MIT OR Apache-2.0** | The user selects. The Rust projects use it. | Two license files. More text for a personal homelab. |
-| **MPL-2.0** | Copyleft for each file: a person who distributes a changed file must publish that file. | Fewer users know it. A private change for a homelab has no duty. |
+| **MPL-2.0** | Copyleft for each file. A person who distributes a changed file must give its source to the people who receive the copy. | Fewer users know it. A private change for a homelab has no duty. |
 | **GPL-3.0 or AGPL-3.0** | Strong copyleft. | Many companies do not permit these licenses. The AGPL network clause applies to software that users reach over a network. It has almost no effect on configuration code. |
-| **0BSD, Unlicense or CC0-1.0** | No duty at all, close to the public domain. | No notice stays with the copies. CC0-1.0 has no patent grant, and it is not made for code. |
+| **0BSD, Unlicense or CC0-1.0** | No duty at all, close to the public domain. | No notice stays with the copies. CC0-1.0 has no patent grant, and OSI did not approve it. The author did not verify this on opensource.org, because that domain is not permitted. |
 | **No license** | The owner keeps all rights. | Nobody can copy the code legally. The repository is public to share it. |
 
 A second choice: one license for the code and a Creative Commons license, for example `CC-BY-4.0`, for `docs/`. A license for `docs/` touches the RFC template. [RFC 0001](0001-records-process.md#licenses) tells that the template is an adaptation of the Rust RFC template, and its license is not confirmed. The ADR template comes from MADR under CC0-1.0. Thus "all of `docs/` under MIT" is not fully true: each template keeps the license note in its last HTML comment.
@@ -560,13 +584,13 @@ Recommendation: B. The report stays in GitHub with the repository. A person with
 - **A. The `lint:legacy` check, with an allowlist file for exceptions.** Refer to "The legacy check".
 - **B. The `lint:legacy` check, with a commit trailer for exceptions.** Any author can add a trailer, and the PR diff does not show it as a change of a file.
 - **C. Only the `README.md` mark, without a check.**
-- **D. Only the review table of `AGENTS.md`, without a check.** The owner already approves these paths now, but nothing enforces it.
+- **D. Only the review table of `AGENTS.md`, without a check.** `AGENTS.md` has no decision authority (ADR 0001), and nothing enforces the table.
 
 Recommendation: A. This RFC has the rule that each structure rule has a check. The allowlist makes each exception visible in the diff.
 
 ### Dependencies on other RFCs
 
-- **RFC 0002** decides the shared `gsuquet/.github` repository, the issue templates and the PR template. This RFC keeps the community health files at the root until then.
+- **RFC 0002** ([PR #167](https://github.com/gsuquet/homelab/pull/167)) decides the shared `gsuquet/.github` repository, the issue templates and the PR template. This RFC keeps the community health files at the root until then. RFC 0002 also proposes the required status check on `main`. Without it, a failed `lint:legacy` does not stop a merge.
 - **RFC 0004** proposes the Kubernetes label prefix `<sub>.<prefix>.gsuquet.com`. It can propose a new name for the repository, for coherence with the prefix. It can also change the `apiVersion` group `infra.gsuquet.com` of the metadata files. This RFC does not decide the name of the repository. A rename changes `repoURL` in `gitops/infrastructure/argocd/sources/values.yaml` and the `$id` of the schemas.
 - **The tooling RFC** decides the tools and the pins. **The agents RFC** decides the place of the agent files. **The secrets RFC** decides the secrets.
 
