@@ -29,13 +29,12 @@ This decision comes from RFC 0001, sections "The RFC template" and "Prior art".
 ## Considered options
 
 - The Rust RFC template, adapted.
-- A template that the repository designs from nothing.
 
-RFC 0001 names only the first option. It does not list the second option as a rejected alternative. It is here as the base case.
+RFC 0001 names no other template as an alternative. It justifies each change to the Rust template (see below).
 
 ## Decision outcome
 
-Chosen option: "The Rust RFC template, adapted", because RFC 0001 ("The RFC template") selected it. The [RFC template](../rfcs/0000-template.md) is an adaptation of the [Rust RFC template](https://github.com/rust-lang/rfcs/blob/master/0000-template.md). It keeps all the Rust sections. The changes are:
+Chosen option: "The Rust RFC template, adapted", because it keeps a known process and structure, and the changes fit this repository. The [RFC template](../rfcs/0000-template.md) is an adaptation of the [Rust RFC template](https://github.com/rust-lang/rfcs/blob/master/0000-template.md). It keeps all the Rust sections. The changes are:
 
 - "Guide-level explanation" is now "Proposal". This repository has no language to teach.
 - "Reference-level explanation" is now "Detailed design". Rust RFC 0002 used this name.
@@ -48,7 +47,7 @@ The two new sections come after "Detailed design", because they apply to the des
 
 ### Consequences
 
-- Good, because the Rust process is a known and proven base ("Prior art").
+- Good, because the Rust process is a known base ("Prior art").
 - Good, because the new sections make each RFC state its security effect and its rollout.
 - Bad, because the license of the Rust `0000-template.md` is not clear: the rust-lang/rfcs README does not tell if it is MIT or Apache-2.0. The owner accepts this risk (RFC 0001, "Licenses").
 - Bad, because the template can drift from the Rust template over time.

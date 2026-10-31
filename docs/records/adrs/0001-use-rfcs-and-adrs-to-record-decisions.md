@@ -9,44 +9,54 @@ superseded-by: null
 
 # ADR 0001: Use RFCs and ADRs to record decisions
 
-The diagram shows the two record types and how they connect. In text: an RFC is a proposal. If the owner accepts it, the author derives one or more ADRs from it. The owner accepts each ADR. Then implementation follows.
+The diagram shows the two record types. In text: an RFC is a proposal. If the owner accepts it, the author derives one or more ADRs from it. The owner decides on each ADR. An ADR PR can hold implementation commits before that decision. The merge of the owner records each outcome, also a refusal. A rejected RFC or ADR stays in the repository.
 
 ```mermaid
 flowchart LR
-    RFC[RFC: proposal and discussion] -->|owner accepts| ADR[ADR: one decision]
-    ADR -->|owner accepts| IMP[Implementation PRs]
-    RFC -->|owner rejects or author withdraws| END[No ADR. The RFC stays in the records.]
+    RFC[RFC: proposal and discussion] -->|owner accepts, merge records it| ADR[ADR: one decision]
+    ADR -->|owner accepts, merge records it| IMP[Later implementation PRs]
+    RFC -->|rejected or withdrawn, merge records it| END[No ADR. The RFC stays.]
+    ADR -->|rejected, merge records it| REJ[No code. The ADR stays.]
 ```
 
 ## Context and problem statement
 
-The repository has many decisions, but no single record of them. Some are in `AGENTS.md`, some are in explanation pages, and others are only in the PR history or in the memory of the owner. Agents do most of the work. An author that cannot find a decision, or the reason for it, can change it by accident. How does the repository record its decisions?
+The repository has no single record of its decisions. Some are in `AGENTS.md` or in explanation pages. Others are only in the PR history. Agents do most of the work, and an author that cannot find a decision can change it by accident. How does the repository record its decisions?
 
-This decision comes from [RFC 0001](../rfcs/0001-records-process.md), sections "Proposal" and "Rationale and alternatives". The RFC has the full discussion.
+[RFC 0001](../rfcs/0001-records-process.md) ("Motivation", "Proposal") has the full discussion.
 
 ## Considered options
 
 - Only ADRs, without RFCs.
 - Only RFCs, without ADRs.
 - Issues or GitHub Discussions for the RFCs.
-- RFCs and ADRs, with the records in `docs/records/` (the option of RFC 0001).
+- The records in `docs/explanation/`.
+- RFCs and ADRs, in `docs/records/`.
 
 ## Decision outcome
 
-Chosen option: "RFCs and ADRs, with the records in `docs/records/`", because it is the option that RFC 0001 selected. RFC 0001 ("Proposal", "Two types of record") says: an RFC is a proposal and its discussion, and an ADR is one decision that always comes from an accepted RFC. One RFC can give many ADRs. A reader who wants only the decision reads the ADR. A reader who wants the full reasons reads the RFC.
+Chosen option: "RFCs and ADRs, in `docs/records/`". It is the only option that gives both the full discussion before a decision and a short record of the decision after it. The text stays in Git, where Vale checks it and the comments are next to the lines. RFC 0001 ("Rationale and alternatives") rejects each other option:
 
-RFC 0001 ("Detailed design", "Location") puts the records in `docs/records/`, outside of the Diátaxis sections, because a record is a fixed document with a date and a status. RFC 0001 ("Proposal", "When to write an RFC") requires an RFC for each change, except a plain bug fix. The owner accepts each RFC and each ADR, and agents never merge a PR ("Authors and reviewers"). The flow has ten steps ("Proposal", "The flow"). An ADR is never in the same PR as its RFC.
+- Only ADRs: they hold no long discussion.
+- Only RFCs: a reader who wants one decision must read a long RFC.
+- Issues or Discussions: the text is outside of the repository.
+- `docs/explanation/`: an explanation page changes with the system. A record does not change after acceptance.
 
-The other options lose to it for these reasons (RFC 0001, "Rationale and alternatives"):
+The rules of this decision (RFC 0001, "Proposal" and "Detailed design"):
 
-- Only ADRs: an ADR holds the context and the decision, but not a long discussion. The owner wants the full discussion before a decision, and the decision in a short form after it.
-- Only RFCs: an RFC is long and can hold many decisions. A reader who wants one decision must read all of it.
-- Issues or Discussions: the text is then outside of the repository, and Vale cannot check it. A PR keeps the text in Git and the comments next to the lines.
+- An RFC is a proposal and its discussion. An ADR is one decision. An ADR always comes from an accepted RFC, and one RFC can give many ADRs.
+- The records are in `docs/records/`, outside of the Diátaxis sections, because a record is a fixed document with a date and a status.
+- Write an RFC for each change, except a plain bug fix. A plain bug fix makes the code do what its documentation, its tests or its PR already tell, and it adds no new behavior. Examples: a correction of a typing error, a broken link, or a wrong value in a template.
+- An ADR is never in the same PR as its RFC. An ADR PR can also hold implementation commits before the owner decides. If the owner refuses the ADR, the author removes them before setting `rejected`.
+- Only the owner accepts an RFC or an ADR. The owner merges the PR, and the merge records the outcome: `accepted`, `rejected` or `withdrawn`. The repository keeps all records, whatever their outcome. Agents never merge a PR.
+- No earlier decision stays in force on its own authority. Each one must come back through an RFC (ADR 0005 gives the details).
+
+The flow, the states, the numbering and the diagram rule are in ADR 0005 and ADR 0006.
 
 ### Consequences
 
 - Good, because each decision has one short record with its reasons, and a link to the full discussion.
-- Good, because the history stays complete. A new RFC replaces an old decision through a new ADR, and the old ADR stays.
+- Good, because the history stays complete. A rejected record stays, and a new ADR replaces an old one.
 - Bad, because each change takes more time. It needs an RFC, then an ADR, before the code.
 - Bad, because the owner must review more PRs.
 - Bad, because the RFC and the ADR can repeat a part of the same content.
@@ -60,4 +70,4 @@ RFC 0001 ("Rollout", step 4) plans these checks as future work. They are not par
 - A check that each index lists each record with the correct status.
 - Possibly, "Require conversation resolution before merging" in the ruleset of `main`.
 
-Until these checks exist, the reviewer checks that each ADR comes from an accepted RFC, is not in the PR of its RFC, and has a row in the index. `.github/CODEOWNERS` gives `docs/records/` to the owner, and the owner merges each record PR.
+Until these checks exist, the reviewer checks that each ADR comes from an accepted RFC, is not in the PR of its RFC, and has a row in the index. `.github/CODEOWNERS` gives `docs/records/` to the owner.

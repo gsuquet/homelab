@@ -9,25 +9,20 @@ superseded-by: null
 
 # ADR 0004: Use YAML front matter for record metadata
 
-The diagram shows the ADR states that the front matter holds. In text: an ADR goes from `proposed` to `accepted` or `rejected`. An `accepted` ADR can go to `superseded` or `deprecated`. The RFC states are in RFC 0001.
+The diagram shows the structure of a record file. In text: the file starts with YAML front matter. The first heading holds the title. The sections follow. The states that the `status` field can have are in ADR 0005.
 
 ```mermaid
-stateDiagram-v2
-    [*] --> proposed
-    proposed --> accepted
-    proposed --> rejected
-    accepted --> superseded
-    accepted --> deprecated
-    rejected --> [*]
-    superseded --> [*]
-    deprecated --> [*]
+flowchart TD
+    F[Record file] --> M[YAML front matter: number, status, dates, links]
+    F --> H[First heading: the only source of the title]
+    F --> S[Sections of the template]
 ```
 
 ## Context and problem statement
 
 Each record has metadata: a number, a status, dates and links. Where does the record keep it? A tool must be able to read the metadata, so that a check can validate it.
 
-This decision comes from [RFC 0001](../rfcs/0001-records-process.md), sections "Metadata", "RFC states", "ADR states" and "Rationale and alternatives".
+This decision comes from [RFC 0001](../rfcs/0001-records-process.md), sections "Metadata" and "Rationale and alternatives". The states and their rules are in ADR 0005. The numbers and file names are in ADR 0006.
 
 ## Considered options
 
@@ -36,7 +31,7 @@ This decision comes from [RFC 0001](../rfcs/0001-records-process.md), sections "
 
 ## Decision outcome
 
-Chosen option: "YAML front matter", because RFC 0001 ("Metadata") selected it, and noted that the repository has no parser for a header table or a header list. Each record starts with YAML front matter. The title is only in the first heading of the file, so it has only one source.
+Chosen option: "YAML front matter", because a tool can read it, so a schema can validate each field. The repository has no parser for a header table or a header list (RFC 0001, "Rationale and alternatives"). Each record starts with YAML front matter. The title is only in the first heading of the file, so it has only one source.
 
 The RFC fields are:
 
@@ -58,7 +53,6 @@ The ADR fields are:
 | `supersedes` | A list of the ADR numbers that this ADR replaces. |
 | `superseded-by` | The number of the ADR that replaces this ADR, or `null`. |
 
-RFC 0001 also sets the file names (`NNNN-short-title.md`, four digits, separate sequences for RFCs and ADRs) and the state rules. An ADR changes to `superseded` or `deprecated` only through a later accepted RFC, in an ADR PR.
 
 ### Consequences
 
