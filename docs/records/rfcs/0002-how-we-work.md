@@ -2,7 +2,7 @@
 rfc: "0002"
 status: draft
 start-date: 2026-10-31
-pr: null
+pr: 167
 ---
 
 # RFC 0002: How we work
