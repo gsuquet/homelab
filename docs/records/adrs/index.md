@@ -20,4 +20,4 @@ There are no ADRs yet.
 
 ## Source of the template
 
-The template is an adaptation of the minimal template of [MADR](https://adr.github.io/madr/) 4.0.0. MADR has the license `MIT OR CC0-1.0` ([LICENSE](https://github.com/adr/madr/blob/main/LICENSE)). This repository uses it under the MIT license.
+The template is an adaptation of the minimal template of [MADR](https://adr.github.io/madr/) 4.0.0. MADR has the license `MIT OR CC0-1.0` ([LICENSE](https://github.com/adr/madr/blob/main/LICENSE)). This repository uses it under CC0-1.0.

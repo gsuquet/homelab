@@ -1,11 +1,9 @@
 ---
 # Copy this file to NNNN-short-title.md. Refer to docs/records/rfcs/index.md.
 rfc: "NNNN"
-status: draft # draft | review | accepted | rejected | withdrawn | superseded
+status: draft # draft | review | accepted | rejected | withdrawn
 start-date: YYYY-MM-DD
 pr: null # The number of the PR that holds this RFC.
-supersedes: [] # The numbers of the RFCs that this RFC replaces, for example ["0003"].
-superseded-by: null # The number of the RFC that replaces this RFC.
 ---
 
 # RFC NNNN: Short title
@@ -105,10 +103,11 @@ A note in this section is not a reason to accept this RFC or a future RFC. Put t
 <!--
 This template is an adaptation of the Rust RFC template:
 https://github.com/rust-lang/rfcs/blob/f17e8623ee2e2854570dcdb936a9f4ab08c0fcd4/0000-template.md
-Copyright (c) The Rust Project Developers. The rust-lang/rfcs repository
-licenses its content under the MIT license or the Apache License 2.0, at your
-option: https://github.com/rust-lang/rfcs#license
-This repository uses it under the MIT license. Changes: the "Guide-level
+License: the rust-lang/rfcs README states that the repository is being
+relicensed under the MIT license or the Apache License 2.0, and that some parts
+already are: https://github.com/rust-lang/rfcs#license
+The license status of 0000-template.md could not be confirmed. Refer to the
+unresolved questions of RFC 0001. Changes: the "Guide-level
 explanation" section is now "Proposal", the "Reference-level explanation"
 section is now "Detailed design", the "Security considerations" and "Rollout"
 sections are new, the header list is now YAML front matter, and the text uses

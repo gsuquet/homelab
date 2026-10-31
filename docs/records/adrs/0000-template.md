@@ -12,7 +12,7 @@ superseded-by: null # The number of the ADR that replaces this ADR.
 
 ## Context and problem statement
 
-Tell the context and the problem in two or three sentences. You can write the problem as a question. Tell the scope of the decision: for example, the modules, the instances or the tools that it affects.
+Tell the context and the problem in two or three sentences, or as a short story. You can write the problem as a question.
 
 Link to the RFC that this decision comes from. Do not copy the discussion of the RFC here.
 
@@ -24,7 +24,7 @@ Link to the RFC that this decision comes from. Do not copy the discussion of the
 
 ## Decision outcome
 
-Chosen option: "Title of option 1", because it is the only option that agrees with the RFC.
+Chosen option: "Title of option 1", because {justification}. For example, it is the only option that meets a mandatory criterion, or it is the best option in the comparison of the RFC.
 
 ### Consequences
 
@@ -37,10 +37,10 @@ Tell how to make sure that the implementation agrees with this decision. Prefer 
 
 <!--
 This template is an adaptation of the minimal MADR 4.0.0 template:
-https://github.com/adr/madr/blob/8135ed2e01503be852769402ec3eeb585bfe75a2/template/adr-template-minimal.md
-Copyright (c) the MADR authors. MADR has the license "MIT OR CC0-1.0":
+https://github.com/adr/madr/blob/2475fe1973f66a12aaf58a91d8fa7b42c0f5ea3d/template/adr-template-minimal.md
+MADR has the license "MIT OR CC0-1.0":
 https://github.com/adr/madr/blob/main/LICENSE
-This repository uses it under the MIT license. Changes: the YAML front matter
+This repository uses it under CC0-1.0. Changes: the YAML front matter
 comes from the full MADR template and has the "adr", "rfc", "supersedes" and
 "superseded-by" fields instead of "decision-makers", "consulted" and
 "informed". The "Confirmation" section comes from the full MADR template. The
