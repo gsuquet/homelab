@@ -27,7 +27,8 @@ An agent does not review its own work. A different agent reviews each PR.
 
 | Change | Who can approve the merge |
 | --- | --- |
-| Documentation only (`docs/`) | A reviewing agent |
+| Documentation only (`docs/`), but not `docs/records/` | A reviewing agent |
+| An RFC or an ADR (`docs/records/`) | The repository owner. Refer to [RFC 0001](docs/records/rfcs/0001-records-process.md) |
 | A test or demo instance only | A reviewing agent |
 | The homelab, a module, CI, the standards, or this file | The repository owner |
 | Renovate updates of dev tools (patch, minor, digest) | Automatic, after all checks pass |

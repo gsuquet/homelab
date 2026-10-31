@@ -92,7 +92,8 @@ homelab/
 │   ├── tutorials/                    # Learning-oriented guides
 │   ├── how-to/                       # Task-oriented recipes
 │   ├── reference/                    # Technical lookup tables (ansible-roles/, terraform-modules/)
-│   └── explanation/                  # Conceptual background
+│   ├── explanation/                  # Conceptual background
+│   └── records/                      # RFCs and ADRs (outside of Diátaxis)
 │
 ├── AGENTS.md                         # Guidelines for AI coding agents
 ├── CHANGELOG.md                      # Automated commit changelog
