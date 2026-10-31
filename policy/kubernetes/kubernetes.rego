@@ -113,12 +113,49 @@ deny contains msg if {
 	msg := sprintf("%s: remove the finalizer %s. A deleted Application must not delete the resources of the component.", [file.path, finalizer])
 }
 
-# Git must not hold secret values: the data of a Secret is only base64. A Secret
-# with no data is allowed, for example argocd-secret, which argocd-server fills.
-deny contains msg if {
+# Git must not hold plain secret values: the data of a Secret is only base64.
+# Allowed: a Secret with no data (for example argocd-secret, which argocd-server
+# fills), and a SOPS-encrypted Secret. This is a guard against accidents, not a
+# security control: a review catches the rest.
+secret_fields := ["data", "stringData"]
+
+# The documents of a file: conftest gives a multi-document file as an array.
+documents(contents) := contents if is_array(contents)
+
+documents(contents) := [contents] if is_object(contents)
+
+# A List (for example kubectl get -o yaml) holds its resources in items.
+# Nested Lists are not walked.
+resources(doc) := object.get(doc, "items", []) if doc.kind == "List"
+
+resources(doc) := [doc] if not doc.kind == "List"
+
+secrets contains [file.path, obj] if {
 	some file in input
-	file.contents.kind == "Secret"
-	some field in ["data", "stringData"]
-	count(object.get(file.contents, field, {})) > 0
-	msg := sprintf("%s: the Secret has %s. Do not commit secret values. Refer to docs/how-to/manage-secrets.md.", [file.path, field])
+	some doc in documents(file.contents)
+	some obj in resources(doc)
+	obj.kind == "Secret"
+}
+
+# A top-level sops object with a version, and each value as ENC[AES256_GCM,...].
+# TODO(sops task): verify the format against real sops output.
+sops_encrypted(obj) if {
+	is_object(obj.sops)
+	count(obj.sops) > 0
+	is_string(obj.sops.version)
+	every field in secret_fields {
+		every value in object.get(obj, field, {}) {
+			is_string(value)
+			startswith(value, "ENC[AES256_GCM,")
+		}
+	}
+}
+
+deny contains msg if {
+	some [path, obj] in secrets
+	some field in secret_fields
+	count(object.get(obj, field, {})) > 0
+	not sops_encrypted(obj)
+	name := object.get(obj, ["metadata", "name"], "")
+	msg := sprintf("%s: the Secret %q has values in %s that are not SOPS-encrypted. Remove %s, or encrypt it with SOPS.", [path, name, field, field])
 }

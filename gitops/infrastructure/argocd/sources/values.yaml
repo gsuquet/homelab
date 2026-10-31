@@ -63,15 +63,12 @@ argo-cd:
     rbac:
       # A logged-in user without a role can look, but not change.
       policy.default: role:readonly
-    # argocd-server does not start without argocd-secret: it only adds its keys
-    # (server.secretkey, the admin password) to a Secret that exists. The chart
-    # makes the Secret with no data, thus Git has no secret values. Set webhook,
-    # SSO or admin values with SOPS, not here.
+    # The chart default. An override to false stopped argocd-server: it reads
+    # argocd-secret at startup and fails if it is missing. No data in Git.
     secret:
       createSecret: true
       annotations:
-        # The Secret holds the keys that argocd-server makes at runtime. Argo CD
-        # must not delete it, for example when a commit removes it from Git.
+        # Keep the runtime keys. Delete=false is defence in depth.
         argocd.argoproj.io/sync-options: Prune=false,Delete=false
 
   # Resources: memory request equal to the limit, a CPU request and no CPU
