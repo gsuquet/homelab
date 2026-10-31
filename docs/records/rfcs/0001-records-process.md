@@ -43,15 +43,15 @@ No earlier decision stays in force on its own authority. Each earlier decision m
 1. Refine the subject. The owner and an agent agree on the problem and the scope.
 2. An agent writes the RFC on a branch, with the status `draft`.
 3. A different agent reviews the RFC. The author agent corrects it. They repeat this loop until the reviewer finds no more problems. The RFC must pass `mise run lint`, thus also the Vale rules of ASD-STE100.
-4. The author sets the status to `review` and opens the PR for review.
+4. The author sets the status to `review` and opens the PR for review. The first commit after that puts the PR number in the `pr` field.
 5. The owner reviews the RFC and writes comments on the PR.
 6. The author answers each comment with a change or with a reason. The owner does not accept the RFC while a comment has no answer.
-7. When the owner asks, the author sets `accepted` or `rejected` in the last commit. The merge of the owner makes the status final.
+7. When the owner asks, the author sets `accepted` in the last commit. The merge of the owner makes the status final.
 8. An agent derives one or more ADRs from the accepted RFC, with the status `proposed`. A different agent reviews them, in the same loop as step 3.
 9. The owner reviews the ADRs. Steps 6 and 7 apply, with the status `accepted`.
 10. The implementation starts. Each implementation PR links to its ADRs.
 
-Only the owner accepts an RFC or an ADR. An agent does not review its own record. Steps 6 and 7 are a proposal. Unresolved question 1 asks how the owner approves while agents use the account of the owner.
+Only the owner accepts an RFC or an ADR. An agent does not review its own record. Steps 6 and 7 are a proposal. Refer to unresolved question 1.
 
 ## Detailed design
 
@@ -76,7 +76,7 @@ docs/records/
 
 ### Names and numbers
 
-The name of each record is `NNNN-short-title.md`. `NNNN` is a sequential number with four digits. The short title uses lowercase letters, digits and hyphens. RFCs and ADRs have two different number sequences. The number `0000` is for the template. The Rust process uses the PR number as the RFC number. This repository does not, because its PRs have numbers for all types of change.
+The name of each record is `NNNN-short-title.md`. `NNNN` is a sequential number with four digits. The short title uses lowercase letters, digits and hyphens. RFCs and ADRs have two different number sequences. The number `0000` is for the template.
 
 ### Metadata
 
@@ -107,14 +107,17 @@ The title is only in the first heading of the file. Thus it has only one source.
 | `draft` | An agent writes and reviews the RFC. The PR can be a draft PR. | The author |
 | `review` | The RFC is ready for the owner. | The author |
 | `accepted` | The owner accepted the RFC. | The author, when the owner asks. The merge of the owner makes it final. |
-| `rejected` | The owner refused the RFC. | The author, when the owner asks. The merge of the owner makes it final. |
+| `rejected` | The owner refused the RFC. | The owner. Unresolved question 2 asks if a rejected RFC merges. |
 | `withdrawn` | The author or the owner stopped the RFC before a decision. | The author or the owner |
 
 ```text
 draft → review → accepted
-            ├──→ rejected
-            └──→ withdrawn
+  │         ├──→ rejected
+  │         └──→ withdrawn
+  └──────────────→ withdrawn
 ```
+
+This RFC proposes that an RFC does not go back from `review` to `draft`. When the comments of the owner need large changes, the RFC stays in `review` while the author changes it.
 
 An accepted RFC does not change, as in the Rust process. The only permitted changes are corrections of typing errors and broken links. The replacement of a decision occurs at the ADR level. One RFC gives many ADRs, and a later RFC can replace only some of them. Thus a `superseded` status for a full RFC is not clear.
 
@@ -143,7 +146,7 @@ A later ADR comes from a later accepted RFC. Thus an ADR changes to `superseded`
 The [RFC template](0000-template.md) is an adaptation of the [Rust RFC template](https://github.com/rust-lang/rfcs/blob/master/0000-template.md). It keeps all the Rust sections. The changes are:
 
 - "Guide-level explanation" is now "Proposal". This repository has no language to teach.
-- "Reference-level explanation" is now "Detailed design". [Rust RFC 0002](https://rust-lang.github.io/rfcs/0002-rfc-process.html) used this name.
+- "Reference-level explanation" is now "Detailed design". Rust RFC 0002 used this name.
 - "Security considerations" is new. A part of the homelab is open to the internet, and each change must tell its effect on security.
 - "Rollout" is new. The repository is in a migration, and each change must tell its order of PRs, its checks and how to go back.
 - The header list is now YAML front matter. The Rust anchor lines, for example `[summary]: #summary`, are not in the template.
@@ -202,8 +205,6 @@ To go back, revert the PR of step 1. No code depends on the records yet.
 - **The full MADR template.** It repeats the content of the RFC.
 - **The records in `docs/explanation/`.** An explanation page changes with the system. A record does not change after acceptance.
 
-If the repository does not do this, the decisions stay in many places, and the agents can change them by accident.
-
 ## Prior art
 
 - **Rust RFC process.** The [rust-lang/rfcs README](https://github.com/rust-lang/rfcs) tells the process: an RFC is a PR, the discussion is in the PR comments, and the team decides. [Rust RFC 0002](https://rust-lang.github.io/rfcs/0002-rfc-process.html) started the process with an RFC about the process. This repository does not use the "final comment period" of ten days, because one owner makes the decisions.
@@ -213,9 +214,9 @@ If the repository does not do this, the decisions stay in many places, and the a
 
 ## Unresolved questions
 
-1. **How does the owner approve while agents use the account of the owner?** GitHub does not let an author approve their own PR (`AGENTS.md`). Thus GitHub cannot show who approves, who merges or who resolves a thread. Steps 6 and 7 of the flow are the proposal. The merge of the owner accepts a record. The author sets the status when the owner asks. Only the owner resolves a thread. No tool can enforce this proposal. A separate account for the agents can solve the problem. Then a GitHub approval can show the acceptance of the owner.
+1. **How does the owner approve while agents use the account of the owner?** GitHub does not let an author approve their own PR (`AGENTS.md`). Recommendation: give the agents a separate identity, for example a GitHub App. Then the owner approves with a GitHub review, and only the owner resolves a thread. Until that identity exists, the merge of the owner accepts a record, as steps 6 and 7 of the flow tell.
 2. **Do rejected and withdrawn RFCs merge?** Rust closes these PRs without a merge. Recommendation: merge them with the final status, so that the record stays in `docs/records/`.
-3. **When does an RFC get its number?** Recommendation: the author takes the next free number when the work starts. If two open PRs have the same number, the PR that merges second changes its number. A withdrawn draft or a new number can leave a gap. A gap is not a problem.
+3. **Detail: which rule gives the number to a new record?** The owner decided on sequential numbers. Recommendation: the author takes the next free number when the work starts. If two open PRs have the same number, the PR that merges second changes its number. A withdrawn draft or a new number can leave a gap. A gap is not a problem.
 4. **What is a plain bug fix?** Recommendation: a change that makes the repository agree with an accepted decision or with the documentation, and that adds no new behavior. A correction of a typing error and a Renovate patch update are examples.
 5. **Which rules apply until an RFC brings back an earlier decision?** Earlier decisions have no authority. But the agents need rules to work. Recommendation: the rules in `AGENTS.md` stay as temporary operating rules. They have no decision authority. An RFC that conflicts with them wins. An RFC must confirm each of them, or replace it.
 6. **Can an ADR be in the same PR as its implementation?** Recommendation: no. A separate PR lets the owner accept the decision before the code exists.

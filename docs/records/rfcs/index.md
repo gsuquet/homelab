@@ -19,4 +19,4 @@ A request for comments (RFC) proposes a change before somebody does the work. [R
 
 ## Source of the template
 
-The template is an adaptation of the [Rust RFC template](https://github.com/rust-lang/rfcs/blob/master/0000-template.md). The [rust-lang/rfcs README](https://github.com/rust-lang/rfcs#license) tells that the repository moves to the MIT license or the Apache License 2.0. Some parts have these licenses already. The license of the template is not confirmed. Refer to the unresolved questions of [RFC 0001](0001-records-process.md).
+The template is an adaptation of the [Rust RFC template](https://github.com/rust-lang/rfcs/blob/master/0000-template.md), and its license is not confirmed: refer to unresolved question 8 of [RFC 0001](0001-records-process.md#unresolved-questions).
