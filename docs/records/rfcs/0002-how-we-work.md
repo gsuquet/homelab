@@ -186,7 +186,7 @@ sequenceDiagram
     Orch->>Impl: Give the issue
     Impl->>Impl: Branch, commits, mise run lint
     Impl->>Impl: Open a draft PR (Closes #N)
-    loop Until no finding stays open, or disagreement
+    loop Until no finding stays open
         Impl->>Orch: Ask for a review
         Orch->>Rev: Start a new reviewing agent
         Rev-->>Impl: Findings on the PR
@@ -214,8 +214,8 @@ The rules of the loop:
 - The implementing agent answers each finding with a change or with a reason in the PR.
 - A finding with a recorded reason does not stay open, unless the next reviewer refuses the reason.
 - If the reviewer and the implementer still disagree after one more round, the implementer adds `state/needs-owner` and sets the Status to `Owner review`. The PR stays a draft. The decision of the owner closes the open findings. The implementer applies the decision, removes `state/needs-owner`, sets the Status to `In progress`, and asks for a new review of the change.
-- Else, the loop stops when a review finds no open finding.
-- These two exit rules change the exit of the loop in [ADR 0005](../adrs/0005-use-the-rfc-and-adr-lifecycle-and-flow.md) (flow step 3), also for record PRs. ADR 0005 loops until the reviewer finds no problem. This RFC only proposes the change. A derived ADR must restate all of ADR 0005 and supersede it in full to make it a decision.
+- The loop stops only when a review finds no open finding.
+- This exit rule and the owner decision on a disagreement change the loop of [ADR 0005](../adrs/0005-use-the-rfc-and-adr-lifecycle-and-flow.md) (flow step 3). The change also applies to record PRs. ADR 0005 loops until the reviewer finds no problem. This RFC only proposes the change. A derived ADR must restate all of ADR 0005 and supersede it in full to make it a decision.
 - The PR description names the implementing agent and each reviewing agent.
 - The PR stays a draft during the loop. "Ready for review" means "ready for the owner".
 
@@ -265,7 +265,7 @@ Major updates wait for the approval of the owner on the dependency dashboard. Th
 This RFC proposes these conditions for the exception:
 
 - Renovate merges only the dev tool PRs with the files, managers and update types above.
-- Lock file maintenance merges without the owner only for `.mise/mise.lock`. The provider and chart lock files reach the instances, so the owner merges them. `lockFileMaintenance` has no file filter. Thus the configuration sets `lockFileMaintenance.automerge: false` at the top level. One `packageRules` entry then sets `automerge: true` with `matchUpdateTypes: ["lockFileMaintenance"]` and `matchManagers: ["mise"]`.
+- Lock file maintenance merges without the owner only for `.mise/mise.lock`. The provider and chart lock files reach the instances, so the owner merges them. `lockFileMaintenance` has no file filter. Thus the configuration sets `lockFileMaintenance.automerge: false` at the top level. One `packageRules` entry then sets `automerge: true` with `matchUpdateTypes: ["lockFileMaintenance"]` and `matchManagers: ["mise"]`. The entry also sets its own `branchTopic`, for example `mise-lock-file-maintenance`. Without it, Renovate puts all lock files in one `renovate/lock-file-maintenance` PR, and the result of two `automerge` values in one PR is not documented.
 - The required status checks of Rollout step 5 exist before the exception applies.
 
 The mise lock file maintenance runs `mise lock --bump`. A self-hosted Renovate must have `mise` in `allowedUnsafeExecutions` for this ([Renovate: mise manager](https://docs.renovatebot.com/modules/manager/mise/)). The owner must confirm the setup of `renovate-gsuquet`.
@@ -537,7 +537,9 @@ The installation of control (b) follows these rules:
 
 - Do not set `core.hooksPath`. With it, Git stops reading `.git/hooks`. The pre-commit `pre-commit` hook (gitleaks, `detect-private-key`, `no-commit-to-branch`) and the Entire CLI hooks then stop. pre-commit 4.7.0 also refuses to install hooks when `core.hooksPath` has a value. The reviewer of this RFC read this in `install_uninstall.py`.
 - Never point a hooks path at a folder in Git. The checked-out branch, for example a Renovate branch, then controls the hook code that runs on the machine.
-- The `mise` task writes the script to `$(git rev-parse --git-common-dir)/hooks/pre-push`. First, it moves the Entire CLI hook to a separate name. The script keeps a copy of its standard input. It calls the Entire CLI hook with the same arguments and the same input.
+- The `mise` task writes the script to `$(git rev-parse --git-common-dir)/hooks/pre-push`. First, it moves the Entire CLI hook to a separate name, not `pre-push.legacy`. The script calls the Entire CLI hook with the same arguments and a copy of its input.
+- The task must be idempotent. The script has a marker. The task replaces `hooks/pre-push` only when that file has the marker, or when it is the Entire CLI hook. It never moves a file onto an existing side file.
+- Do not run `pre-commit install --hook-type pre-push`, with or without `-f`. It moves the script to `pre-push.legacy` or deletes it.
 - The Entire CLI can write its hooks again later and remove the chain. The author did not verify this. The test of Rollout step 10 finds this case.
 
 The `commit-msg` hook stays in pre-commit. `.pre-commit-config.yaml` gets `default_install_hook_types: [pre-commit, commit-msg]`. `pre-commit install --hook-type commit-msg` already chains the Entire CLI hook: it moves the existing hook to `commit-msg.legacy`, and it runs that hook first. Do not use `-f` or `--overwrite`, because they delete the legacy hook.
@@ -605,8 +607,10 @@ In text: after the merge of this RFC, the ADRs come first. Then three lines of w
 9. The owner deletes the Claude Docs plans. After this step, the board is the only source of plans.
 10. An author adds the checks, as rule 8 of `AGENTS.md` requires:
     - A PR title check in CI, for example `commitlint` on the PR title. It becomes a required status check. `config-conventional` limits the header to 100 characters. Renovate titles can be longer, so the check or the Renovate `commitMessage` options must agree before the check becomes required.
-    - The `pre-push` script of control (b), with its `mise` task, and `default_install_hook_types` in `.pre-commit-config.yaml`. A test pushes each refused reference type to a local bare repository, and checks the refusal. The same test checks that the Entire CLI hook still runs.
-    - A Conftest policy on `renovate.json`. It permits `automerge: true` only in two places: the dev tool rule, with its fixed files, managers and update types, and one `packageRules` entry for `lockFileMaintenance` with `matchManagers: ["mise"]`. It requires `lockFileMaintenance.automerge: false` at the top level.
+    - The `pre-push` script of control (b), with its `mise` task, and `default_install_hook_types` in `.pre-commit-config.yaml`. A test pushes each refused reference type to a local bare repository, and checks the refusal. Verify in the implementation PR:
+      - The test runs the `mise` task two times. Then it checks that the two hooks are present, and that each one runs one time.
+      - The Entire CLI `pre-push` and `commit-msg` hooks still run after the installation.
+    - A Conftest policy on `renovate.json`. It permits `automerge: true` only in two places. The first is the dev tool rule, with its fixed files, managers and update types. The second is one `packageRules` entry for `lockFileMaintenance` with `matchManagers: ["mise"]` and its own `branchTopic`. It requires `lockFileMaintenance.automerge: false` at the top level.
     - A scheduled check that lists the PRs that `app/renovate-gsuquet` merged. It fails when a merged PR changed a file outside of the files of the exception.
     - A check, after the `~ALL` ruleset exists, that GitHub can still delete the head branch after a merge. The GitHub pages do not tell if a deletion rule blocks this.
     - A check that `.github/labels.yml` is valid against a schema, in `schemas:check`.
