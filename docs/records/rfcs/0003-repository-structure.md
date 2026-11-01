@@ -580,7 +580,7 @@ Recommendation: A. This RFC has the rule that each structure rule has a check. T
 
 ### Dependencies on other RFCs
 
-- **RFC 0002** ([PR #167](https://github.com/gsuquet/homelab/pull/167)) decides the shared `gsuquet/.github` repository, the issue templates and the PR template. This RFC keeps the community health files at the root until then. RFC 0002 also proposes the required status check on `main`. Without it, a failed `lint:legacy` does not stop a merge.
+- **RFC 0002** ([PR #167](https://github.com/gsuquet/homelab/pull/167)) decides the shared `gsuquet/.github` repository, the issue templates and the PR template. This RFC keeps the community health files at the root. RFC 0002 also proposes the required status check on `main`. Without it, a failed `lint:legacy` does not stop a merge.
 - **RFC 0004** proposes the Kubernetes label prefix `<sub>.<prefix>.gsuquet.com`. It can propose a new name for the repository, for coherence with the prefix. It can also change the `apiVersion` group `infra.gsuquet.com` of the metadata files. This RFC does not decide the name of the repository. A rename changes `repoURL` in `gitops/infrastructure/argocd/sources/values.yaml` and the `$id` of the schemas.
 - **The tooling RFC** decides the tools and the pins. **The agents RFC** decides the place of the agent files. **The secrets RFC** decides the secrets.
 
