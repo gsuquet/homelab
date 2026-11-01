@@ -160,13 +160,22 @@ A criterion without a check is not complete. If a check does not exist yet, an i
 
 An issue goes into a milestone when its PR helps to meet a criterion. Each issue has one milestone at most. An issue without a milestone stays in `Backlog`. The owner closes a milestone when GitHub shows no open issue in it and all its checks pass.
 
-This RFC does not set the list of milestones. The owner and the author make the list together, after the acceptance of this RFC. Refer to "Unresolved questions".
+The owner decided on 2026-11-01: one milestone for each feature, with its RFCs as issues in it. A wave of RFCs is a plan of the order of work, not a feature, and an RFC alone is not measurable. Example: "Secrets: SOPS and External Secrets Operator" holds the RFC, the ADRs, the documentation, the tests and the code.
+
+This RFC does not set the list of milestones. The owner and the author make the list together, after the acceptance of this RFC. The candidate source is the order of the RFC waves:
+
+- Wave 1: how we work (this RFC), the repository structure (RFC 0003), the reference of Kubernetes labels and annotations (RFC 0004).
+- Wave 2: tooling and dependency pinning, secrets with SOPS and External Secrets Operator.
+- Wave 3: zero-trust networking, agents.
+- Wave 4: the security baseline, tenants.
+- Wave 5: OpenChoreo self-service.
+- The migration of the Raspberry Pi cluster to Talos.
 
 ### Atomic PRs
 
 An atomic PR does one task. It has these properties:
 
-- It closes one issue, or one sub-issue.
+- It closes one issue, or one sub-issue, with `Closes #N` in its description. The owner decided on 2026-11-01 that a record gets no `issue` field in its front matter. The PR of the record closes the issue.
 - It has one subject. A reviewer can give one decision about it: merge or change.
 - It passes `mise run lint` alone. It does not need a later PR to pass the checks.
 - It does not mix a refactoring with a change of behavior.
@@ -209,7 +218,7 @@ In text: the orchestrator gives the issue to the implementing agent. The agent o
 
 The rules of the loop:
 
-- The reviewing agent gets the PR, the issue, the linked records and the findings of the earlier rounds with their answers. It does not get the conversation of the implementing agent. Thus its review does not depend on the reasons of the implementer.
+- The owner decided on 2026-11-01: a new reviewing agent for each round. It gets a detailed brief: the PR, the issue, the linked records and the findings of the earlier rounds with their answers. It does not get the conversation of the implementing agent. Thus its review does not depend on the reasons of the implementer.
 - The reviewer ranks each finding: security, then correctness, then performance, then readability, then style.
 - The implementing agent answers each finding with a change or with a reason in the PR.
 - A finding with a recorded reason does not stay open, unless the next reviewer refuses the reason.
@@ -308,14 +317,14 @@ The PR template stays, with three new lines: the issue (`Closes #N`), the step i
 
 The board is a user-level GitHub Project of the owner. A project can hold issues and PRs from many repositories, up to 50,000 items ([GitHub: adding items to your project](https://docs.github.com/en/issues/planning-and-tracking-with-projects/managing-items-in-your-project/adding-items-to-your-project)). A project can have up to 50 fields, with the built-in fields included ([GitHub: about Projects](https://docs.github.com/en/issues/planning-and-tracking-with-projects/learning-about-projects/about-projects)).
 
-The fields, the states and the views below are the target. Unresolved question 2 asks if the target goes into the existing project "Perso" or into a new project.
+The owner decided on 2026-11-01: the existing project "Perso" holds the board, for all personal repositories. It is empty, so the change costs nothing, and its fields already match most of the target. The fields, the states and the views below are the target for "Perso". One auto-add workflow watches the homelab. The issue forms of the other repositories use the `projects` key. The 50-field limit applies to all repositories together.
 
 #### Fields
 
 | Field | Type | Values | Use | In "Perso" today |
 | --- | --- | --- | --- | --- |
 | Status | Single select (built-in) | `Backlog`, `Ready`, `In progress`, `Agent review`, `Owner review`, `Done` | The state of the item. Refer to "Workflow states". | Yes, with `In review` in place of the two review states |
-| Priority | Single select | `P0`, `P1`, `P2` | The order of work in a milestone. Refer to "Unresolved questions". | Yes |
+| Priority | Single select | `P0`, `P1`, `P2` | The order of work in a milestone. The owner decided on a project field, not `priority/` labels. The agents read it with `gh project item-list`. | Yes |
 | Size | Single select | `XS`, `S`, `M`, `L`, `XL` | A rough size. An `L` or `XL` item becomes a parent issue with sub-issues. | Yes |
 | Step | Single select | `RFC`, `ADR`, `Docs`, `Spec`, `Tests`, `Code` | The step in the order of work. | No |
 | Agent | Text | For example `Claude Code` | The agent that works on the item. | No |
@@ -377,7 +386,7 @@ The project uses the built-in workflows only ([GitHub: built-in automations](htt
 - Auto-add puts the new issues and PRs of the repository into the project. The plan of the account limits the number of auto-add workflows: 1 on Free, 5 on Pro ([GitHub: adding items automatically](https://docs.github.com/en/issues/planning-and-tracking-with-projects/automating-your-project/adding-items-automatically)). Auto-add does not add the items that exist before it starts.
 - Auto-archive removes `Done` items from the views after 14 days.
 
-The built-in workflows cannot move an item to `Agent review` or `Owner review`. The agents move the items with `gh project item-edit`. The `gh` token of the owner has the `project` scope since 2026-10-31. A fine-grained token cannot access a project that a user account owns ([GitHub: managing your personal access tokens](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)). "Perso" belongs to the user account, so this limit applies to control (a) below.
+The built-in workflows cannot move an item to `Agent review` or `Owner review`. The owner decided on 2026-11-01: for now, the agents move the items with `gh project item-edit`, until the agent identity RFC. The `gh` token of the owner has the `project` scope since 2026-10-31. A fine-grained token cannot access a project that a user account owns ([GitHub: managing your personal access tokens](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)). "Perso" belongs to the user account, so this limit applies to control (a) below.
 
 ### Labels
 
@@ -427,7 +436,7 @@ The GitHub default labels go away. `bug` becomes `kind/bug`, `enhancement` becom
 
 #### Labels as code
 
-A file, `.github/labels.yml`, holds the name, the color and the description of each label. A tool makes the labels of the repository equal to the file. Refer to "Unresolved questions".
+A file, `.github/labels.yml`, holds the name, the color and the description of each label. A tool makes the labels of the repository equal to the file. The owner decided on 2026-11-01: a `mise` task that runs `gh label create --force` for each label, for now. A CI workflow can replace it later.
 
 ### Issue forms
 
@@ -465,7 +474,7 @@ The rule "Require signed commits" lets only signed and verified commits into the
 
 Today, the rule targets only `main`. An unsigned commit can thus go into a branch. To correct it, the author must make a new signed commit with a rebase. The author must not force-push, so the author must push to a new branch and open a new PR. The old branch then stays, because agents must not delete a remote branch.
 
-This RFC proposes a second branch ruleset with the target `~ALL`, the value for all branches in the REST API ([GitHub: rules API](https://docs.github.com/en/rest/repos/rules)). It holds "Require signed commits". Then GitHub refuses an unsigned commit when the agent pushes it, and the stale branch cannot occur. The same ruleset can also block force pushes on all branches, as an option. Refer to "Unresolved questions".
+This RFC proposes a second branch ruleset with the target `~ALL`, the value for all branches in the REST API ([GitHub: rules API](https://docs.github.com/en/rest/repos/rules)). It holds "Require signed commits". Then GitHub refuses an unsigned commit when the agent pushes it, and the stale branch cannot occur. The same ruleset can also block force pushes on all branches, as an option. Refer to "Enforcement while the agents use the account of the owner".
 
 #### How the commits get a signature
 
@@ -483,7 +492,11 @@ In text: the agent commits on the machine of the owner. Git signs the commit wit
 
 Today, agents commit with the Git configuration of the owner. Thus each agent commit has the name, the email and the signature of the owner. GitHub cannot tell an agent commit from an owner commit. The `Co-Authored-By` trailer and the "Agents" section of the PR tell which agent made the change. They are text, not a control.
 
-These facts apply to each local signing option, until a separate agent identity exists:
+The owner decided on 2026-11-01 to keep the GPG key of the owner for now. Until the agent identity RFC, Git signs the agent commits with the GPG key of the owner, through the local Git configuration. The rulesets that require signed commits still apply, and each commit on a branch must still have a verified signature.
+
+The known gap: a signature does not tell the commits of the owner from the commits of an agent. "Future possibilities" records this gap.
+
+These facts about local signing are the reasons for the gap. They also apply to a separate agent key, an alternative that the owner did not select:
 
 1. A separate agent key does not stop an agent from signing with the GPG key of the owner. The GPG agent of the owner is available to each process of the owner. Only a human step for each signature on the owner key stops this. A hardware key that needs a touch for each signature gives this step. Examples are an OpenPGP card with a touch policy, or an SSH `-sk` signing key.
 2. A passphrase cache is not a step for each signature. After the owner unlocks the key, each process of the owner can sign until the cache expires. In `gpg-agent`, `default-cache-ttl` starts again at each use, so each signature can make the window longer. Only `max-cache-ttl` gives a hard limit. The author did not read the GnuPG documentation for this RFC, so this point is not verified. A short `max-cache-ttl` makes the window smaller, but a window stays.
@@ -491,7 +504,7 @@ These facts apply to each local signing option, until a separate agent identity 
 4. Persistent verification also has a bad side. A commit that a stolen key signed before its removal stays verified.
 5. The committer is still the owner. GitHub and vigilant mode cannot tell one key of the account from another.
 
-Thus a separate agent key is revocable, but it is not an identity. Unresolved question 5 gives the options.
+Thus a separate agent key is revocable, but it is not an identity. Only the agent identity RFC closes the gap.
 
 #### The merge method
 
@@ -501,7 +514,9 @@ Thus a separate agent key is revocable, but it is not an identity. Unresolved qu
 | Rebase merge | GitHub cannot sign. The rule blocks the merge. | Yes | Each commit title of the branch |
 | Merge commit | GitHub signs with `web-flow` | No. The ruleset blocks it. | `Merge pull request #N` |
 
-This RFC proposes the squash merge only. It also proposes the squash setting "PR title" for the title and "commit messages" for the body ([GitHub: configuring commit squashing](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/configuring-commit-squashing-for-pull-requests)). Then the title on `main` is always the PR title, and a check of the PR title is enough for `main`. The body keeps the `Co-Authored-By` trailers of the commits.
+The owner decided on 2026-11-01: the squash merge only, with the PR title and the PR body. On GitHub, this is the squash option "the pull request title and description" ([GitHub: configuring commit squashing](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/configuring-commit-squashing-for-pull-requests)). Then the title on `main` is always the PR title, and a check of the PR title is enough for `main`.
+
+The body on `main` is then the PR description, not the commit messages. The `Co-Authored-By` trailers of the branch commits do not go to `main`. Thus the PR template ends with the trailer lines of the agent, so that `main` keeps them.
 
 ### Rulesets and settings
 
@@ -514,7 +529,7 @@ The owner makes these changes. Agents do not change settings or rulesets.
   - Remove "Require review from Code Owners" after RFC 0003 removes `CODEOWNERS`. Without the file, the rule has no use.
 - **New branch ruleset for `~ALL`:** "Require signed commits". As an option, restrict deletions and block force pushes. These two options must exclude `refs/heads/renovate/**`. Renovate force-pushes its branches when it rebases them (`:rebaseStalePrs`), and it deletes the branches of closed PRs.
 - **New tag ruleset for `~ALL` tags:** restrict creation, update and deletion, with an empty bypass list. Agents use the account of the owner, so a right of the owner to create tags is also a right of each agent. When the repository makes releases, a release GitHub App goes into the bypass list.
-- **Settings:** set the squash title to "PR title" and the body to "commit messages". Turn off "Allow auto-merge", because an agent could use it to merge a PR without the owner. Only the lock file maintenance PRs of Renovate use it today. When the platform auto-merge is not available, Renovate merges through the API itself, after the checks of the branch ([Renovate: configuration options](https://docs.renovatebot.com/configuration-options/), `platformAutomerge`). This setting does not fix the lock file risk of "The Renovate exception".
+- **Settings:** set the default squash message to "the pull request title and description". Turn off "Allow auto-merge", because an agent could use it to merge a PR without the owner. Only the lock file maintenance PRs of Renovate use it today. When the platform auto-merge is not available, Renovate merges through the API itself, after the checks of the branch ([Renovate: configuration options](https://docs.renovatebot.com/configuration-options/), `platformAutomerge`). This setting does not fix the lock file risk of "The Renovate exception".
 
 The bypass lists stay empty, except for a release App later. Agents use the account of the owner, so each bypass of the owner is also a bypass of each agent.
 
@@ -544,27 +559,40 @@ The installation of control (b) follows these rules:
 
 The `commit-msg` hook stays in pre-commit. `.pre-commit-config.yaml` gets `default_install_hook_types: [pre-commit, commit-msg]`. `pre-commit install --hook-type commit-msg` already chains the Entire CLI hook: it moves the existing hook to `commit-msg.legacy`, and it runs that hook first. Do not use `-f` or `--overwrite`, because they delete the legacy hook.
 
-Unresolved question 11 asks which controls to use. Agent identity stays out of scope.
+The owner decided on 2026-11-01 to use the recommended controls:
+
+- Now: (b) the plain Git `pre-push` script, (c) the `~ALL` ruleset with signed commits and the tag ruleset, and (d) auto-merge off.
+- Later: (a) separate credentials, when the agents run as a separate OS user or in a sandbox. Before that, (a) gives no real protection.
+
+The deletion and force-push rules on all branches stay an option. They need the explicit agreement of the owner, because nobody can then rewrite or delete a branch. If the owner adds them, they exclude `renovate/**`. Agent identity stays out of scope.
 
 ### Shared defaults for the personal repositories
 
-The owner wants to use this process in other personal repositories later. GitHub offers three tools for this:
+The owner wants to use this process in other personal repositories later. The owner decided on 2026-11-01: a public `gsuquet/.github` repository holds all the common files. These are the community health files, the issue forms, `config.yml` and the PR template. [RFC 0003](https://github.com/gsuquet/homelab/pull/168) defines which files stay in each repository, and where.
+
+The owner also asked if `gsuquet/.github` can host the workflows. The facts from the GitHub documentation:
+
+- **Default community health files.** A public `.github` repository can hold defaults for a personal account, not only for an organization ([GitHub: default community health files](https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/creating-a-default-community-health-file)).
+- **Reusable workflows.** A reusable workflow goes in the `.github/workflows` folder of a repository. A caller uses `{owner}/{repo}/.github/workflows/{filename}@{ref}`, with a commit SHA as the safest `ref` ([GitHub: reuse workflows](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows)). The page gives no rule on the name of the repository. A public caller can use a workflow in a public repository ([GitHub: reusing workflow configurations](https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workflow-configurations)). Thus `uses: gsuquet/.github/.github/workflows/<file>.yml@<sha>` is possible.
+- **Workflow templates.** The pages describe a `workflow-templates` folder in the `.github` repository of an organization only. They tell that "Workflow templates in a public `.github` repository are available to all repository types". They do not tell if a personal account gets them. This RFC does not depend on workflow templates.
+
+GitHub offers three tools to share files:
 
 | Option | What it shares | Updates | Limits |
 | --- | --- | --- | --- |
-| A `gsuquet/.github` repository | The issue forms, `config.yml` and the PR template. RFC 0003 defines the community health files. | Each repository sees the current version | The repository must be public. A repository with its own `.github/ISSUE_TEMPLATE/` gets none of the default forms. Labels and rulesets are not part of it. |
+| A `gsuquet/.github` repository (selected) | The community health files, the issue forms, `config.yml` and the PR template. As an option, the reusable workflows. | Each repository sees the current version | The repository must be public. A repository with its own `.github/ISSUE_TEMPLATE/` gets none of the default forms. Labels and rulesets are not part of it. |
 | A template repository | All the files of its default branch, one time | None. The new repository has a copy. | The GitHub page tells only about files and branches. |
 | Reusable workflows in `gsuquet/workflows` | CI jobs: labeler, PR title check, label sync | Each caller pins a commit SHA, and Renovate updates it | Only workflows |
 
 Sources: [GitHub: default community health files](https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/creating-a-default-community-health-file) and [GitHub: template repositories](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-template-repository).
 
-Refer to "Unresolved questions" for the choice.
+The only open point is the place of the reusable workflows. Refer to "Unresolved questions".
 
 ## Security considerations
 
 - **No identity separates the agents from the owner.** Agents push, open PRs and sign commits as the owner. GitHub cannot enforce the review policy: required reviews and the bypass list treat the agents as the owner. [RFC 0001](0001-records-process.md) ("Security considerations") named agent identity as a subject for RFC 0002. On 2026-10-31, the owner moved it out of RFC 0002 to a later RFC.
 - **The token of the owner can change the controls.** The `gh` token of the owner has the `repo` scope, and the owner is an administrator. An agent that uses this token can change or turn off a ruleset, permit rebase merges, turn on auto-merge or merge a PR. The rulesets protect against a mistake, not against an agent that ignores the rules. "Enforcement while the agents use the account of the owner" gives the controls that make this risk smaller.
-- **The signing keys of the owner are available to the agents.** Each agent runs as the user of the owner, so it can use the GPG agent of the owner. A signature proves that a process on the machine of the owner made the commit. It does not prove that the owner read it. A separate agent key is revocable, but it is not an identity. A commit that a stolen key signed stays verified after the removal of the key. Only a human step for each signature stops an agent from signing as the owner, for example a hardware key touch. A passphrase cache leaves a window in which each process of the owner can sign.
+- **The signing keys of the owner are available to the agents.** Each agent runs as the user of the owner, so it can use the GPG agent of the owner. A signature proves that a process on the machine of the owner made the commit. It does not prove that the owner read it. The owner decided to keep the GPG key of the owner for the agent commits, until the agent identity RFC. Thus a signature does not tell the commits of the owner from the commits of an agent. A commit that a stolen key signed stays verified after the removal of the key. Only a human step for each signature stops an agent from signing as the owner, for example a hardware key touch.
 - **A required status check can come from a false source.** A token with `repo` access can set a commit status with the name of a required check. The rulesets set the source of each required check to the GitHub Actions app.
 - **The issues and the milestones are public.** The repository is public. The project "Perso" is private, but an issue on the board stays public. An issue, a milestone or a project field must not contain secrets, private addresses or the details of a weakness that is not corrected yet. Use the private vulnerability report form. The `config.yml` of the issue forms links to it.
 - **A token with the `project` scope can change all the projects of the owner.** The board holds only plans, not code, so the risk is small.
@@ -601,7 +629,7 @@ In text: after the merge of this RFC, the ADRs come first. Then three lines of w
 3. An author adds `.github/labels.yml` and its sync. The owner runs the sync, because it changes the labels of the repository.
 4. An author adds the issue forms, `config.yml`, the new PR template and the new `.github/labeler.yml`.
 5. The owner changes the rulesets and the settings, as "Rulesets and settings" tells. The token of the agents can do this, but the rules of this RFC do not let an agent do it.
-6. The owner or an agent, with the approval of the owner, puts the target fields, states and views into the project of unresolved question 2. The `gh` token has the `project` scope, so an agent can use `gh project field-create`. The owner turns on the built-in workflows and makes the views in the web interface, because `gh` cannot change them.
+6. The owner or an agent, with the approval of the owner, puts the target fields, states and views into the project "Perso". The `gh` token has the `project` scope, so an agent can use `gh project field-create`. The owner turns on the built-in workflows and makes the views in the web interface, because `gh` cannot change them.
 7. The owner and an author make the list of milestones, with their acceptance criteria.
 8. An agent moves the content of the Claude Docs plans into issues, sub-issues and milestones on the board. The plans are "Homelab implementation plan", the OpenChoreo plan and the promotion proposal. The owner reads the result.
 9. The owner deletes the Claude Docs plans. After this step, the board is the only source of plans.
@@ -643,6 +671,20 @@ To go back, the owner reverts the PRs of steps 3, 4 and 10, and restores the rul
 - **Code first, documentation after.** The documentation then follows the code and not the decision. A reviewer cannot compare the code with a target.
 - **Agent hooks as the controls.** Each agent has its own hook format, and a local LLM can have none. Git hooks, CI checks, policies and rulesets apply to each agent.
 
+The owner answered the open questions of this RFC on 2026-11-01, in a comment on PR #167. These alternatives were not selected:
+
+- **Milestones.** One milestone for each wave of RFCs, or one for each RFC. A wave is a plan of the order of work, and an RFC alone is not measurable.
+- **Board.** A new user-level project, or one project for each repository. A new project duplicates "Perso". One project for each repository makes many boards to look at, and each new repository needs a copy of the fields and the views.
+- **Priority.** `priority/` labels, or labels and a field. Two sources can disagree.
+- **Label sync.** A reusable workflow now, or changes by hand. A workflow needs `issues: write` in CI. The owner keeps it for later.
+- **Signing key.** A separate SSH signing key for the agents, with a hardware owner key that needs a touch for each signature. Or commits through the GitHub API, which needs an agent identity. The owner keeps the GPG key for now.
+- **Squash body.** The commit messages of the branch, or only the PR title. The owner selected the PR title and description.
+- **Shared files.** A template repository, or a copy in each repository. A template repository copies the files one time and does not update the old repositories.
+- **Reviewer.** The same reviewing agent for all the rounds of one PR. A new agent does not trust its earlier review.
+- **Board automation.** A GitHub Actions workflow that moves the items on PR events. It needs a new secret with write access to all the projects of the owner.
+- **Record `issue` field.** A new field in the front matter changes the metadata of [ADR 0004](../adrs/0004-use-yaml-front-matter-for-record-metadata.md), and the PR already links the issue.
+- **Enforcement.** Separate agent credentials now. They give no real protection while the agents run as the user of the owner.
+
 ## Prior art
 
 - **Rust RFC process.** The [rust-lang/rfcs README](https://github.com/rust-lang/rfcs) tells that each accepted RFC gets a tracking issue for its implementation. Each RFC PR gets the label of the most relevant team. This RFC uses milestones and issues for the same purpose.
@@ -655,70 +697,25 @@ To go back, the owner reverts the PRs of steps 3, 4 and 10, and restores the rul
 - **Signature verification on GitHub.** The pages about [signature verification](https://docs.github.com/en/authentication/managing-commit-signature-verification/about-commit-signature-verification), [the signing key in Git](https://docs.github.com/en/authentication/managing-commit-signature-verification/telling-git-about-your-signing-key) and [rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets) give the facts in "Signed commits".
 - **Token permissions.** [Permissions for fine-grained tokens](https://docs.github.com/en/rest/authentication/permissions-required-for-fine-grained-personal-access-tokens) gives the permission of each REST endpoint. The [rules API](https://docs.github.com/en/rest/repos/rules) gives the `~ALL` target and the `integration_id` of a required check.
 - **Issue forms and shared defaults.** [Issue form syntax](https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-issue-forms), [issue template configuration](https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/configuring-issue-templates-for-your-repository) and [default community health files](https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/creating-a-default-community-health-file).
+- **Reusable workflows and workflow templates.** [Reuse workflows](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows), [reusing workflow configurations](https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workflow-configurations) and [create workflow templates](https://docs.github.com/en/actions/how-tos/reuse-automations/create-workflow-templates) give the facts in "Shared defaults for the personal repositories".
 
 ## Unresolved questions
 
-Each question has options and a recommendation. The owner decides.
+The owner answered the eleven questions of the review on 2026-11-01, in a comment on PR #167. The body of this RFC states each decision. "Rationale and alternatives" lists the options that the owner did not select.
 
-1. **Which milestones?** The owner defines them with the author after this RFC. Candidate source, in the order of the RFC waves:
-   - Wave 1: how we work (this RFC), the repository structure (RFC 0003), the reference of Kubernetes labels and annotations (RFC 0004).
-   - Wave 2: tooling and dependency pinning, secrets with SOPS and External Secrets Operator.
-   - Wave 3: zero-trust networking, agents.
-   - Wave 4: the security baseline, tenants.
-   - Wave 5: OpenChoreo self-service.
-   - The migration of the Raspberry Pi cluster to Talos.
+One point stays open:
 
-   Options:
-   - (a) One milestone for each wave.
-   - (b) One milestone for each feature, with the RFCs as issues in it.
-   - (c) One milestone for each RFC.
+1. **One repository or two for the shared files?** The owner asked if `gsuquet/.github` can also host the workflows. The GitHub documentation permits it. Refer to "Shared defaults for the personal repositories". Options:
+   - (a) `gsuquet/.github` alone. It holds the common files and the reusable workflows. A later PR moves the workflows from `gsuquet/workflows`, and each caller changes its `uses:` line.
+   - (b) `gsuquet/.github` for the common files, and `gsuquet/workflows` for the reusable workflows, as today.
 
-   Recommendation: (b). A wave is a plan of the order of work, not a feature, and an RFC alone is not measurable. Example: "Secrets: SOPS and External Secrets Operator" holds the RFC, the ADRs, the documentation, the tests and the code.
-2. **Which project holds the board?** A user or an organization owns a project, and one project can hold issues and PRs from many repositories. Each auto-add workflow watches one repository. The plan limits their number: 1 on Free, 5 on Pro. The project "Perso" exists, it is empty, and its description tells that it is for all personal repositories.
-
-   | Option | Good | Bad |
-   | --- | --- | --- |
-   | (a) Restructure "Perso" as the board for all personal repositories | No new project. It is empty, so the change costs nothing. Its Status, Priority, Size and date fields already match most of the target. The built-in `Repository` field gives a view for each repository. | The owner must split `In review` into `Agent review` and `Owner review`, and add `Step` and `Agent`. Other repositories that use "Perso" later get the same fields and states. |
-   | (b) A new user-level project for all personal repositories | A clean start with the target fields. | Two projects with the same purpose. "Perso" stays without a use, or the owner deletes it. |
-   | (c) One project for each repository | Each repository can have its own fields and states, and its own auto-add workflow. | The owner must open many boards to see the queue. Each new repository needs a copy of the fields, the views and the workflows. |
-
-   Recommendation: (a). The owner sees one queue, and the process can go to other repositories with no new project. The homelab gets the auto-add workflow. The issue forms of the other repositories use the `projects` key. The 50-field limit applies to all repositories together.
-3. **Priority as a project field or as labels?** Options: (a) the `Priority` field only, (b) `priority/` labels only, (c) both. Recommendation: (a). One source, and the board sorts by it. `gh issue list` cannot filter by a field, but the agents read the board with `gh project item-list`.
-4. **How does the label file go to GitHub?** Options:
-   - (a) A `mise` task that runs `gh label create --force` for each label.
-   - (b) A reusable workflow in `gsuquet/workflows` that runs on each push to `main`.
-   - (c) The owner changes the labels by hand.
-
-   Recommendation: (a) now, (b) when other repositories use the process. Option (b) needs `issues: write` in CI.
-5. **Which key signs the agent commits until an agent identity exists?** Options:
-   - (a) The GPG key of the owner, through the local Git configuration. This is the state today. No work, but the owner cannot stop the agents from signing without also stopping themselves.
-   - (b) A separate SSH key for the agents, added to the account of the owner as a signing key. A local Git configuration that only the agents load selects it, for example a worktree setting or `GIT_CONFIG_GLOBAL`.
-   - (c) No local signatures. Agents commit through the GitHub API, and GitHub signs. This needs the agent identity of the later RFC.
-
-   Recommendation: (b), together with a hardware key for the owner key that needs a touch for each signature. A passphrase cache counts only with a short `max-cache-ttl`, and it leaves a window. Without a human step for each signature, (b) gives no more protection than (a), because the agents can still use the owner key. The agent key is revocable, but it is not an identity, and the commits still show the account of the owner.
-6. **Which merge method?** Options: (a) squash only, with the title "PR title" and the body "commit messages", (b) squash and rebase, as today. Recommendation: (a). The rebase merge cannot pass "Require signed commits".
-7. **Which tool shares the process with other personal repositories?** Options:
-   - (a) A public `gsuquet/.github` repository for the issue forms, `config.yml` and the PR template. Reusable workflows in `gsuquet/workflows` hold the shared CI jobs. RFC 0003 decides on the community health files.
-   - (b) A template repository.
-   - (c) A copy in each repository.
-
-   Recommendation: (a), after the process works in this repository for one milestone. It keeps one source. A repository that needs its own forms loses all the default forms, so the shared forms must be generic. Option (b) can come later for new repositories, but it does not update the old ones.
-8. **A new reviewing agent for each round, or the same one?** Options:
-   - (a) A new agent for each round, with the list of the earlier findings.
-   - (b) The same reviewing agent for all the rounds of one PR.
-
-   Recommendation: (a). The owner asked for a new agent, and a new agent does not trust its earlier review.
-9. **Automation beyond the built-in workflows?** Options: (a) the agents move the items with `gh`, (b) a GitHub Actions workflow moves them on PR events, with a token that has the `project` scope. Recommendation: (a) until the agent identity RFC. Option (b) needs a new secret with write access to all the projects of the owner.
-10. **Does a record get an `issue` field?** RFC 0001 ("Future possibilities") tells that RFC 0002 can add one. Options: (a) no field, and the PR of the record has `Closes #N`, (b) a new `issue` field in the front matter. Recommendation: (a). A new field changes the metadata of [ADR 0004](../adrs/0004-use-yaml-front-matter-for-record-metadata.md), and the PR already links the issue.
-11. **Which enforcement controls, while the agents use the account of the owner?** The options are the controls (a) to (d) of "Enforcement while the agents use the account of the owner". Recommendation:
-    - Now: (b) the plain Git `pre-push` script, (c) the `~ALL` ruleset with signed commits and the tag ruleset, and (d) auto-merge off.
-    - Restrict deletions and block force pushes on all branches only if the owner accepts that nobody can then rewrite or delete a branch. Exclude `renovate/**`, because Renovate rebases and deletes its branches.
-    - Later: (a) separate credentials, when the agents run as a separate OS user or in a sandbox. Before that, (a) gives no real protection.
+   Recommendation: (a). One repository is one source to read, to pin and to update. The move can wait until a second repository uses the process. Until then, the callers keep `gsuquet/workflows`.
 
 ## Future possibilities
 
 - **Agent identity.** A later RFC gives the agents their own identity, for example a GitHub App or a bot account. Then GitHub can tell the agents from the owner, required reviews can work, and the bypass lists can exclude the agents. GitHub can sign the commits of the App.
-- **The repository structure and the community health files.** RFC 0003 defines them, except the templates of this RFC.
+- **The signing gap.** Until the agent identity RFC, the agents sign with the GPG key of the owner. Thus a signature does not tell the commits of the owner from the commits of an agent. The agent identity RFC closes this gap. A separate agent key with a hardware owner key is a smaller step, if the owner wants one before.
+- **The repository structure and the community health files.** RFC 0003 defines which files stay in each repository. The shared files go in `gsuquet/.github`.
 - **The Kubernetes labels and annotations.** RFC 0004 defines them. They are a different subject from the GitHub labels of this RFC.
 - **The agents RFC.** A later RFC implements the roles and the review loop of this RFC in a form that does not depend on one agent. Each agent, for example Claude Code, Antigravity or a local LLM, gets an adapter: skills, subagents or hooks in the format of that agent. The Git hooks, CI checks, policies and rulesets of this RFC stay the controls. That RFC also removes the rules that this RFC replaces from `AGENTS.md`.
 - **A merge queue.** When many PRs wait at the same time, a merge queue can test each one against the latest `main`.
