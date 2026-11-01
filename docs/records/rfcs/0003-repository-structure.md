@@ -45,7 +45,7 @@ The target tree has six groups of top-level content:
 - Checks: `policy/` and `schemas/`.
 - Documentation: `docs/`.
 - Tool and GitHub configuration: `.mise/`, `.github/`, `.vale/`, `.vscode/` and the configuration files at the root.
-- At the root: the files that GitHub cannot inherit from `gsuquet/.github`, the files that are specific to this repository, and the generated `CHANGELOG.md`. Refer to "Community health files".
+- At the root: the files that GitHub cannot inherit from `gsuquet/.github`, and the files that are specific to this repository (`CONTRIBUTING.md`, `CHANGELOG.md`). Refer to "Community health files".
 
 The files of the coding agents are also at the root: `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.claude/`, `.gemini/` and `.entire/`. They are out of the scope of this RFC. The agents RFC decides their place.
 
@@ -149,7 +149,7 @@ The table compares the current tree with each standard. "Gap" means that the cur
 
 | Standard | What it asks | Current tree | Proposal |
 | --- | --- | --- | --- |
-| GitHub community profile | A description, `README`, `LICENSE`, `CODE_OF_CONDUCT`, `CONTRIBUTING`, issue templates. Optional: `SECURITY`, `SUPPORT`, `FUNDING`. | Health score 85 %. No description, no issue templates. The documentation link points to `tree/master/docs`, but the default branch is `main`. `README.md` and `SECURITY.md` describe the old design. No `SUPPORT.md`, but `SUPPORT.md` does not change the score. | Set a description. Rewrite `README.md`. Put `SECURITY.md`, `CODE_OF_CONDUCT.md`, `SUPPORT.md` and the issue templates in `gsuquet/.github` (RFC 0002). |
+| GitHub community profile | A description, `README`, `LICENSE`, `CODE_OF_CONDUCT`, `CONTRIBUTING`, issue templates. Optional: `SECURITY`, `SUPPORT`, `FUNDING`. | Health score 85 %. No description, no issue templates. The documentation link points to `tree/master/docs`, but the default branch is `main`. `README.md` and `SECURITY.md` describe the old design. No `SUPPORT.md`, but `SUPPORT.md` does not change the score. | Set a description. Rewrite `README.md`. Put `SECURITY.md`, `CODE_OF_CONDUCT.md`, `SUPPORT.md` and a generic `CONTRIBUTING.md` in `gsuquet/.github` (RFC 0002). Keep the homelab issue forms and PR template here. |
 | HashiCorp standard module structure | A root module with `main.tf`, `variables.tf`, `outputs.tf` and a `README`. A `LICENSE`. Nested modules in `modules/`, examples in `examples/`. | Each module has these files and a `README.md`. The repository `LICENSE` covers the modules. No `examples/`. | Keep. The instances are the examples. Refer to "Terraform modules". |
 | HashiCorp style guide | `terraform.tf`, `providers.tf`, `main.tf` with all the resource and data source blocks, `variables.tf`, `outputs.tf`, `locals.tf`, `backend.tf`. Child modules in `./modules/<module_name>`. One folder for each environment. | Modules and instances use these names. Some modules split resources into `<topic>.tf` files, for example `namespace.tf`, `secret.tf` and `cluster-issuers.tf`. | Keep. Add `backend.tf` when an instance has a remote state. Keep the `<topic>.tf` files as a deliberate deviation. Refer to "Terraform modules". |
 | terraform-best-practices.com | Resource modules, infrastructure modules and compositions. `versions.tf`. Snake case for identifiers. | Modules are resource or infrastructure modules. Instances are compositions. Identifiers use snake case. | Keep the concepts. Keep `terraform.tf`, not `versions.tf`. Refer to unresolved question 4. |
@@ -434,7 +434,7 @@ Verdict: the branch has nothing to salvage. PR #163 has the same features in the
    1. Add the deprecation `README.md` files and the `lint:legacy` check. Refer to "Verify in the implementation PR".
    2. Delete `modules/bootstrap-agent-sandbox/` and `docs/reference/terraform-modules/bootstrap-agent-sandbox/`, in a separate PR. The owner decided this on 2026-10-31.
    3. Apply the license decision.
-   4. Rewrite `README.md`. Update `CONTRIBUTING.md`. Then wait until the owner accepts RFC 0002 and `gsuquet/.github` exists. Put these files there: the rewritten `SECURITY.md`, `CODE_OF_CONDUCT.md` (as the decision says), a new `SUPPORT.md` and a generic `CONTRIBUTING.md`. Then remove `SECURITY.md` and `CODE_OF_CONDUCT.md` from this repository.
+   4. Rewrite `README.md`. Update `CONTRIBUTING.md`. RFC 0002 step 11 creates the public `gsuquet/.github`, with the generic issue forms, `config.yml`, the PR template and the reusable workflows. After that PR merges, this step adds the shared community health files to `gsuquet/.github`: the rewritten `SECURITY.md`, `CODE_OF_CONDUCT.md` (as the decision says), a new `SUPPORT.md` and a generic `CONTRIBUTING.md`. Then it removes the local copies of the moved files, `SECURITY.md` and `CODE_OF_CONDUCT.md`, from this repository.
    5. Rewrite `docs/reference/repository-structure.md` in ASD-STE100, with the target tree and a legacy section.
    6. After the owner accepts the ADR that supersedes ADR 0001: delete `.github/CODEOWNERS`, and remove the references to it in `AGENTS.md` and `CONTRIBUTING.md`.
    7. Add the checks for the naming rules that have no check yet. Examples: a TFLint rule for the Terraform file names, a check of the Rego file names.
@@ -613,7 +613,7 @@ Recommendation: A. This RFC has the rule that each structure rule has a check. T
 
 ### Dependencies on other RFCs
 
-- **RFC 0002** ([PR #167](https://github.com/gsuquet/homelab/pull/167)) records the owner decision that a public `gsuquet/.github` repository holds all the common community files. RFC 0002 is still in review, and Rollout step 3.4 waits for its acceptance. It designs the issue templates and the PR template. It also records the owner decision that the reusable workflows live only in `gsuquet/.github`. This RFC lists the files that stay at the root of this repository. RFC 0002 also proposes the required status check on `main`. Without it, a failed `lint:legacy` does not stop a merge.
+- **RFC 0002** ([PR #167](https://github.com/gsuquet/homelab/pull/167)) records the owner decision that a public `gsuquet/.github` repository holds all the common community files. RFC 0002 is still in review. Rollout step 3.4 depends on RFC 0002 step 11, which creates `gsuquet/.github`. It designs the issue templates and the PR template. It also records the owner decision that the reusable workflows live only in `gsuquet/.github`. This RFC lists the files that stay at the root of this repository. RFC 0002 also proposes the required status check on `main`. Without it, a failed `lint:legacy` does not stop a merge.
 - **RFC 0004** proposes the Kubernetes label prefix `<sub>.<prefix>.gsuquet.com`. It can propose a new name for the repository, for coherence with the prefix. It can also change the `apiVersion` group `infra.gsuquet.com` of the metadata files. This RFC does not decide the name of the repository. A rename changes `repoURL` in `gitops/infrastructure/argocd/sources/values.yaml` and the `$id` of the schemas.
 - **The tooling RFC** decides the tools and the pins. **The agents RFC** decides the place of the agent files. **The secrets RFC** decides the secrets.
 
