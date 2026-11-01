@@ -669,7 +669,7 @@ In text: after the merge of this RFC, the ADRs come first. Then three lines of w
     - After the first squash merge with the new setting, run `git interpret-trailers --parse` on the commit on `main`. Check that the `Co-Authored-By` and `Claude-Session` trailers are there. Verify in the implementation PR:
       - The HTML comments of the PR template go into the bodies of the commits on `main`. Remove them from the template, or accept them.
       - The PR title check also lints the PR description, or not.
-11. The owner creates the public repository `gsuquet/.github`, after step 4. An author adds the generic issue forms, `config.yml` and PR template, and the shared community health files of RFC 0003. The generic files have no homelab values. The author also moves the reusable workflows from `gsuquet/workflows`, for example the labeler. Then the callers in the homelab change their `uses:` lines to `gsuquet/.github/.github/workflows/<file>.yml@<sha>`. The owner then archives `gsuquet/workflows`.
+11. The owner creates the public repository `gsuquet/.github`, after step 4. An author adds the generic issue forms, `config.yml` and PR template. The generic files have no homelab values. The author also moves the reusable workflows from `gsuquet/workflows`, for example the labeler. Then the callers in the homelab change their `uses:` lines to `gsuquet/.github/.github/workflows/<file>.yml@<sha>`. The owner then archives `gsuquet/workflows`. After this PR merges, RFC 0003 (Rollout step 3.4) adds the shared community health files to `gsuquet/.github`.
 
 To go back, the owner reverts the PRs of steps 3, 4 and 10, and restores the rulesets from the file of step 10. The board and the issues can stay: they do not change the code.
 
