@@ -19,7 +19,7 @@ These steps follow the flow that RFC 0001 proposes.
 | RFC | Title | Status |
 | --- | --- | --- |
 | [0001](0001-records-process.md) | Records process | `accepted` |
-| [0004](0004-labels-and-annotations.md) | Kubernetes labels and annotations reference | `draft` |
+| [0004](0004-labels-and-annotations.md) | Kubernetes labels and annotations reference | `review` |
 
 ## Source of the template
 
