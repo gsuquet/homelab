@@ -291,7 +291,7 @@ The YAML `apiVersion` of the metadata files (`infra.gsuquet.com/v1alpha1`) uses 
 
 ### Community health files
 
-GitHub reads most of these files from `.github/`, from the root or from `docs/`, in that order. A shared `gsuquet/.github` repository can give default files to all the repositories of the owner. That repository does not exist now. RFC 0002 decides if it exists and which files it holds. Until then, this repository keeps its files at the root, where a visitor sees them.
+GitHub reads most of these files from `.github/`, from the root or from `docs/`, in that order. A shared `gsuquet/.github` repository can give default files to all the repositories of the owner. That repository does not exist now. RFC 0002 decides if it exists, and it puts only the templates there. This RFC keeps the community health files at the root of this repository, where a visitor sees them.
 
 | File | Current state | Target |
 | --- | --- | --- |
@@ -365,6 +365,7 @@ Known gaps:
 - The check cannot detect the approval of the owner, because the agents use the account of the owner. Thus the exception is a file in Git, not an approval.
 - A failed check does not stop a merge now. The ruleset of `main` has no required status check. [RFC 0002](https://github.com/gsuquet/homelab/pull/167) proposes it. Until then, a PR that fails the check can merge.
 - The run on a push to `main` is not a control. `main` changes only through a PR, because the ruleset has the `pull_request` and `non_fast_forward` rules.
+- The check does not detect a deleted file or a move out of a legacy folder. A deleted folder in `kubernetes/applications/` or `kubernetes/system/` deletes that production Application. The review of the owner (RFC 0002) is the only control.
 
 The removal PR deletes these items:
 
@@ -426,7 +427,7 @@ These details of `lint:legacy` come from the review of this RFC. The implementat
 - The task fails when `CI=true`, `GITHUB_EVENT_NAME=pull_request` and `LEGACY_BASE` is empty.
 - The `Lint` workflow sets `LEGACY_BASE` to `github.event.pull_request.base.sha`, and the checkout uses `fetch-depth: 0`. On a push, `LEGACY_BASE` can be `github.event.before`.
 - `lint:legacy` joins the `depends` list of `.mise/tasks/lint/_default.sh`.
-- `.pre-commit-config.yaml` gets a hook `lint-legacy` with `entry: mise run lint:legacy`, `always_run: true`, `pass_filenames: false` and no `files` filter. The `render-manifests` hook runs `git add kubernetes/`, which can stage untracked files. pre-commit computes the list of staged files one time, at the start. With a `files` filter, a commit that changes only the trigger paths of `render-manifests` skips `lint-legacy`. The task is a fast `git diff --cached`, thus it can run on each commit. In CI, the comparison with the base commit also catches these files.
+- `.pre-commit-config.yaml` gets a hook `lint-legacy` with `entry: mise run lint:legacy`, `always_run: true`, `pass_filenames: false` and no `files` filter, and it comes after the `render-manifests` hook in the file. The `render-manifests` hook runs `git add kubernetes/`, which can stage untracked files. pre-commit computes the list of staged files one time, at the start. With a `files` filter, a commit that changes only the trigger paths of `render-manifests` skips `lint-legacy`. The task is a fast `git diff --cached`, thus it can run on each commit. In CI, the comparison with the base commit also catches these files.
 
 This RFC has a rule: each structure rule has a check, or the RFC tells that the check does not exist yet. Step 3.7 adds the missing checks.
 
@@ -556,7 +557,7 @@ Recommendation: keep MIT for all the repository, also for `docs/`, except the te
 - **B. Remove it.** The repository has one owner and agents.
 - **C. Update to a later Contributor Covenant version.** The author did not read contributor-covenant.org (domain not permitted). The owner must check the latest version.
 
-Recommendation: A. The GitHub community profile counts it. RFC 0002 can move it to the shared `gsuquet/.github` repository.
+Recommendation: A. The GitHub community profile counts it. A later RFC can move it to the shared `gsuquet/.github` repository.
 
 ### 10. The report channels in `SECURITY.md`
 
@@ -588,6 +589,6 @@ Recommendation: A. This RFC has the rule that each structure rule has a check. T
 - After the migration, the repository has one design, and the structure page becomes shorter. The agents RFC handles the agent instructions.
 - A security baseline can limit each app to its own namespace. For example, the `argocd` chart can render one AppProject for each app, with only the namespace of its item in `cluster.yaml` as a destination. A Conftest policy can check it.
 - A generated structure page can replace the manual tree, from the folder metadata (`module.yaml`, `instance.yaml`, `cluster.yaml`).
-- A template repository can hold the community health files and the tool configuration, for the other repositories of the owner. RFC 0002 can examine this with the shared `gsuquet/.github` repository.
+- A template repository can hold the community health files and the tool configuration, for the other repositories of the owner. A later RFC can examine this with the shared `gsuquet/.github` repository.
 - A module that other repositories use can move to its own repository, with the name `terraform-<provider>-<name>`, as the HashiCorp style guide says.
 - A check can compare the tree with this RFC: no unknown folder at the root, and no folder outside of the naming rules. The check must know the agent files and the legacy folders, until the agents RFC and the removal PR change them.
