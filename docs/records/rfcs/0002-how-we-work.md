@@ -479,7 +479,7 @@ The rule "Require signed commits" lets only signed and verified commits into the
 
 Today, the rule targets only `main`. An unsigned commit can thus go into a branch. To correct it, the author must make a new signed commit with a rebase. The author must not force-push, so the author must push to a new branch and open a new PR. The old branch then stays, because agents must not delete a remote branch.
 
-This RFC proposes a second branch ruleset with the target `~ALL`, the value for all branches in the REST API ([GitHub: rules API](https://docs.github.com/en/rest/repos/rules)). It holds "Require signed commits". Then GitHub refuses an unsigned commit when the agent pushes it, and the stale branch cannot occur. The same ruleset can also block force pushes on all branches, as an option. Refer to "Enforcement while the agents use the account of the owner".
+This RFC proposes a second branch ruleset with the target `~ALL`, the value for all branches in the REST API ([GitHub: rules API](https://docs.github.com/en/rest/repos/rules)). It holds "Require signed commits". Then GitHub refuses an unsigned commit when the agent pushes it, and the stale branch cannot occur. The same ruleset also restricts deletions and blocks force pushes on all branches except `renovate/**`. Refer to "Rulesets and settings".
 
 #### How the commits get a signature
 
@@ -532,7 +532,8 @@ The owner makes these changes. Agents do not change settings or rulesets.
   - Set the source of each required check to the GitHub Actions app (`integration_id`). Without a source, a token with `repo` access can set a commit status with the same name. The rulesets page tells that GitHub then refuses the merge if another person or integration sets the status.
   - Permit only the squash merge in the PR rule.
   - Remove "Require review from Code Owners" after RFC 0003 removes `CODEOWNERS`. Without the file, the rule has no use.
-- **New branch ruleset for `~ALL`:** "Require signed commits". As an option, restrict deletions and block force pushes. These two options must exclude `refs/heads/renovate/**`. Renovate force-pushes its branches when it rebases them (`:rebaseStalePrs`), and it deletes the branches of closed PRs.
+- **New branch ruleset for `~ALL`:** "Require signed commits", "Restrict deletions" and "Block force pushes". The owner decided on 2026-11-01 (owner, in chat) to add the deletion and force-push rules. These two rules exclude `refs/heads/renovate/**`. Renovate force-pushes its branches when it rebases them (`:rebaseStalePrs`), and it deletes the branches of closed PRs.
+- **Merged branches.** A deletion rule also stops the automatic deletion of head branches after a merge ([GitHub: managing the automatic deletion of branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-the-automatic-deletion-of-branches)). With an empty bypass list, nobody can delete a branch, the owner included. Thus merged branches stay, except `renovate/**`. The setting "Automatically delete head branches" stays on, so GitHub still deletes the merged `renovate/**` branches. From time to time, the owner turns off the deletion rule, deletes the merged branches, and turns the rule on again. The check of Rollout step 10 compares the rulesets with the file in Git, so it finds a rule that stays off.
 - **New tag ruleset for `~ALL` tags:** restrict creation, update and deletion, with an empty bypass list. Agents use the account of the owner, so a right of the owner to create tags is also a right of each agent. When the repository makes releases, a release GitHub App goes into the bypass list.
 - **Settings:** set the default squash message to "the pull request title and description". Turn off "Allow auto-merge", because an agent could use it to merge a PR without the owner. Only the lock file maintenance PRs of Renovate use it today. When the platform auto-merge is not available, Renovate merges through the API itself, after the checks of the branch ([Renovate: configuration options](https://docs.renovatebot.com/configuration-options/), `platformAutomerge`). This setting does not fix the lock file risk of "The Renovate exception".
 
@@ -548,7 +549,7 @@ These controls do not depend on one agent:
 | --- | --- | --- |
 | (a) Separate credentials for the agents | A fine-grained token with "Contents: read", "Pull requests: write" and "Issues: write". Pushes go over SSH with a deploy key or a separate key. To open a PR needs "Pull requests: write". To merge a PR needs "Contents: write". Thus the token can open PRs, but it cannot merge or change settings. | It works only if the agents run as a separate OS user, in a container or in a sandbox. An agent that runs as the owner can read the keyring token of `gh` and use the SSH and GPG agents of the owner. A fine-grained token cannot access the user project "Perso". The board then needs a second classic token with only the `project` scope, which reaches all projects of the owner. Other ways: the owner moves the items, or the agents wait for the installation token of a GitHub App. |
 | (b) A plain Git `pre-push` script | It reads each line on its standard input, one line for each reference. It refuses a push to `main`, to `refs/tags/*`, a deletion (a local SHA of zeros) and a non-fast-forward push. A `mise` task installs it in the hooks folder of the repository and chains the existing `pre-push` hook of the Entire CLI. It works for each agent and each Git client. | `git push --no-verify` skips it. |
-| (c) Rulesets on `~ALL` branches and tags | GitHub refuses unsigned commits and tags. As an option, it refuses deletions and force pushes on all branches except `renovate/**`. | The token of the owner can change the rulesets. |
+| (c) Rulesets on `~ALL` branches and tags | GitHub refuses unsigned commits and tags. It also refuses deletions and force pushes on all branches except `renovate/**`. | The token of the owner can change the rulesets. |
 | (d) Auto-merge off | No agent can set auto-merge on a PR. | The token of the owner can turn it on again. |
 
 Control (b) does not use the `pre-push` stage of the pre-commit framework. pre-commit 4.7.0 skips the references with a local SHA of zeros, so a deletion never reaches the hook. It also skips the references whose commits are already on the remote, for example a tag on a pushed commit. It gives only the first such reference to the hook. The reviewer of this RFC read this in `pre_commit/commands/hook_impl.py`.
@@ -569,11 +570,16 @@ The owner decided on 2026-11-01 to use the recommended controls:
 - Now: (b) the plain Git `pre-push` script, (c) the `~ALL` ruleset with signed commits and the tag ruleset, and (d) auto-merge off.
 - Later: (a) separate credentials, when the agents run as a separate OS user or in a sandbox. Before that, (a) gives no real protection.
 
-The deletion and force-push rules on all branches stay an option. They need the explicit agreement of the owner, because nobody can then rewrite or delete a branch. If the owner adds them, they exclude `renovate/**`. Agent identity stays out of scope.
+The owner decided on 2026-11-01 (owner, in chat) to also add the deletion and force-push rules on all branches, except `renovate/**`. Nobody can then rewrite or delete a branch, and merged branches stay until the cleanup of "Rulesets and settings". Agent identity stays out of scope.
 
 ### Shared defaults for the personal repositories
 
-The owner wants to use this process in other personal repositories later. The owner decided on 2026-11-01: a public `gsuquet/.github` repository holds all the common files. These are the community health files, the issue forms, `config.yml` and the PR template. [RFC 0003](https://github.com/gsuquet/homelab/pull/168) defines which files stay in each repository, and where.
+The owner wants to use this process in other personal repositories later. The owner decided on 2026-11-01 (in a PR comment, then owner, in chat):
+
+- A public `gsuquet/.github` repository holds the shared defaults for the other personal repositories. These are the community health files, and a generic set of issue forms, `config.yml` and PR template.
+- The homelab keeps its own issue forms, `config.yml` and PR template. They are specific to the homelab: the Instance dropdown, the `kind/` labels, the `projects` key of the board and the link to the security advisory form. GitHub uses the files of a repository before the shared files. A repository with its own issue forms gets none of the shared forms.
+- `gsuquet/.github` also holds the reusable workflows. The owner drops `gsuquet/workflows`.
+- [RFC 0003](https://github.com/gsuquet/homelab/pull/168) defines which community health files stay in each repository, and where.
 
 The owner also asked if `gsuquet/.github` can host the workflows. The facts from the GitHub documentation:
 
@@ -585,13 +591,13 @@ GitHub offers three tools to share files:
 
 | Option | What it shares | Updates | Limits |
 | --- | --- | --- | --- |
-| A `gsuquet/.github` repository (selected) | The community health files, the issue forms, `config.yml` and the PR template. As an option, the reusable workflows. | Each repository sees the current version | The repository must be public. A repository with its own `.github/ISSUE_TEMPLATE/` gets none of the default forms. Labels and rulesets are not part of it. |
+| A `gsuquet/.github` repository (selected) | The community health files, generic issue forms, `config.yml` and PR template, and the reusable workflows | Each repository sees the current version | The repository must be public. A repository with its own `.github/ISSUE_TEMPLATE/` gets none of the default forms. Labels and rulesets are not part of it. |
 | A template repository | All the files of its default branch, one time | None. The new repository has a copy. | The GitHub page tells only about files and branches. |
-| Reusable workflows in `gsuquet/workflows` | CI jobs: labeler, PR title check, label sync (later) | Each caller pins a commit SHA, and Renovate updates it | Only workflows |
+| Reusable workflows in a separate `gsuquet/workflows` (not selected, dropped) | CI jobs: labeler, PR title check, label sync (later) | Each caller pins a commit SHA, and Renovate updates it | Only workflows. A second repository to read, to pin and to update. |
 
 Sources: [GitHub: default community health files](https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/creating-a-default-community-health-file) and [GitHub: template repositories](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-template-repository).
 
-The only open point is the place of the reusable workflows. Refer to "Unresolved questions".
+Rollout step 11 creates `gsuquet/.github`.
 
 ## Security considerations
 
@@ -619,9 +625,10 @@ flowchart TD
     H --> I[Step 9: Owner deletes the Claude Docs plans]
     E --> J[Step 10: Checks]
     D --> J
+    D --> K[Step 11: Create gsuquet/.github]
 ```
 
-In text: after the merge of this RFC, the ADRs come first. Then three lines of work run in parallel: labels and templates, rulesets and settings, and the board with its milestones. The move of the Claude Docs plans waits for the templates and the milestones. The owner deletes the plans after the move. The checks come last.
+In text: after the merge of this RFC, the ADRs come first. Then three lines of work run in parallel: labels and templates, rulesets and settings, and the board with its milestones. The move of the Claude Docs plans waits for the templates and the milestones. The owner deletes the plans after the move. The checks come last. The shared repository comes after the templates of the homelab.
 
 1. The owner accepts this RFC and merges its PR.
 2. An author derives the ADRs. Possible ADRs:
@@ -632,7 +639,7 @@ In text: after the merge of this RFC, the ADRs come first. Then three lines of w
    - "Require signed commits and squash merges".
    - "Enforce the rules with Git hooks, CI checks, policies and rulesets".
 3. An author adds `.github/labels.yml` and its sync. The owner runs the sync, because it changes the labels of the repository.
-4. An author adds the issue forms, `config.yml`, the new PR template and the new `.github/labeler.yml`.
+4. An author adds the issue forms, `config.yml`, the new PR template and the new `.github/labeler.yml` to the homelab. These are the own files of the homelab, and they override the shared defaults of step 11.
 5. The owner changes the rulesets and the settings, as "Rulesets and settings" tells. The token of the agents can do this, but the rules of this RFC do not let an agent do it.
 6. The owner or an agent, with the approval of the owner, puts the target fields, states and views into the project "Perso". The `gh` token has the `project` scope, so an agent can use `gh project field-create`. The owner turns on the built-in workflows and makes the views in the web interface, because `gh` cannot change them.
 7. The owner and an author make the list of milestones, with their acceptance criteria.
@@ -645,7 +652,7 @@ In text: after the merge of this RFC, the ADRs come first. Then three lines of w
       - The Entire CLI `pre-push` and `commit-msg` hooks still run after the installation.
     - A Conftest policy on `renovate.json`. It permits `automerge: true` only in two places. The first is the dev tool rule, with its fixed files, managers and update types. The second is one `packageRules` entry for `lockFileMaintenance` with `matchManagers: ["mise"]` and its own `branchTopic`. It requires `lockFileMaintenance.automerge: false` at the top level.
     - A scheduled check that lists the PRs that `app/renovate-gsuquet` merged. It fails when a merged PR changed a file outside of the files of the exception.
-    - A check, after the `~ALL` ruleset exists, that GitHub can still delete the head branch after a merge. The GitHub pages do not tell if a deletion rule blocks this.
+    - A check, after the `~ALL` ruleset exists, that a push that deletes a branch fails, and that GitHub still deletes a merged `renovate/**` branch.
     - A check that `.github/labels.yml` is valid against a schema, in `schemas:check`.
     - A check that each issue form is valid YAML with the required keys, in `schemas:check`.
     - A check of the rulesets and the settings: a script compares `gh api repos/gsuquet/homelab/rulesets` and the merge settings with a file in Git. It needs the network, so it runs on a schedule, not in `mise run lint`.
@@ -654,6 +661,7 @@ In text: after the merge of this RFC, the ADRs come first. Then three lines of w
     - After the first squash merge with the new setting, run `git interpret-trailers --parse` on the commit on `main`. Check that the `Co-Authored-By` and `Claude-Session` trailers are there. Verify in the implementation PR:
       - The HTML comments of the PR template go into the bodies of the commits on `main`. Remove them from the template, or accept them.
       - The PR title check also lints the PR description, or not.
+11. The owner creates the public repository `gsuquet/.github`, after step 4. An author adds the generic issue forms, `config.yml` and PR template, and the shared community health files of RFC 0003. The generic files have no homelab values. The author also moves the reusable workflows from `gsuquet/workflows`, for example the labeler. Then the callers in the homelab change their `uses:` lines to `gsuquet/.github/.github/workflows/<file>.yml@<sha>`. The owner then archives `gsuquet/workflows`.
 
 To go back, the owner reverts the PRs of steps 3, 4 and 10, and restores the rulesets from the file of step 10. The board and the issues can stay: they do not change the code.
 
@@ -688,6 +696,11 @@ The owner answered the open questions of this RFC on 2026-11-01, in a comment on
 - **Signing key.** A separate SSH signing key for the agents, with a hardware owner key that needs a touch for each signature. Or commits through the GitHub API, which needs an agent identity. The owner keeps the GPG key for now.
 - **Squash body.** The commit messages of the branch, or only the PR title. The owner selected the PR title and description.
 - **Shared files.** A template repository, or a copy in each repository. A template repository copies the files one time and does not update the old repositories.
+The owner refused these alternatives in chat on 2026-11-01:
+
+- **Templates of the homelab.** Only the shared generic forms and PR template, with no copy in the homelab. The forms of the homelab need homelab values, and generic forms cannot hold them.
+- **Two shared repositories.** `gsuquet/.github` for the files, and `gsuquet/workflows` for the reusable workflows. Two repositories to read, to pin and to update.
+- **Deletion and force-push rules.** Keep them off on the other branches. Then an agent with the token of the owner can rewrite or delete a branch.
 - **Reviewer.** The same reviewing agent for all the rounds of one PR. A new agent does not trust its earlier review.
 - **Board automation.** A GitHub Actions workflow that moves the items on PR events. It needs a new secret with write access to all the projects of the owner.
 - **Record `issue` field.** A new field in the front matter changes the metadata of [ADR 0004](../adrs/0004-use-yaml-front-matter-for-record-metadata.md), and the PR already links the issue.
@@ -709,15 +722,11 @@ The owner answered the open questions of this RFC on 2026-11-01, in a comment on
 
 ## Unresolved questions
 
-The owner answered the eleven questions of the review on 2026-11-01, in a comment on PR #167. The body of this RFC states each decision. "Rationale and alternatives" lists the options that the owner did not select.
+None. The owner answered the eleven questions of the review on 2026-11-01, in a comment on PR #167. On the same day, the owner answered three more points in chat:
 
-One point stays open:
-
-1. **One repository or two for the shared files?** The owner asked if `gsuquet/.github` can also host the workflows. The GitHub documentation permits it. Refer to "Shared defaults for the personal repositories". Options:
-   - (a) `gsuquet/.github` alone. It holds the common files and the reusable workflows. A later PR moves the workflows from `gsuquet/workflows`, and each caller changes its `uses:` line.
-   - (b) `gsuquet/.github` for the common files, and `gsuquet/workflows` for the reusable workflows, as today.
-
-   Recommendation: (a). One repository is one source to read, to pin and to update. The move can wait until a second repository uses the process. Until then, the callers keep `gsuquet/workflows`.
+- The homelab keeps its own templates.
+- The deletion and force-push rules apply to all branches.
+- `gsuquet/.github` alone holds the shared files and the reusable workflows. The body of this RFC states each decision. "Rationale and alternatives" lists the options that the owner did not select.
 
 ## Future possibilities
 
@@ -726,6 +735,7 @@ One point stays open:
 - **The repository structure and the community health files.** RFC 0003 defines which files stay in each repository. The shared files go in `gsuquet/.github`.
 - **The Kubernetes labels and annotations.** RFC 0004 defines them. They are a different subject from the GitHub labels of this RFC.
 - **The agents RFC.** A later RFC implements the roles and the review loop of this RFC in a form that does not depend on one agent. Each agent, for example Claude Code, Antigravity or a local LLM, gets an adapter: skills, subagents or hooks in the format of that agent. The Git hooks, CI checks, policies and rulesets of this RFC stay the controls. That RFC also removes the rules that this RFC replaces from `AGENTS.md`.
+- **Cleanup of merged branches.** With an agent identity, a GitHub App in the bypass list of the deletion rule can delete merged branches. Then the owner does not turn off the rule for the cleanup.
 - **A merge queue.** When many PRs wait at the same time, a merge queue can test each one against the latest `main`.
 - **Iterations.** A project iteration field can group the work in fixed periods, if the owner wants a schedule.
 - **Project insights.** Charts of the board can show the progress of each milestone.
