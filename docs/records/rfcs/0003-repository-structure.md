@@ -152,11 +152,11 @@ The table compares the current tree with each standard. "Gap" means that the cur
 | GitHub community profile | A description, `README`, `LICENSE`, `CODE_OF_CONDUCT`, `CONTRIBUTING`, issue templates. Optional: `SECURITY`, `SUPPORT`, `FUNDING`. | Health score 85 %. No description, no issue templates. The documentation link points to `tree/master/docs`, but the default branch is `main`. `README.md` and `SECURITY.md` describe the old design. No `SUPPORT.md`, but `SUPPORT.md` does not change the score. | Set a description. Rewrite `README.md`. Put `SECURITY.md`, `CODE_OF_CONDUCT.md`, `SUPPORT.md` and a generic `CONTRIBUTING.md` in `gsuquet/.github` (RFC 0002). Keep the homelab issue forms and PR template here. |
 | HashiCorp standard module structure | A root module with `main.tf`, `variables.tf`, `outputs.tf` and a `README`. A `LICENSE`. Nested modules in `modules/`, examples in `examples/`. | Each module has these files and a `README.md`. The repository `LICENSE` covers the modules. No `examples/`. | Keep. The instances are the examples. Refer to "Terraform modules". |
 | HashiCorp style guide | `terraform.tf`, `providers.tf`, `main.tf` with all the resource and data source blocks, `variables.tf`, `outputs.tf`, `locals.tf`, `backend.tf`. Child modules in `./modules/<module_name>`. One folder for each environment. | Modules and instances use these names. Some modules split resources into `<topic>.tf` files, for example `namespace.tf`, `secret.tf` and `cluster-issuers.tf`. | Keep. Add `backend.tf` when an instance has a remote state. Keep the `<topic>.tf` files as a deliberate deviation. Refer to "Terraform modules". |
-| terraform-best-practices.com | Resource modules, infrastructure modules and compositions. `versions.tf`. Snake case for identifiers. | Modules are resource or infrastructure modules. Instances are compositions. Identifiers use snake case. | Keep the concepts. Keep `terraform.tf`, not `versions.tf`. Refer to unresolved question 4. |
+| terraform-best-practices.com | Resource modules, infrastructure modules and compositions. `versions.tf`. Snake case for identifiers. | Modules are resource or infrastructure modules. Instances are compositions. Identifiers use snake case. | Keep the concepts. Keep `terraform.tf`, not `versions.tf`. Refer to decision 4. |
 | Helm chart best practices | Chart names in DNS-1123 format. `Chart.yaml`, `values.yaml`, `templates/`, `crds/`, `charts/`. Values in camel case, each with a comment. | Each component has an umbrella chart in `sources/`. Values in camel case. Not all values have a comment. | Keep the chart layout. The rules for the content of the values go to the module standards RFC. |
 | Argo CD best practices | A configuration repository that is separate from the application source code. Pinned remote bases. | This repository holds no application source code. It is a configuration repository. | Keep one repository. |
 | Argo CD declarative setup | Argo CD manages itself. The self-managed Application uses `ServerSideApply=true`. | The `argocd` component manages itself. | Keep. |
-| Argo CD cluster bootstrapping | ApplicationSets with generators. App of Apps is the "alternative", and an admin-only tool. | The `argocd` chart renders one Application for each component in `cluster.yaml` (App of Apps). | Keep App of Apps, rendered. This is a deviation from the upstream recommendation. Refer to unresolved question 2. |
+| Argo CD cluster bootstrapping | ApplicationSets with generators. App of Apps is the "alternative", and an admin-only tool. | The `argocd` chart renders one Application for each component in `cluster.yaml` (App of Apps). | Keep App of Apps, rendered. This is a deviation from the upstream recommendation. Refer to decision 2. |
 
 The sources are in "Prior art".
 
@@ -208,7 +208,7 @@ The repository does not commit `*.tfvars`. `.gitignore` already blocks them, bec
 
 ### GitOps
 
-The layout stays as PR #163 made it. This RFC confirms it. Unresolved question 1 gives the alternatives for the layout, and unresolved question 2 gives the alternatives for the mechanism that makes the Applications.
+The layout stays as PR #163 made it. This RFC confirms it. Decisions 1 and 2 in "Decisions of the owner" record the layout and the mechanism that makes the Applications. "Rationale and alternatives" gives the other options.
 
 ```text
 gitops/
@@ -229,7 +229,7 @@ The reasons to keep the layout:
 - To remove a cluster, remove `instances/<name>/` and `gitops/clusters/<name>/`.
 - A component is the same for each cluster. A cluster selects its components and can override values. This separation agrees with the Argo CD use case "cluster add-ons", where one set of add-ons goes to many clusters.
 - The checks in `.mise/tasks/_base/instance-checks.sh` and the fixtures in `schemas/tests/gitops-tree/` already use this layout.
-- The `argocd` chart renders the Applications from `cluster.yaml`. Thus the layout needs no ApplicationSet controller. Refer to unresolved question 2.
+- The `argocd` chart renders the Applications from `cluster.yaml`. Thus the layout needs no ApplicationSet controller. Refer to decision 2.
 
 A component in `infrastructure/` can change cluster-scoped resources, for example CRDs, `ClusterRole` objects or webhooks. The `apps` AppProject permits namespaced resources in all namespaces except `kube-system` and `argocd`, and the cluster-scoped `Namespace` kind. Thus an app can now write into the namespace of another component, for example `cert-manager`. The AppProject does not limit an app to its own namespace. "Future possibilities" has an item to close this gap.
 
@@ -245,7 +245,7 @@ Two fixture folders are not for a schema: `schemas/tests/gitops-tree/` and `sche
 
 `docs/` keeps the Diátaxis sections, `docs/records/` and `docs/archive/`. Refer to the [writing rules](../../reference/writing-rules.md).
 
-`docs/reference/terraform-modules/<module>/index.md` is a generated copy of the module `README.md`. `mise run doc:check` makes sure that the copy is equal to the source. Refer to unresolved question 7.
+`docs/reference/terraform-modules/<module>/index.md` is a generated copy of the module `README.md`. `mise run doc:check` makes sure that the copy is equal to the source. Refer to decision 7.
 
 After the migration, `docs/reference/ansible-roles/` goes away with `ansible/`. `docs/reference/ansible-roles/raspberrypi/` already has no role in `ansible/roles/`.
 
@@ -310,17 +310,24 @@ Thus this repository keeps these files at its root:
 
 - `README.md` and `LICENSE`, because GitHub cannot inherit them.
 - `CONTRIBUTING.md`. Its content is specific to this repository: the mise tasks, the checks and the review flow. `gsuquet/.github` gets a generic `CONTRIBUTING.md` for the other repositories, and the file of this repository wins over it. The owner decided this (in chat, 2026-11-01). Refer to "Rationale and alternatives".
+
+The owner also decided that `README.md` and `CONTRIBUTING.md` follow the templates of The Good Docs Project (owner, in chat, 2026-11-01). This applies to the `README.md` and the `CONTRIBUTING.md` of this repository, and to the generic `CONTRIBUTING.md` in `gsuquet/.github`. The templates are in the `tgdp/templates` repository, release v1.6.0, under the license MIT-0:
+
+- [README template](https://gitlab.com/tgdp/templates/-/blob/v1.6.0/readme/template_readme.md): `Project logo and badges`, `Project Name`, `Table of contents`, `Project description`, `Who this project is for`, `Project dependencies`, `Instructions for using`, with `Install`, `Configure`, `Run` and `Troubleshoot`, then `Contributing guidelines`, `Additional documentation`, `How to get help` and `Terms of use`.
+- [Contributing guide template](https://gitlab.com/tgdp/templates/-/blob/v1.6.0/contributing-guide/template_contributing-guide.md): `Welcome`, `Project Name overview`, `Ground rules`, `Community engagement`, `Share ideas`, `Before you start`, `Environment setup`, `Best practices`, `Content style guide`, and `Contribution workflow`, with `Fork and clone repositories`, `Report issues and bugs`, `Issue management`, `Commit messages`, `Branch creation`, `Pull requests`, `Releases` and `Text formats`.
+
+Each template has a guide file next to it, `guide_readme.md` and `guide_contributing-guide.md`. A file can leave out a section that does not apply, for example `Releases`. The text of each section stays in ASD-STE100.
 - `CHANGELOG.md`, because git-cliff generates it from the commits of this repository.
 
 `CODE_OF_CONDUCT.md`, `SECURITY.md` and `SUPPORT.md` move to `gsuquet/.github`. This repository then has no copy of them. RFC 0002 designs the templates. The owner decided "shared and a homelab copy" (in chat, 2026-11-01). `gsuquet/.github` holds generic issue forms, `config.yml` and a PR template for the other repositories. This repository keeps its own issue forms, `config.yml` and PR template, because they are specific to the homelab. Examples: the Instance dropdown, the `kind/` labels, the board key and the link to the security advisories. A local template wins over the default, and the local issue forms turn off all the shared issue forms in this repository. Thus this repository removes no template. The owner also decided that the reusable workflows live only in `gsuquet/.github`, and RFC 0002 records it.
 
 | File | Current state | Target |
 | --- | --- | --- |
-| `README.md` | Old design: Ansible quickstart, Sealed Secrets. Not in ASD-STE100. | Rewrite: purpose, the target tree in short, a quickstart with `mise install` and `mise run instance:up`, links to `docs/`, license. |
-| `LICENSE.md` | MIT, 2024. GitHub reads it as MIT. | Refer to unresolved question 8. |
-| `CONTRIBUTING.md` | Current, but it names `kubernetes/**/sources/` as the place for charts. | Keep here, and update the table of "Specific changes" to the target tree. Add a generic default to `gsuquet/.github`. |
-| `SECURITY.md` | Describes Sealed Secrets, UFW and Trivy. Names only email as the report channel, but GitHub private vulnerability reporting is already on. | Move to `gsuquet/.github`, and remove it here. Rewrite it there as a generic policy for all the repositories of the owner: the report channels. The old-design content goes away, and no local copy stays. Refer to unresolved question 10. The security RFC gives the rest of the content, for example the answer time. |
-| `CODE_OF_CONDUCT.md` | Contributor Covenant 2.0. | Move to `gsuquet/.github`, and remove it here. Refer to unresolved question 9. |
+| `README.md` | Old design: Ansible quickstart, Sealed Secrets. Not in ASD-STE100. | Rewrite with the Good Docs Project README template: purpose, the target tree in short, a quickstart with `mise install` and `mise run instance:up`, links to `docs/`, license. |
+| `LICENSE.md` | MIT, 2024. GitHub reads it as MIT. | Refer to decision 8. |
+| `CONTRIBUTING.md` | Current, but it names `kubernetes/**/sources/` as the place for charts. | Keep here, and rewrite it with the Good Docs Project contributing guide template. Update the table of "Specific changes" to the target tree. Add a generic default with the same template to `gsuquet/.github`. |
+| `SECURITY.md` | Describes Sealed Secrets, UFW and Trivy. Names only email as the report channel, but GitHub private vulnerability reporting is already on. | Move to `gsuquet/.github`, and remove it here. Rewrite it there as a generic policy for all the repositories of the owner: GitHub private vulnerability reporting first, then email to `contact@gsuquet.com`. The old-design content goes away, and no local copy stays. Refer to decision 10. The security RFC gives the rest of the content, for example the answer time. |
+| `CODE_OF_CONDUCT.md` | Contributor Covenant 2.0, with the contact `gabriel.suquet.pro@proton.me`. | Move to `gsuquet/.github`, with the enforcement contact `contact@gsuquet.com`, and remove it here. Refer to decision 9. |
 | `SUPPORT.md` | None | Add to `gsuquet/.github`. It tells that the repositories are personal, without support, and where to ask a question. |
 | `.github/CODEOWNERS` | Gives most paths to the owner. Gives `docs/` (except the records and the standards) and the `kind-local` test instance to a reviewing agent. | Remove. Refer to "Remove `CODEOWNERS`". |
 | `FUNDING.yml` | None | Do not add, here or in `gsuquet/.github`. The owner does not ask for money for this repository. |
@@ -365,7 +372,7 @@ stateDiagram-v2
 In the "deprecated" state:
 
 - Each legacy folder has a `README.md` with the text "Deprecated" in its first heading, the reason and a link to this RFC. `kubernetes/bootstrap/README.md` exists, but `ansible/README.md`, `kubernetes/README.md` and `scripts/README.md` do not.
-- A check fails when a PR adds a file in `ansible/`, `kubernetes/` or `scripts/`. A change to an existing file stays possible. Refer to "The legacy check" and unresolved question 11.
+- A check fails when a PR adds a file in `ansible/`, `kubernetes/` or `scripts/`. A change to an existing file stays possible. Refer to "The legacy check" and decision 11.
 - `docs/reference/repository-structure.md` shows the legacy folders in a separate section.
 - The current Vale, Renovate, pre-commit and render rules for these folders stay.
 
@@ -405,7 +412,55 @@ The agents RFC handles the change of the agent instructions that name the legacy
 
 This local branch holds an older version of the work in PR #163. Its five commits add a layout by component: `gitops/platform/<component>/` with `values/<instance>.yaml` and `rendered/<instance>/`, and one entry file `gitops/instances/<instance>.yaml`. Two ApplicationSets, `platform` and `apps`, make the Applications. Each one uses a matrix of a Git file generator on the entry file and a list generator on one list in that file.
 
-Verdict: the branch has nothing to salvage. PR #163 has the same features in the layout by cluster. The namespace for each component, the sync waves, the server-side diff, `role:readonly` and the CRD render are all on `main`. The only value of the branch is its design: the layout by component and the ApplicationSets. Unresolved questions 1 and 2 record them as alternatives. This RFC does not delete the branch. After the decision on this RFC, the owner can delete it.
+Verdict: the branch has nothing to salvage. PR #163 has the same features in the layout by cluster. The namespace for each component, the sync waves, the server-side diff, `role:readonly` and the CRD render are all on `main`. The only value of the branch is its design: the layout by component and the ApplicationSets. "Rationale and alternatives" records them, with decisions 1 and 2. This RFC does not delete the branch. After the decision on this RFC, the owner can delete it.
+
+### Decisions of the owner
+
+The owner answered the open questions of this RFC in chat on 2026-11-01. Each item records the selected option. "Rationale and alternatives" gives the options that the owner did not select.
+
+#### 1. The GitOps layout
+
+Decision: the layout by cluster, as now on `main` (owner, in chat, 2026-11-01). The components are in `gitops/{infrastructure,apps}/<component>/sources/`, and each cluster has `gitops/clusters/<cluster>/{cluster.yaml,values/,rendered/}`. All the files of one cluster are in one folder, a cluster goes away with one folder, and the checks exist. The files of one component are in two places. Refer to "GitOps".
+
+#### 2. The mechanism that makes the Applications
+
+Decision: App of Apps, rendered, as now (owner, in chat, 2026-11-01). The `argocd` chart renders one Application for each item of `cluster.yaml`. The rendered Applications are in Git, and a reviewer sees them. `dependsOn` gives each Application a sync wave. With the Application health check in `argocd-cm`, a wave starts only when the Applications of the previous waves are `Healthy`. The repository needs no ApplicationSet controller. This departs from the upstream recommendation, and App of Apps is an admin-only tool (refer to "Security considerations"). The owner wants ApplicationSets to stay optional, and possible to switch on later (2026-10-31). A later RFC can change to an ApplicationSet without a change of the layout.
+
+#### 3. The names of the GitOps groups
+
+Decision: `infrastructure` and `apps`, as now (owner, in chat, 2026-11-01). The names agree with the AppProjects that exist now.
+
+#### 4. The file of the `terraform` block
+
+Decision: `terraform.tf`, as the HashiCorp style guide says and as all the modules use now (owner, in chat, 2026-11-01).
+
+#### 5. Examples and tests of a module
+
+Decision: no `examples/` folder. The instances are the examples, as now (owner, in chat, 2026-11-01). The RFC for the module standards can revise this decision. Refer to "Future possibilities".
+
+#### 6. Instance names
+
+Decision: a free DNS-1123 label, for example `kind-local` (owner, in chat, 2026-11-01). The `purpose` field of `instance.yaml` gives the type. The instance name is also the cluster name and a part of Argo CD names, thus a short name is better. RFC 0004 can add labels that hold the type.
+
+#### 7. The generated copies of the module documentation
+
+Decision: keep the copies in `docs/reference/terraform-modules/` (owner, in chat, 2026-11-01). A documentation site can read all the pages in `docs/`. `mise run doc:check` makes sure that the copies are equal to the source, thus they cannot drift.
+
+#### 8. The license
+
+Decision: MIT (owner, in chat, 2026-11-01). MIT applies to all the repository, also to `docs/`, except the two record templates, which keep their license notes. [RFC 0001](0001-records-process.md#licenses) tells that the RFC template is an adaptation of the Rust RFC template, and its license is not confirmed. The ADR template comes from MADR under CC0-1.0. `LICENSE.md` becomes `LICENSE`, with the same copyright line. The content is plain text, and the HashiCorp and Helm structures use `LICENSE`. Each copy of upstream content keeps its upstream license. This is not legal advice.
+
+#### 9. The shared code of conduct
+
+Decision: Contributor Covenant 2.0 as the shared default in `gsuquet/.github`, with the enforcement contact `contact@gsuquet.com` (owner, in chat, 2026-11-01). It applies to all the repositories of the owner that have no file of their own.
+
+#### 10. The report channels in `SECURITY.md`
+
+Decision: GitHub private vulnerability reporting first, and email to `contact@gsuquet.com` as the second channel (owner, in chat, 2026-11-01). The file tells reporters to use the private channel "in the Security tab of the repository, if it is on". The shared `SECURITY.md` in `gsuquet/.github` is generic. Private vulnerability reporting is a setting of each repository: it is on for this repository, and it can be off in others. Email works for each repository, and for a person without a GitHub account.
+
+#### 11. The check for legacy folders
+
+Decision: the `lint:legacy` check, with an allowlist file for exceptions (owner, in chat, 2026-11-01). Refer to "The legacy check". This RFC has the rule that each structure rule has a check. The allowlist makes each exception visible in the diff.
 
 ## Security considerations
 
@@ -415,7 +470,7 @@ Verdict: the branch has nothing to salvage. PR #163 has the same features in the
 - The repository does not commit `*.tfvars`, because they can hold secrets. `.gitignore` blocks them now. The secrets RFC handles the source of secret values.
 - A copy of an upstream chart or manifest keeps its upstream license file. This is a license duty. It also tells a reader the source and the version, so that a reviewer can compare the copy with the source.
 - `SECURITY.md` describes the security controls of the old design. A reader can think that these controls protect the new design. The rewrite removes this risk.
-- GitHub private vulnerability reporting is on, but `SECURITY.md` names only email. A reporter does not know about the private channel in GitHub. Refer to unresolved question 10.
+- GitHub private vulnerability reporting is on, but `SECURITY.md` names only email now. A reporter does not know about the private channel in GitHub. Decision 10 names the private channel first, and email to `contact@gsuquet.com` second.
 - Private vulnerability reporting is a setting of each repository. It does not depend on a `SECURITY.md` file, and it can be off in other repositories of the owner. A shared `SECURITY.md` must not promise it for each repository.
 - A default `SECURITY.md` is not in the clones, the forks or the downloads. A person with only a clone does not see the policy. Private vulnerability reporting stays on in the settings of this repository.
 - A move of `kubernetes/` before the migration deletes the production workloads, through the prune and the finalizers of the Applications. The proposal keeps the folder in place for this reason. Refer to "Legacy folders".
@@ -454,6 +509,8 @@ These details of `lint:legacy` come from the review of this RFC. The implementat
 
 The implementation PR of the community files must verify these points:
 
+- `README.md` and both `CONTRIBUTING.md` files use the sections of the Good Docs Project templates, release v1.6.0, and stay in ASD-STE100.
+
 - A default `SECURITY.md` has the link "in the Security tab of the repository, if it is on". Make sure that it works in a fork, and in a repository where private vulnerability reporting is off.
 - The Contributor Covenant 2.0 text in `CODE_OF_CONDUCT.md` has no link to this repository before it becomes the shared default.
 
@@ -477,9 +534,32 @@ To go back: each implementation PR is a separate revert. No step moves a folder 
 - **One repository for each module, as the HashiCorp style guide recommends.** The guide recommends a separate repository for each module, but it also says that a monorepo is possible. This repository has one owner and few modules. One repository keeps one CI, one lint task and one review flow. A split stays possible when another repository uses a module.
 - **A separate GitOps repository, as the Argo CD best practices recommend.** The best practice separates the manifests from the application source code. This repository holds no application source code. The reasons of the best practice (CI loops, access control between teams) do not apply.
 - **`examples/` in each module.** The HashiCorp structure recommends it for modules that other people use. Here the instances call the modules. `kind-local` is a working example that the owner tests.
-- **The layout by component and the ApplicationSets of the branch `claude/project-thread-v2la4i`.** Refer to unresolved questions 1 and 2.
+- **The layout by component and the ApplicationSets of the branch `claude/project-thread-v2la4i`.** Refer to decisions 1 and 2.
 - **`CONTRIBUTING.md` in this repository only.** The content stays next to the code that it describes. But it differs from the owner answer "all common files", and the other repositories get no default.
 - **`CONTRIBUTING.md` only as a generic default in `gsuquet/.github`.** One file, as the owner asked. But the default cannot name the tasks of this repository, and the specific rules must go to `docs/`. The owner selected the generic default and a homelab file (in chat, 2026-11-01).
+- **GitOps layout by component (decision 1), as in the branch `claude/project-thread-v2la4i`.** `gitops/{platform,apps}/<component>/{sources,values/<cluster>.yaml,rendered/<cluster>/}` and `gitops/instances/<cluster>.yaml`. All the files of one component are in one folder. But the files of one cluster go into each component, and the removal of a cluster changes each component.
+- **ApplicationSet with a Git file generator on `cluster.yaml` (decision 2).** A matrix of a Git file generator and a list generator, as in the branch `claude/project-thread-v2la4i`. It follows the upstream recommendation, and it keeps the explicit list for each cluster. But the Applications are not in Git. The order between Applications needs [progressive sync](https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Progressive-Syncs/). Progressive sync waits until all the Applications of a step are `Healthy`, without a custom health check. But it is a beta feature since v3.3.0, and the ApplicationSet controller needs a setting to turn it on (`--enable-progressive-syncs`, or a key in `argocd-cmd-params-cm`).
+- **ApplicationSet with a Git directory generator (decision 2).** Argo CD finds the components from the folders, without `cluster.yaml`. No entry file. But there is no explicit list for each cluster, and no order between components.
+- **Other GitOps group names (decision 3).** `platform` and `apps`, as in the older branch, or `system` and `applications`, as in the old `kubernetes/` tree. A change gives no new function.
+- **`versions.tf` (decision 4), as terraform-best-practices.com says.** All the modules use `terraform.tf` now, and HashiCorp maintains Terraform.
+- **`examples/<name>/` in each module (decision 5), as the HashiCorp structure says.** It helps a module that other people use. Here the instances call the modules.
+- **A fixed instance name pattern `<substrate>-<name>` (decision 6), for example `rpi-olympus`.** A check can enforce it. But the name is longer, and labels can hold the type.
+- **Remove the generated module documentation copies (decision 7).** `docs/reference/terraform-modules/index.md` then links to each `modules/<module>/README.md`. One file for each module, but a documentation site cannot read pages outside of `docs/`.
+- **Other licenses (decision 8).** The table compares them. Most license duties apply when a person distributes the code, not when a person uses or changes it for their own homelab.
+
+  | Option | Good | Bad |
+  | --- | --- | --- |
+  | **Apache-2.0** | Explicit patent grant. Many upstream projects use it, for example the Kubernetes projects. | Longer. A person who distributes a changed file must mark the change, and must keep a `NOTICE` file if one exists. These duties fall on the person who distributes, not on the owner. |
+  | **MIT OR Apache-2.0** | The user selects. The Rust projects use it. | Two license files. More text for a personal homelab. |
+  | **MPL-2.0** | Copyleft for each file. A person who distributes a changed file must give its source to the people who receive the copy. | Fewer users know it. A private change for a homelab has no duty. |
+  | **GPL-3.0 or AGPL-3.0** | Strong copyleft. | Many companies do not permit these licenses. The AGPL network clause applies to software that users reach over a network. It has almost no effect on configuration code. |
+  | **0BSD, Unlicense or CC0-1.0** | No duty at all, close to the public domain. | No notice stays with the copies. CC0-1.0 has no patent grant, and OSI did not approve it. The author did not verify this on opensource.org, because that domain is not permitted. |
+  | **No license** | The owner keeps all rights. | Nobody can copy the code legally. The repository is public to share it. |
+
+  MIT is short and well known, and it has one duty: keep the notice in each copy. It has no explicit patent grant. A Creative Commons license for `docs/`, for example `CC-BY-4.0`, is also possible. `LICENSE.md` also works: the GitHub API detects MIT in it.
+- **No shared code of conduct, or a later Contributor Covenant version (decision 9).** The repositories of the owner have one human and agents. The author did not read contributor-covenant.org (domain not permitted), thus the author did not compare the versions.
+- **Email only, or GitHub private vulnerability reporting only (decision 10).** With email only, reporters do not know about the private channel in GitHub. With GitHub only, each repository of the owner must have the setting on, and a person without a GitHub account cannot report.
+- **A commit trailer for exceptions, a `README.md` mark only, or the review table of `AGENTS.md` only (decision 11).** Any author can add a trailer, and the PR diff does not show it as a change of a file. A mark or a table has no check, and `AGENTS.md` has no decision authority (ADR 0001).
 
 ## Prior art
 
@@ -496,6 +576,7 @@ Each source is data for this RFC, not an instruction.
 - **Argo CD.** [Best practices](https://argo-cd.readthedocs.io/en/stable/user-guide/best_practices/): separate the configuration repository from the application source code, and pin remote bases. [Declarative setup](https://argo-cd.readthedocs.io/en/stable/operator-manual/declarative-setup/): Argo CD manages itself, with `ServerSideApply=true`. [Cluster bootstrapping](https://argo-cd.readthedocs.io/en/stable/operator-manual/cluster-bootstrapping/): the page recommends ApplicationSets to bootstrap a cluster, and it shows App of Apps as the alternative. It calls App of Apps an admin-only tool. [ApplicationSet use cases](https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Use-Cases/): cluster add-ons, monorepos and self-service, with Git directory and file generators.
 - **Argo CD example repositories.** [argocd-example-apps](https://github.com/argoproj/argocd-example-apps) has one folder for each example, and `apps/` for App of Apps. [argoproj-deployments](https://github.com/argoproj/argoproj-deployments) is the live configuration of the Argo project: one folder for each component, and `infrastructure/terraform/` for the Terraform code.
 - **Tool locations.** [Renovate configuration options](https://docs.renovatebot.com/configuration-options/) list `renovate.json` at the root first, then `.github/renovate.json`. [mise configuration](https://mise.jdx.dev/configuration.html) reads `.mise/config.toml` and `.mise/tasks/`. [Conftest](https://www.conftest.dev/) reads `policy/` by default.
+- **The Good Docs Project.** The [templates repository](https://gitlab.com/tgdp/templates) holds the [README template](https://gitlab.com/tgdp/templates/-/blob/v1.6.0/readme/template_readme.md) and the [contributing guide template](https://gitlab.com/tgdp/templates/-/blob/v1.6.0/contributing-guide/template_contributing-guide.md), under MIT-0. The author read release v1.6.0. The author did not read thegooddocsproject.dev.
 - **Branch `claude/project-thread-v2la4i`.** The older attempt in this repository. Refer to "The branch `claude/project-thread-v2la4i`".
 
 The author did not read these sources, because they are outside of the permitted domains:
@@ -508,108 +589,7 @@ The author did not read these sources, because they are outside of the permitted
 
 ## Unresolved questions
 
-Each question has options and a recommendation. The owner decides.
-
-### 1. The GitOps layout
-
-- **A. By cluster (now on `main`).** `gitops/{infrastructure,apps}/<component>/sources/` and `gitops/clusters/<cluster>/{cluster.yaml,values/,rendered/}`. Good: all the files of one cluster in one folder, a cluster goes away with one folder, the checks exist. Bad: the files of one component are in two places.
-- **B. By component (branch `claude/project-thread-v2la4i`).** `gitops/{platform,apps}/<component>/{sources,values/<cluster>.yaml,rendered/<cluster>/}` and `gitops/instances/<cluster>.yaml`. Good: all the files of one component in one folder. Bad: the files of one cluster go into each component. The removal of a cluster changes each component.
-
-Recommendation: A. Refer to "GitOps" for the reasons.
-
-### 2. The mechanism that makes the Applications
-
-- **A. App of Apps, rendered (now).** The `argocd` chart renders one Application for each item of `cluster.yaml`. Good: the rendered Applications are in Git, and a reviewer sees them. `dependsOn` gives each Application a sync wave. With the Application health check in `argocd-cm`, a wave starts only when the Applications of the previous waves are `Healthy`. The repository needs no ApplicationSet controller. Bad: it departs from the upstream recommendation. App of Apps is an admin-only tool (refer to "Security considerations").
-- **B. ApplicationSet with a Git file generator on `cluster.yaml`.** A matrix of a Git file generator and a list generator, as in the branch `claude/project-thread-v2la4i`. Good: it follows the upstream recommendation, and it keeps the explicit list for each cluster. Bad: the Applications are not in Git. The order between Applications needs [progressive sync](https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Progressive-Syncs/). Progressive sync waits until all the Applications of a step are `Healthy`, without the custom health check of A. But it is a beta feature since v3.3.0, and the ApplicationSet controller needs a setting to turn it on (`--enable-progressive-syncs`, or a key in `argocd-cmd-params-cm`).
-- **C. ApplicationSet with a Git directory generator.** Argo CD finds the components from the folders, without `cluster.yaml`. Good: no entry file. Bad: no explicit list for each cluster, and no order between components.
-
-Recommendation: A. The owner wants ApplicationSets to stay optional, and possible to switch on later (2026-10-31). A needs no ApplicationSet controller, and the layout by cluster works with A and with B. A later RFC can change to B without a change of the layout.
-
-### 3. The names of the GitOps groups
-
-- **A. `infrastructure` and `apps` (now).**
-- **B. `platform` and `apps` (the older branch).**
-- **C. `system` and `applications` (the old `kubernetes/` tree).**
-
-Recommendation: A. The names agree with the AppProjects that exist now, and a change gives no new function.
-
-### 4. The file of the `terraform` block
-
-- **A. `terraform.tf` (HashiCorp style guide, now).**
-- **B. `versions.tf` (terraform-best-practices.com).**
-
-Recommendation: A. HashiCorp maintains Terraform, and all the modules use this name now.
-
-### 5. Examples and tests of a module
-
-- **A. No `examples/`. The instances are the examples (now).**
-- **B. `examples/<name>/` in each module, as the HashiCorp structure says.**
-- **C. Let the RFC for the module standards decide, with the tests.**
-
-Recommendation: C, with A until that RFC. The choice depends on the test design.
-
-### 6. Instance names
-
-- **A. A free DNS-1123 label (now), for example `kind-local`.** The `purpose` field of `instance.yaml` gives the type.
-- **B. A fixed pattern `<substrate>-<name>`, for example `kind-local` or `rpi-olympus`.** A check can enforce it.
-
-Recommendation: A. The instance name is also the cluster name and a part of Argo CD names. A short name is better. RFC 0004 can add labels that hold the type.
-
-### 7. The generated copies of the module documentation
-
-- **A. Keep the copies in `docs/reference/terraform-modules/` (now).** A documentation site can read all the pages in `docs/`.
-- **B. Remove the copies. `docs/reference/terraform-modules/index.md` links to each `modules/<module>/README.md`.** One file for each module.
-
-Recommendation: A. `mise run doc:check` makes sure that the copies are equal to the source, thus they cannot drift.
-
-### 8. The license
-
-The repository is public. People can copy a module or a chart value file. Most license duties apply when a person distributes the code, not when a person uses or changes it for their own homelab.
-
-| Option | Good | Bad |
-| --- | --- | --- |
-| **MIT (now)** | Short and well known. One duty: keep the notice in each copy. No change for the owner. | No explicit patent grant. |
-| **Apache-2.0** | Explicit patent grant. Many upstream projects use it, for example the Kubernetes projects. | Longer. A person who distributes a changed file must mark the change, and must keep a `NOTICE` file if one exists. These duties fall on the person who distributes, not on the owner. |
-| **MIT OR Apache-2.0** | The user selects. The Rust projects use it. | Two license files. More text for a personal homelab. |
-| **MPL-2.0** | Copyleft for each file. A person who distributes a changed file must give its source to the people who receive the copy. | Fewer users know it. A private change for a homelab has no duty. |
-| **GPL-3.0 or AGPL-3.0** | Strong copyleft. | Many companies do not permit these licenses. The AGPL network clause applies to software that users reach over a network. It has almost no effect on configuration code. |
-| **0BSD, Unlicense or CC0-1.0** | No duty at all, close to the public domain. | No notice stays with the copies. CC0-1.0 has no patent grant, and OSI did not approve it. The author did not verify this on opensource.org, because that domain is not permitted. |
-| **No license** | The owner keeps all rights. | Nobody can copy the code legally. The repository is public to share it. |
-
-A second choice: one license for the code and a Creative Commons license, for example `CC-BY-4.0`, for `docs/`. A license for `docs/` touches the RFC template. [RFC 0001](0001-records-process.md#licenses) tells that the template is an adaptation of the Rust RFC template, and its license is not confirmed. The ADR template comes from MADR under CC0-1.0. Thus "all of `docs/` under MIT" is not fully true: each template keeps the license note in its last HTML comment.
-
-A third choice: the file name. `LICENSE.md` works now: the GitHub API detects MIT. The HashiCorp and Helm structures name the file `LICENSE`. The content is plain text, not Markdown. Vale reads all `*.md` files, also `LICENSE.md`.
-
-Recommendation: keep MIT for all the repository, also for `docs/`, except the templates, which keep their notes. Rename `LICENSE.md` to `LICENSE`, and keep the copyright line. Keep the upstream license in each copy of upstream content. This advice is not legal advice.
-
-### 9. The shared code of conduct
-
-The code of conduct moves to `gsuquet/.github` and applies as a default to all the repositories of the owner.
-
-- **A. Keep Contributor Covenant 2.0 (now), with the contact email, as the shared default.**
-- **B. No code of conduct in `gsuquet/.github`.** The repositories of the owner have one human and agents.
-- **C. A later Contributor Covenant version as the shared default.** The author did not read contributor-covenant.org (domain not permitted). The owner must check the latest version.
-
-Recommendation: A. The current text needs no change to move. The author did not verify if the community profile score counts a default file.
-
-### 10. The report channels in `SECURITY.md`
-
-The shared `SECURITY.md` in `gsuquet/.github` is generic: it applies to each repository of the owner that has no file of its own. GitHub private vulnerability reporting is on now for this repository. It is a setting of each repository, and it can be off in others. `SECURITY.md` names only email now.
-
-- **A. Email only (now).** Reports can also arrive through GitHub, but the file does not tell reporters.
-- **B. GitHub private vulnerability reporting first, "in the Security tab of the repository, if it is on", and email as a second channel.**
-- **C. GitHub private vulnerability reporting only.** Turn email off as a channel. Each repository of the owner must then have the setting on.
-
-Recommendation: B. The report stays in GitHub with the repository when the setting is on. Email works for each repository, and for a person without a GitHub account.
-
-### 11. The check for legacy folders
-
-- **A. The `lint:legacy` check, with an allowlist file for exceptions.** Refer to "The legacy check".
-- **B. The `lint:legacy` check, with a commit trailer for exceptions.** Any author can add a trailer, and the PR diff does not show it as a change of a file.
-- **C. Only the `README.md` mark, without a check.**
-- **D. Only the review table of `AGENTS.md`, without a check.** `AGENTS.md` has no decision authority (ADR 0001), and nothing enforces the table.
-
-Recommendation: A. This RFC has the rule that each structure rule has a check. The allowlist makes each exception visible in the diff.
+None. The owner answered all the questions of this RFC in chat on 2026-11-01. Refer to "Decisions of the owner".
 
 ### Dependencies on other RFCs
 
@@ -623,5 +603,6 @@ Recommendation: A. This RFC has the rule that each structure rule has a check. T
 - A security baseline can limit each app to its own namespace. For example, the `argocd` chart can render one AppProject for each app, with only the namespace of its item in `cluster.yaml` as a destination. A Conftest policy can check it.
 - A generated structure page can replace the manual tree, from the folder metadata (`module.yaml`, `instance.yaml`, `cluster.yaml`).
 - A template repository can hold the tool configuration, for the other repositories of the owner. `gsuquet/.github` is to hold the common community files, after RFC 0002. A later RFC can examine this.
+- The RFC for the module standards can revise decision 5. It can decide the examples and the tests of a module, together.
 - A module that other repositories use can move to its own repository, with the name `terraform-<provider>-<name>`, as the HashiCorp style guide says.
 - A check can compare the tree with this RFC: no unknown folder at the root, and no folder outside of the naming rules. The check must know the agent files and the legacy folders, until the agents RFC and the removal PR change them.
