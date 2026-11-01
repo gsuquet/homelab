@@ -87,7 +87,7 @@ Each sub-group has one subject. `data.labels` defines all six sub-groups now, an
 | --- | --- | --- | --- | --- | --- |
 | `tenant` | The tenant that owns a namespace | `name` | Label, on `Namespace` only | Network policies, quotas, reports | Now |
 | `instance` | The instance that owns a cloud resource. The values come from `instance.yaml`. | `name`, `purpose`, `lifecycle`, `ttl`, `type` | Label, on cloud resources | Clean-up jobs, cost reports | Now |
-| `ownership` | The person or the team to contact. Today the only value of `owner` is the proposed fixed value `gsuquet`, the GitHub account of the owner. | `owner` (label), `contact` (annotation) | Both, on `Namespace` | Persons, alerts | `owner` now. `contact` is optional |
+| `ownership` | The person or the team to contact. Today the only value of `owner` is the fixed value `gsuquet`, the owner's GitHub account name, chosen by the owner. | `owner` (label), `contact` (annotation) | Both, on `Namespace` | Persons, alerts | `owner` now. `contact` is optional |
 | `network` | The trust zone and the exposure, for the zero-trust RFC | `zone`, `exposure` | Label, on `Namespace` only | `CiliumNetworkPolicy`, Conftest | In the PR of the zero-trust RFC |
 | `backup` | The backup policy of a volume or a namespace | `policy` (label), `retention` (annotation) | Both | The backup tool | In the PR of a backup RFC |
 | `cost` | The cost center. No file of the repository holds it yet. | `center` | Label, on cloud resources | Cloud billing reports | In the PR of the RFC that adds a cost field to `instance.yaml` |
@@ -184,7 +184,7 @@ Helm also uses annotations: `helm.sh/hook`, `helm.sh/hook-weight`, `helm.sh/hook
 | `annotation` | `argocd.argoproj.io/tracking-id`, value `<app>:<group>/<kind>:<namespace>/<name>` | None of the label problems. |
 | `annotation+label` | Both | The label is for information only. |
 
-Since Argo CD 3.0, the default method is `annotation` ([Argo CD: upgrade from 2.14 to 3.0](https://argo-cd.readthedocs.io/en/stable/operator-manual/upgrading/2.14-3.0/)). The values in `gitops/infrastructure/argocd/sources/values.yaml` do not set the method, thus the new Argo CD uses the default. The legacy Argo CD (v3.3.7) in `kubernetes/bootstrap/argo-cd/` sets `application.instanceLabelKey: argocd.argoproj.io/instance`, but no method. The `label` and `annotation+label` methods use this key. The repository sets `application.resourceTrackingMethod: annotation` explicitly. Refer to [Decided questions](#decided-questions).
+Since Argo CD 3.0, the default method is `annotation` ([Argo CD: upgrade from 2.14 to 3.0](https://argo-cd.readthedocs.io/en/stable/operator-manual/upgrading/2.14-3.0/)). The values in `gitops/infrastructure/argocd/sources/values.yaml` do not set the method, thus the new Argo CD uses the default. The legacy Argo CD (v3.3.7) in `kubernetes/bootstrap/argo-cd/` sets `application.instanceLabelKey: argocd.argoproj.io/instance`, but no method. The `label` and `annotation+label` methods use this key. Rollout step 6 sets `application.resourceTrackingMethod: annotation` explicitly. Refer to [Decided questions](#decided-questions).
 
 **Sync options.** The annotation `argocd.argoproj.io/sync-options` holds a list of options with `,` between them, for example `Prune=false,Delete=false` ([Argo CD: sync options](https://argo-cd.readthedocs.io/en/stable/user-guide/sync-options/)).
 
@@ -539,7 +539,7 @@ The owner answered these questions in chat on 2026-11-01. The options that the o
 - **Volatile labels on pod templates.** No change now. The zero-trust RFC decides. Check K8 keeps `app.kubernetes.io/version` and `helm.sh/chart` out of selectors. Source: owner, in chat, 2026-11-01.
 - **The mapping to cloud keys.** One mechanical rule for Google Cloud, Azure and AWS: `.` and `/` to `_`, lowercase, max. 63 characters. Rollout step 7 tests the Azure DNS risk. Source: owner, in chat, 2026-11-01.
 - **The scope of the required keys.** Check the hand-written objects and the `Namespace` objects. Warn on the rendered upstream objects. Source: owner, in chat, 2026-11-01.
-- **The sub-groups.** Define all six sub-groups now in `data.labels`: `tenant`, `instance`, `ownership`, `network`, `backup`, `cost`. K4 checks them on each object. Require now `tenant`, `instance` and `ownership`, with a fixed value for `ownership.<p>/owner`. The value `gsuquet` is an author proposal, to confirm by the owner. `network`, `backup` and `cost` become required in the PR of the RFC that gives their values. These RFCs are the zero-trust RFC, a backup RFC, and the RFC that adds a cost field. Source: owner, in chat, 2026-11-01.
+- **The sub-groups.** Define all six sub-groups now in `data.labels`: `tenant`, `instance`, `ownership`, `network`, `backup`, `cost`. K4 checks them on each object. Require now `tenant`, `instance` and `ownership`, with the fixed value `gsuquet` for `ownership.<p>/owner` (owner, in chat, 2026-11-01). `network`, `backup` and `cost` become required in the PR of the RFC that gives their values. These RFCs are the zero-trust RFC, a backup RFC, and the RFC that adds a cost field. Source: owner, in chat, 2026-11-01.
 - **The type of an instance.** Derive `instance.<p>/type` from the first `cluster-*` module, without `cluster-`. No change of the schema. Source: owner, in chat, 2026-11-01.
 
 ## Future possibilities
