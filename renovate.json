@@ -49,7 +49,8 @@
     "renovate"
   ],
   "lockFileMaintenance": {
-    "automerge": true,
+    "automerge": false,
+    "description": "Never automerge: main has no required status check, so platform automerge could merge lock files (Terraform providers, Argo CD Chart.lock) while CI fails",
     "enabled": true,
     "schedule": [
       "* 0-6 * * 1"
