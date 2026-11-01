@@ -291,7 +291,7 @@ The YAML `apiVersion` of the metadata files (`infra.gsuquet.com/v1alpha1`) uses 
 
 ### Community health files
 
-GitHub reads most of these files from `.github/`, from the root or from `docs/`, in that order. A shared `gsuquet/.github` repository can give default files to all the repositories of the owner. That repository does not exist now. RFC 0002 decides if it exists, and it puts only the templates there. This RFC keeps the community health files at the root of this repository, where a visitor sees them.
+GitHub reads most of these files from `.github/`, from the root or from `docs/`, in that order. A shared `gsuquet/.github` repository can give default files to all the repositories of the owner. That repository does not exist now. RFC 0002 decides if it exists. If it exists, it holds only the templates. This RFC keeps the community health files at the root of this repository, where a visitor sees them.
 
 | File | Current state | Target |
 | --- | --- | --- |
