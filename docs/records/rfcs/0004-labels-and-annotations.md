@@ -264,11 +264,11 @@ Google Cloud labels, Azure tags and AWS tags have rules that are different from 
 | Case | Keys and values are case-sensitive | Lowercase only | Names are not case-sensitive in operations, values are case-sensitive | Keys and values are case-sensitive |
 | Value length | 63, can be empty | 63, can be empty | 256 | 0 to 256 |
 | Value characters | Letters, digits, `-`, `_`, `.` | Lowercase letters, digits, `_`, `-`, international characters | All | The same as the keys |
-| Sensitive data | Not for secrets | Do not put sensitive data | Tags are plain text. Do not put sensitive values. | Not verified in this RFC |
+| Sensitive data | Not for secrets | Do not put sensitive data | Tags are plain text. Do not put sensitive values. | Do not put PII or sensitive data |
 
 Sources: [Google Cloud: labels](https://docs.cloud.google.com/resource-manager/docs/labels-overview), [Azure: tags](https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/tag-resources). The Google Cloud page does not list `/` or `.` as permitted characters. Azure forbids `/` in tag names, and Azure Front Door and Traffic Manager refuse `:` and `#`. Azure DNS tag names do not support "special and Unicode characters". The page does not tell if `_` and `-` are special characters. Azure Automation, Azure Content Delivery Network, Azure public and private DNS (zones and A records) and Log Analytics saved searches accept only 15 tags.
 
-The AWS column comes from [AWS: tagging best practices](https://docs.aws.amazon.com/tag-editor/latest/userguide/best-practices-and-strats.html), as the reviewer of this RFC read it. The author did not read the page, because `docs.aws.amazon.com` is not in the list of permitted domains of the author. The implementation PR verifies it.
+The AWS column comes from [AWS: tagging best practices](https://docs.aws.amazon.com/tag-editor/latest/userguide/best-practices-and-strats.html), verified by the round 9 reviewer, 2026-11-01.
 
 Google Cloud also has Resource Manager tags. Tags can set conditions on IAM policies, and labels cannot. This RFC covers only labels.
 
@@ -422,7 +422,7 @@ This table is the draft of a future reference page, `docs/reference/labels-and-a
 
 ## Security considerations
 
-- Labels, annotations, cloud labels and cloud tags are plain text. Persons with read access, cost reports and logs can see them. They must not hold secrets, credentials or personal data. Google Cloud and Azure give the same warning.
+- Labels, annotations, cloud labels and cloud tags are plain text. Persons with read access, cost reports and logs can see them. They must not hold secrets, credentials or personal data. Google Cloud, Azure and AWS give the same warning.
 - A network policy that selects pods by a label trusts each identity that can change the label. The `apps` AppProject has `clusterResourceWhitelist: [{group: "", kind: Namespace}]` in `gitops/infrastructure/argocd/sources/templates/appproject-apps.yaml`. Thus an application component can create a `Namespace` with any name and any labels:
   - It can set `tenant` and `network` labels, and select its own trust zone.
   - It can set `pod-security.kubernetes.io/enforce: privileged`. The current Pod Security rule in `policy/kubernetes/kubernetes.rego` accepts all three levels. Thus the namespace can run privileged pods.
@@ -461,7 +461,10 @@ Verify in the implementation PR:
 - Open item: how the canonical `labels.tf` adds `ttl` only for an ephemeral instance. A `for` expression that drops null values can do it, but `hcl2` gives it as one string, thus K13 cannot read the keys. If so, `instance-checks.sh` checks the keys of the canonical file. This RFC did not verify if `default_labels` accepts a null value.
 - If the destination rules `!argocd` and `!kube-system` apply to `Namespace` objects.
 - With a plan, that `default_labels` do not reach `node_config.resource_labels`.
-- The AWS tag rules on `docs.aws.amazon.com`, and the `hcl2` string of `default_tags { tags = local.cloud_labels }` for K11.
+- The `default_tags` claims of the `hashicorp/aws` row, and the `hcl2` string of `default_tags { tags = local.cloud_labels }` for K11.
+- `default_tags` does not cover `aws_autoscaling_group`, and does not cover the tags of launch templates and node groups.
+- `instance.<p>/type` (Q10) has no value for an AWS cluster module yet.
+- K11 checks each `provider "aws"` block, also each block with an `alias`.
 
 To go back, revert the PRs of steps 3 to 5. Labels and annotations do not change the behavior of the workloads, except for the Argo CD tracking method and the Cilium policies. After a change of the tracking method, Argo CD writes new tracking keys at the next sync. Refer to the [Argo CD 3.0 upgrade notes](https://argo-cd.readthedocs.io/en/stable/operator-manual/upgrading/2.14-3.0/).
 
@@ -481,7 +484,7 @@ To go back, revert the PRs of steps 3 to 5. Labels and annotations do not change
 - **Annotations for the tenant and the zone.** Selectors and Cilium policies cannot select by annotations.
 - **One cloud key form for each cloud.** Azure accepts `.` in tag names, and AWS accepts `.` and `/`. Thus they can keep more of the Kubernetes key. But each form needs its own check, and a query that covers all the clouds needs more than one key. Refer to Q8.
 - **A different domain for the prefix.** The owner controls `gsuquet.com`, thus the repository does not need to register a domain or use a different one. `gsuquet.github.io` was also an option, but GitHub controls it, and it can change with the account name.
-- **The prefix `homelab.gsuquet.com`.** It has the current name of the repository. But the repository also holds GKE and Azure instances, which are not a homelab, and the API group is `infra.gsuquet.com`.
+- **The prefix `homelab.gsuquet.com`.** It has the current name of the repository. But the repository also holds Google Cloud, Azure and AWS instances, which are not a homelab, and the API group is `infra.gsuquet.com`.
 - **The prefix `gsuquet.com`, without a middle part.** It gives the shortest keys. But other projects of the owner can use the same domain with a different meaning.
 - **The prefix `platform.gsuquet.com`.** It fits a later internal developer platform. But it is a new word, different from the API group and from the name of the repository.
 - **No rules.** Each chart and each agent continues to use different keys. The zero-trust RFC then has no stable base.
@@ -497,7 +500,7 @@ To go back, revert the PRs of steps 3 to 5. Labels and annotations do not change
 - **Gateway API.** The [CRD management guide](https://gateway-api.sigs.k8s.io/guides/crd-management/) explains the release channels.
 - **Google Cloud.** [Labels overview](https://docs.cloud.google.com/resource-manager/docs/labels-overview) gives the label rules and the difference from tags. [GKE cluster labels](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/creating-managing-labels) tells how GKE copies the labels to the nodes and the disks.
 - **Azure.** [Use tags](https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/tag-resources) gives the tag rules.
-- **AWS.** [Tagging best practices](https://docs.aws.amazon.com/tag-editor/latest/userguide/best-practices-and-strats.html) gives the tag rules. The reviewer read this page, not the author.
+- **AWS.** [Tagging best practices](https://docs.aws.amazon.com/tag-editor/latest/userguide/best-practices-and-strats.html) gives the tag rules, verified by the round 9 reviewer, 2026-11-01.
 - **Terraform.** The [Google provider reference](https://registry.terraform.io/providers/hashicorp/google/latest/docs/guides/provider_reference) gives `default_labels` and the attribution label. The [`google_container_cluster`](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/container_cluster) page gives `resource_labels`, `terraform_labels` and `node_config.resource_labels`. The [AzureRM provider](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs) and the [Kubernetes provider](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs) have no default labels or tags.
 - **GitHub.** [Renaming a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/renaming-a-repository) tells what GitHub redirects after a rename.
 - **Conftest and OPA.** [Conftest](https://www.conftest.dev/) runs the policies. [OPA regex built-ins](https://www.openpolicyagent.org/docs/policy-reference/builtins/regex) give `regex.match`.
