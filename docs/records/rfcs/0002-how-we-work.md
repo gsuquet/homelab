@@ -283,7 +283,7 @@ This PR does not change `renovate.json`. The risk of the lock file maintenance P
 
 ### Commits
 
-Each commit message uses Conventional Commits 1.0.0. The PR title uses the same format, because it becomes the commit title on `main`.
+Each commit message on a branch uses Conventional Commits 1.0.0. The PR title uses the same format, because it becomes the header of the commit on `main`. The body of that commit is the PR description, and no check applies to it.
 
 Each commit on each branch has a signature that GitHub can verify. The ruleset of `main` already requires signed commits. An unsigned commit on the head branch can block the squash merge. The section "Signed commits" gives the details.
 
@@ -309,7 +309,12 @@ New issues use issue forms. The repository has three forms, plus a `config.yml` 
 - **Bug.** The observed behavior, the expected behavior and the steps to see it.
 - **RFC subject.** A subject that needs an RFC. The owner and an agent refine it before the RFC.
 
-The PR template stays, with three new lines: the issue (`Closes #N`), the step in the order of work, and the links to the ADRs. The ADR line is mandatory for each step after the ADR step.
+The PR template stays, with four additions:
+
+- The issue (`Closes #N`).
+- The step in the order of work.
+- The links to the ADRs. This line is mandatory for each step after the ADR step.
+- A trailer block for the agents, with the `Co-Authored-By:` lines and the other trailer lines of the agent. It must be the last paragraph of the description. Refer to "The merge method".
 
 ## Detailed design
 
@@ -514,9 +519,9 @@ Thus a separate agent key is revocable, but it is not an identity. Only the agen
 | Rebase merge | GitHub cannot sign. The rule blocks the merge. | Yes | Each commit title of the branch |
 | Merge commit | GitHub signs with `web-flow` | No. The ruleset blocks it. | `Merge pull request #N` |
 
-The owner decided on 2026-11-01: the squash merge only, with the PR title and the PR body. On GitHub, this is the squash option "the pull request title and description" ([GitHub: configuring commit squashing](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/configuring-commit-squashing-for-pull-requests)). Then the title on `main` is always the PR title, and a check of the PR title is enough for `main`.
+The owner decided on 2026-11-01: the squash merge only, with the PR title and the PR body. On GitHub, this is the squash option "the pull request title and description" ([GitHub: configuring commit squashing](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/configuring-commit-squashing-for-pull-requests)). Then the title on `main` is always the PR title, and a check of the PR title is enough for the header on `main`. The body is the PR description, and no check applies to it.
 
-The body on `main` is then the PR description, not the commit messages. The `Co-Authored-By` trailers of the branch commits do not go to `main`. Thus the PR template ends with the trailer lines of the agent, so that `main` keeps them.
+With this option, the body on `main` is the PR description, not the commit messages. The author found no GitHub page that tells if the squash keeps the trailers of the branch commits. Thus the PR description carries the trailer block of the agent, as its last paragraph. Git reads trailers only in the last paragraph of a message. The "Generated with Claude Code" line and the checklist of the template must not come after the trailer block. Rollout step 10 checks the result on `main`.
 
 ### Rulesets and settings
 
@@ -582,7 +587,7 @@ GitHub offers three tools to share files:
 | --- | --- | --- | --- |
 | A `gsuquet/.github` repository (selected) | The community health files, the issue forms, `config.yml` and the PR template. As an option, the reusable workflows. | Each repository sees the current version | The repository must be public. A repository with its own `.github/ISSUE_TEMPLATE/` gets none of the default forms. Labels and rulesets are not part of it. |
 | A template repository | All the files of its default branch, one time | None. The new repository has a copy. | The GitHub page tells only about files and branches. |
-| Reusable workflows in `gsuquet/workflows` | CI jobs: labeler, PR title check, label sync | Each caller pins a commit SHA, and Renovate updates it | Only workflows |
+| Reusable workflows in `gsuquet/workflows` | CI jobs: labeler, PR title check, label sync (later) | Each caller pins a commit SHA, and Renovate updates it | Only workflows |
 
 Sources: [GitHub: default community health files](https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/creating-a-default-community-health-file) and [GitHub: template repositories](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-template-repository).
 
@@ -596,7 +601,7 @@ The only open point is the place of the reusable workflows. Refer to "Unresolved
 - **A required status check can come from a false source.** A token with `repo` access can set a commit status with the name of a required check. The rulesets set the source of each required check to the GitHub Actions app.
 - **The issues and the milestones are public.** The repository is public. The project "Perso" is private, but an issue on the board stays public. An issue, a milestone or a project field must not contain secrets, private addresses or the details of a weakness that is not corrected yet. Use the private vulnerability report form. The `config.yml` of the issue forms links to it.
 - **A token with the `project` scope can change all the projects of the owner.** The board holds only plans, not code, so the risk is small.
-- **A label workflow needs write access.** The labeler and a label sync need `pull-requests: write` or `issues: write`. They run with `pull_request`, not `pull_request_target`, so a fork PR gets no write token. Each action stays pinned to a commit SHA.
+- **A label workflow needs write access.** The labeler needs `pull-requests: write`, and a later label sync workflow needs `issues: write`. For now, the label sync is a local `mise` task. They run with `pull_request`, not `pull_request_target`, so a fork PR gets no write token. Each action stays pinned to a commit SHA.
 - **Renovate merges without the owner.** Today, it merges the dev tool PRs after the checks of the branch pass. A compromised dev tool can thus reach `main`. The lock file maintenance PRs use the auto-merge of GitHub, and `main` has no required check. Thus they can merge with no passing check, and they can change the provider and chart lock files that reach the instances. This risk exists today. The orchestrator proposes a separate fix to the owner. The `minimumReleaseAge` of three days makes the risk smaller, but vulnerability PRs skip it. "The Renovate exception" limits these merges, and Rollout step 10 checks them.
 
 ## Rollout
@@ -646,6 +651,9 @@ In text: after the merge of this RFC, the ADRs come first. Then three lines of w
     - A check of the rulesets and the settings: a script compares `gh api repos/gsuquet/homelab/rulesets` and the merge settings with a file in Git. It needs the network, so it runs on a schedule, not in `mise run lint`.
     - A test that a Renovate dev tool PR can still merge with the rule "Require review from Code Owners". This test applies until the owner removes the rule. The rule did not block the owner PRs, but the author has no proof for a PR of the App.
     - The `required_signatures` rules stay the check of signed commits.
+    - After the first squash merge with the new setting, run `git interpret-trailers --parse` on the commit on `main`. Check that the `Co-Authored-By` and `Claude-Session` trailers are there. Verify in the implementation PR:
+      - The HTML comments of the PR template go into the bodies of the commits on `main`. Remove them from the template, or accept them.
+      - The PR title check also lints the PR description, or not.
 
 To go back, the owner reverts the PRs of steps 3, 4 and 10, and restores the rulesets from the file of step 10. The board and the issues can stay: they do not change the code.
 
