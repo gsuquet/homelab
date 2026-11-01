@@ -9,7 +9,7 @@ pr: 168
 
 ## Summary
 
-This RFC proposes the target structure of the repository. It gives the top-level folders and the layout of a Terraform module, an instance and a GitOps component. It also gives the place of the policies, the schemas, the documentation and the tool configuration. It gives one set of naming rules for folders, modules, instances, components and files. It also gives the target set of community health files, and it compares options for the license. The RFC compares the current tree with the community standards that the owner selected. These are the GitHub community profile, the HashiCorp module structure, terraform-best-practices.com, the Helm best practices and the Argo CD guides. `ansible/`, `kubernetes/` and `scripts/` are not part of the target structure. They stay, with a deprecation mark, until the migration of the Raspberry Pi is complete. Then one PR removes them.
+This RFC proposes the target structure of the repository. It gives the top-level folders and the layout of a Terraform module, an instance and a GitOps component. It also gives the place of the policies, the schemas, the documentation and the tool configuration. It gives one set of naming rules for folders, modules, instances, components and files. It also gives the target set of community health files. It records the license decision, and "Rationale and alternatives" compares the other licenses. The RFC compares the current tree with the community standards that the owner selected. These are the GitHub community profile, the HashiCorp module structure, terraform-best-practices.com, the Helm best practices and the Argo CD guides. `ansible/`, `kubernetes/` and `scripts/` are not part of the target structure. They stay, with a deprecation mark, until the migration of the Raspberry Pi is complete. Then one PR removes them.
 
 ## Motivation
 
@@ -310,6 +310,7 @@ Thus this repository keeps these files at its root:
 
 - `README.md` and `LICENSE`, because GitHub cannot inherit them.
 - `CONTRIBUTING.md`. Its content is specific to this repository: the mise tasks, the checks and the review flow. `gsuquet/.github` gets a generic `CONTRIBUTING.md` for the other repositories, and the file of this repository wins over it. The owner decided this (in chat, 2026-11-01). Refer to "Rationale and alternatives".
+- `CHANGELOG.md`, because git-cliff generates it from the commits of this repository.
 
 The owner also decided that `README.md` and `CONTRIBUTING.md` follow the templates of The Good Docs Project (owner, in chat, 2026-11-01). This applies to the `README.md` and the `CONTRIBUTING.md` of this repository, and to the generic `CONTRIBUTING.md` in `gsuquet/.github`. The templates are in the `tgdp/templates` repository, release v1.6.0, under the license MIT-0:
 
@@ -317,7 +318,6 @@ The owner also decided that `README.md` and `CONTRIBUTING.md` follow the templat
 - [Contributing guide template](https://gitlab.com/tgdp/templates/-/blob/v1.6.0/contributing-guide/template_contributing-guide.md): `Welcome`, `Project Name overview`, `Ground rules`, `Community engagement`, `Share ideas`, `Before you start`, `Environment setup`, `Best practices`, `Content style guide`, and `Contribution workflow`, with `Fork and clone repositories`, `Report issues and bugs`, `Issue management`, `Commit messages`, `Branch creation`, `Pull requests`, `Releases` and `Text formats`.
 
 Each template has a guide file next to it, `guide_readme.md` and `guide_contributing-guide.md`. A file can leave out a section that does not apply, for example `Releases`. The text of each section stays in ASD-STE100.
-- `CHANGELOG.md`, because git-cliff generates it from the commits of this repository.
 
 `CODE_OF_CONDUCT.md`, `SECURITY.md` and `SUPPORT.md` move to `gsuquet/.github`. This repository then has no copy of them. RFC 0002 designs the templates. The owner decided "shared and a homelab copy" (in chat, 2026-11-01). `gsuquet/.github` holds generic issue forms, `config.yml` and a PR template for the other repositories. This repository keeps its own issue forms, `config.yml` and PR template, because they are specific to the homelab. Examples: the Instance dropdown, the `kind/` labels, the board key and the link to the security advisories. A local template wins over the default, and the local issue forms turn off all the shared issue forms in this repository. Thus this repository removes no template. The owner also decided that the reusable workflows live only in `gsuquet/.github`, and RFC 0002 records it.
 
@@ -448,7 +448,14 @@ Decision: keep the copies in `docs/reference/terraform-modules/` (owner, in chat
 
 #### 8. The license
 
-Decision: MIT (owner, in chat, 2026-11-01). MIT applies to all the repository, also to `docs/`, except the two record templates, which keep their license notes. [RFC 0001](0001-records-process.md#licenses) tells that the RFC template is an adaptation of the Rust RFC template, and its license is not confirmed. The ADR template comes from MADR under CC0-1.0. `LICENSE.md` becomes `LICENSE`, with the same copyright line. The content is plain text, and the HashiCorp and Helm structures use `LICENSE`. Each copy of upstream content keeps its upstream license. This is not legal advice.
+Decision: MIT (owner, in chat, 2026-11-01).
+
+Proposed with it, not stated by the owner, to confirm or correct:
+
+- MIT applies to all the repository, also to `docs/`, except the two record templates, which keep their license notes. [RFC 0001](0001-records-process.md#licenses) tells that the RFC template is an adaptation of the Rust RFC template, and its license is not confirmed. The ADR template comes from MADR under CC0-1.0.
+- `LICENSE.md` becomes `LICENSE`, with the same copyright line. The content is plain text, and the HashiCorp and Helm structures use `LICENSE`.
+
+Each copy of upstream content keeps its upstream license. This is not legal advice.
 
 #### 9. The shared code of conduct
 
@@ -488,8 +495,8 @@ Decision: the `lint:legacy` check, with an allowlist file for exceptions (owner,
 3. Implementation PRs, in this order. Each one is small and links to its ADR:
    1. Add the deprecation `README.md` files and the `lint:legacy` check. Refer to "Verify in the implementation PR".
    2. Delete `modules/bootstrap-agent-sandbox/` and `docs/reference/terraform-modules/bootstrap-agent-sandbox/`, in a separate PR. The owner decided this on 2026-10-31.
-   3. Apply the license decision.
-   4. Rewrite `README.md`. Update `CONTRIBUTING.md`. RFC 0002 step 11 creates the public `gsuquet/.github`, with the generic issue forms, `config.yml`, the PR template and the reusable workflows. After that PR merges, this step adds the shared community health files to `gsuquet/.github`: the rewritten `SECURITY.md`, `CODE_OF_CONDUCT.md` (as the decision says), a new `SUPPORT.md` and a generic `CONTRIBUTING.md`. Then it removes the local copies of the moved files, `SECURITY.md` and `CODE_OF_CONDUCT.md`, from this repository.
+   3. Apply decision 8 (MIT). Rename `LICENSE.md` to `LICENSE` only when the owner confirms the rename.
+   4. Rewrite `README.md`. Update `CONTRIBUTING.md`. RFC 0002 step 11 creates the public `gsuquet/.github`, with the generic issue forms, `config.yml`, the PR template and the reusable workflows. After that PR merges, this step adds the shared community health files to `gsuquet/.github`. These are the rewritten `SECURITY.md`, `CODE_OF_CONDUCT.md`, a new `SUPPORT.md` and a generic `CONTRIBUTING.md`. `CODE_OF_CONDUCT.md` is Contributor Covenant 2.0, with the contact `contact@gsuquet.com` (decision 9). Then it removes the local copies of the moved files, `SECURITY.md` and `CODE_OF_CONDUCT.md`, from this repository.
    5. Rewrite `docs/reference/repository-structure.md` in ASD-STE100, with the target tree and a legacy section.
    6. After the owner accepts the ADR that supersedes ADR 0001: delete `.github/CODEOWNERS`, and remove the references to it in `AGENTS.md` and `CONTRIBUTING.md`.
    7. Add the checks for the naming rules that have no check yet. Examples: a TFLint rule for the Terraform file names, a check of the Rego file names.
@@ -510,6 +517,8 @@ These details of `lint:legacy` come from the review of this RFC. The implementat
 The implementation PR of the community files must verify these points:
 
 - `README.md` and both `CONTRIBUTING.md` files use the sections of the Good Docs Project templates, release v1.6.0, and stay in ASD-STE100.
+- The PR keeps or drops the template groups `Environment setup` with `Troubleshoot`, and `Instructions for using`, on purpose, and tells why.
+- The contact placeholder of Contributor Covenant 2.0 becomes `contact@gsuquet.com`.
 
 - A default `SECURITY.md` has the link "in the Security tab of the repository, if it is on". Make sure that it works in a fork, and in a repository where private vulnerability reporting is off.
 - The Contributor Covenant 2.0 text in `CODE_OF_CONDUCT.md` has no link to this repository before it becomes the shared default.
