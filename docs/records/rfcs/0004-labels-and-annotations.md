@@ -108,7 +108,7 @@ The `tenant` and `network` keys go only on a `Namespace`, never on a pod templat
 | `instance.<p>/ttl` | `lifecycle.ttl`, only for an ephemeral instance | For example `24h` or `7d` |
 | `instance.<p>/type` | The first module of `layers.cluster.modules`, without `cluster-` | For example `kind`, `talos`, `gke` |
 
-The `type` key always tells the cluster distribution: `cluster-kind` gives `kind`, `cluster-talos` gives `talos` and `cluster-gke` gives `gke`. It does not read the `substrate` layer, thus it has one meaning. The value set is the set of `cluster-*` modules in `modules/`, thus a check can compute it. [Q10](#q10-the-type-of-an-instance) gives the other options.
+The `type` key always tells the cluster distribution: `cluster-kind` gives `kind`, `cluster-talos` gives `talos` and `cluster-gke` gives `gke`. It does not read the `substrate` layer, thus it has one meaning. The value set is the set of `cluster-*` modules in `modules/`, thus a check can compute it. The owner selected this rule. Refer to [Decided questions](#decided-questions).
 
 The `type` key answers the instance names question of RFC 0003 (PR #168). That question keeps the free instance names and gives "labels that hold the type" to this RFC. The two RFCs must keep the same answer.
 
@@ -118,7 +118,7 @@ The word "lifecycle" has one meaning only: the `lifecycle.type` of `instance.yam
 
 ### Required keys
 
-This RFC proposes these required keys. [Q9](#q9-the-scope-of-the-required-keys) asks where the checks apply.
+This RFC proposes these required keys. The checks apply to the hand-written objects and to the `Namespace` objects, and warn on the rendered upstream objects. Refer to [Decided questions](#decided-questions).
 
 | Kind | Required labels | Required annotations |
 | --- | --- | --- |
@@ -166,7 +166,7 @@ Kubernetes recommends six labels with the shared prefix `app.kubernetes.io` ([Ku
 | `app.kubernetes.io/managed-by` | The tool that manages the operation of the application | `Helm` | Recommended | Yes |
 | `helm.sh/chart` | The chart name and version: `{{ .Chart.Name }}-{{ .Chart.Version }}` | `argo-cd-10.11.6` | Recommended | No |
 
-This repository uses the rendered manifests pattern. `mise run manifests:render` runs `helm template`, and Argo CD applies the output. Helm never runs in the cluster. Thus the rendered objects have `app.kubernetes.io/managed-by: Helm`, but Argo CD applies them. [Q5](#q5-the-value-of-appkubernetesiomanaged-by) asks which value to keep.
+This repository uses the rendered manifests pattern. `mise run manifests:render` runs `helm template`, and Argo CD applies the output. Helm never runs in the cluster. Thus the rendered objects have `app.kubernetes.io/managed-by: Helm`, but Argo CD applies them. The repository keeps `Helm`. Refer to [Decided questions](#decided-questions).
 
 The selector of a `Deployment`, a `StatefulSet` or a `DaemonSet` is immutable. A selector must use only stable keys: `app.kubernetes.io/name` and `app.kubernetes.io/instance`. The upstream charts and the hand-written manifests already do this.
 
@@ -182,7 +182,7 @@ Helm also uses annotations: `helm.sh/hook`, `helm.sh/hook-weight`, `helm.sh/hook
 | `annotation` | `argocd.argoproj.io/tracking-id`, value `<app>:<group>/<kind>:<namespace>/<name>` | None of the label problems. |
 | `annotation+label` | Both | The label is for information only. |
 
-Since Argo CD 3.0, the default method is `annotation` ([Argo CD: upgrade from 2.14 to 3.0](https://argo-cd.readthedocs.io/en/stable/operator-manual/upgrading/2.14-3.0/)). The values in `gitops/infrastructure/argocd/sources/values.yaml` do not set the method, thus the new Argo CD uses the default. The legacy Argo CD (v3.3.7) in `kubernetes/bootstrap/argo-cd/` sets `application.instanceLabelKey: argocd.argoproj.io/instance`, but no method. The `label` and `annotation+label` methods use this key. [Q6](#q6-the-argo-cd-tracking-method) asks if the repository must set it explicitly.
+Since Argo CD 3.0, the default method is `annotation` ([Argo CD: upgrade from 2.14 to 3.0](https://argo-cd.readthedocs.io/en/stable/operator-manual/upgrading/2.14-3.0/)). The values in `gitops/infrastructure/argocd/sources/values.yaml` do not set the method, thus the new Argo CD uses the default. The legacy Argo CD (v3.3.7) in `kubernetes/bootstrap/argo-cd/` sets `application.instanceLabelKey: argocd.argoproj.io/instance`, but no method. The `label` and `annotation+label` methods use this key. The repository sets `application.resourceTrackingMethod: annotation` explicitly. Refer to [Decided questions](#decided-questions).
 
 **Sync options.** The annotation `argocd.argoproj.io/sync-options` holds a list of options with `,` between them, for example `Prune=false,Delete=false` ([Argo CD: sync options](https://argo-cd.readthedocs.io/en/stable/user-guide/sync-options/)).
 
@@ -217,7 +217,7 @@ The zero-trust RFC needs these facts:
 | `tenant.<p>/name`, `network.<p>/zone` | Yes | Not on pods. They go on the `Namespace`, and Cilium reads them through `io.cilium.k8s.namespace.labels.*`. |
 | `pod-template-hash`, `controller-revision-hash` | No | Excluded by default. |
 
-The rendered Argo CD pods carry `app.kubernetes.io/version` and `helm.sh/chart` in their pod template. The legacy manifests in `kubernetes/applications/` carry `app.kubernetes.io/version` in the pod template too. [Q7](#q7-volatile-labels-on-pod-templates) asks what to do.
+The rendered Argo CD pods carry `app.kubernetes.io/version` and `helm.sh/chart` in their pod template. The legacy manifests in `kubernetes/applications/` carry `app.kubernetes.io/version` in the pod template too. The zero-trust RFC decides what to do. Refer to [Decided questions](#decided-questions).
 
 If the zero-trust RFC adds an inclusive pattern to the Cilium `labels` setting, it must examine the namespace labels with the custom prefix. This RFC did not verify if the inclusive patterns filter `io.cilium.k8s.namespace.labels.*`.
 
@@ -287,7 +287,7 @@ On GKE, two sets of labels exist, and they do not share labels ([GKE: cluster la
 - The `google_container_cluster` resource puts the provider `default_labels` in `terraform_labels`, with its `resource_labels`. Thus the defaults reach the cluster labels.
 - `node_config.resource_labels` is a nested field. The provider documentation shows no `terraform_labels` for it, thus the provider `default_labels` do not reach it. Node pool labels are optional: the cluster labels reach the nodes too. A module sets them only to override a cluster label, or to stop the delay of up to one hour.
 
-**Mapping.** This RFC proposes one mechanical rule from a Kubernetes key to a cloud key. [Q8](#q8-the-mapping-to-cloud-keys) gives the other options.
+**Mapping.** This RFC proposes one mechanical rule from a Kubernetes key to a cloud key. The owner selected one rule for all the clouds. Refer to [Decided questions](#decided-questions).
 
 1. Change each `.` and `/` to `_`.
 2. Change all letters to lowercase.
@@ -352,7 +352,7 @@ K1 to K7 read the keys in `metadata.labels` and `metadata.annotations`, also in 
 | K6 Required keys of workloads | Pod templates and objects of the hand-written objects in `gitops/` | The required `app.kubernetes.io/*` labels. | `deny` |
 | K7 Required keys in upstream charts | Rendered upstream objects | The same keys as K6. Upstream charts do not always let the repository set them. | `warn` |
 | K8 Stable selectors | `spec.selector.matchLabels` of workloads, and `spec.selector` of a `Service` | No `app.kubernetes.io/version` and no `helm.sh/chart`. | `deny` |
-| K9 Argo CD tracking | The rendered `argocd-cm` ConfigMap | `application.resourceTrackingMethod` is `annotation`, if the owner selects this in Q6. | `deny` |
+| K9 Argo CD tracking | The rendered `argocd-cm` ConfigMap | `application.resourceTrackingMethod` is `annotation`. | `deny` |
 | K10 Sync options | All rendered objects and `Application` objects in `gitops/`, with an allowlist for upstream exceptions | No `Replace=true` and no `Force=true`, in the annotation `argocd.argoproj.io/sync-options` and in `spec.syncPolicy.syncOptions` of an `Application`. | `deny` |
 | K11 Cloud defaults | `provider "google"` and `provider "aws"` blocks and module calls in `instances/` | `default_labels`, `default_tags.tags` and each `tags` argument of a module call are exactly `local.cloud_labels`. A `merge()` that overrides keys fails. Conftest does not read the values of the local. Refer to [Rollout](#rollout). | `deny` |
 | K12 Cloud tags | `azurerm` resources in `modules/` with a `tags` argument | The argument comes from the `tags` variable of the module. Azure DNS resources can need an exemption. Refer to [Rollout](#rollout). | `deny` |
@@ -396,7 +396,7 @@ This table is the draft of a future reference page, `docs/reference/labels-and-a
 | `app.kubernetes.io/instance` | Label | All | Release name | Chart | Yes | Yes |
 | `app.kubernetes.io/part-of` | Label | All | Higher-level application | Chart | Pod templates | Yes |
 | `app.kubernetes.io/component` | Label | All | Role in the architecture | Chart | No | Yes |
-| `app.kubernetes.io/managed-by` | Label | All | Refer to Q5 | Chart | Objects other than pod templates | Yes |
+| `app.kubernetes.io/managed-by` | Label | All | `Helm` in the rendered objects | Chart | Objects other than pod templates | Yes |
 | `app.kubernetes.io/version` | Label | All | Version of the application | Chart | No | No |
 | `helm.sh/chart` | Label | All | `<chart>-<version>` | Chart | No | No |
 | `pod-security.kubernetes.io/enforce`, `audit`, `warn` | Label | `Namespace` | `privileged`, `baseline`, `restricted` | Repository | Yes | Yes |
@@ -463,7 +463,7 @@ Verify in the implementation PR:
 - With a plan, that `default_labels` do not reach `node_config.resource_labels`.
 - The `default_tags` claims of the `hashicorp/aws` row, and the `hcl2` string of `default_tags { tags = local.cloud_labels }` for K11.
 - `default_tags` does not cover `aws_autoscaling_group`, and does not cover the tags of launch templates and node groups.
-- `instance.<p>/type` (Q10) has no value for an AWS cluster module yet.
+- `instance.<p>/type` has no value for an AWS cluster module yet.
 - K11 checks each `provider "aws"` block, also each block with an `alias`.
 
 To go back, revert the PRs of steps 3 to 5. Labels and annotations do not change the behavior of the workloads, except for the Argo CD tracking method and the Cilium policies. After a change of the tracking method, Argo CD writes new tracking keys at the next sync. Refer to the [Argo CD 3.0 upgrade notes](https://argo-cd.readthedocs.io/en/stable/operator-manual/upgrading/2.14-3.0/).
@@ -482,11 +482,18 @@ To go back, revert the PRs of steps 3 to 5. Labels and annotations do not change
 - **One flat prefix, for example `infra.gsuquet.com/tenant`.** It is shorter. But each new subject adds names to one flat list, and a selector cannot match one subject by its prefix. The sub-groups follow Kubernetes and Argo CD.
 - **Only the recommended labels.** `app.kubernetes.io/*` has no key for a tenant, a trust zone or an instance.
 - **Annotations for the tenant and the zone.** Selectors and Cilium policies cannot select by annotations.
-- **One cloud key form for each cloud.** Azure accepts `.` in tag names, and AWS accepts `.` and `/`. Thus they can keep more of the Kubernetes key. But each form needs its own check, and a query that covers all the clouds needs more than one key. Refer to Q8.
+- **One cloud key form for each cloud.** Azure accepts `.` in tag names, and AWS accepts `.` and `/`. Thus they can keep more of the Kubernetes key. But each form needs its own check, and a query that covers all the clouds needs more than one key.
 - **A different domain for the prefix.** The owner controls `gsuquet.com`, thus the repository does not need to register a domain or use a different one. `gsuquet.github.io` was also an option, but GitHub controls it, and it can change with the account name.
 - **The prefix `homelab.gsuquet.com`.** It has the current name of the repository. But the repository also holds Google Cloud, Azure and AWS instances, which are not a homelab, and the API group is `infra.gsuquet.com`.
 - **The prefix `gsuquet.com`, without a middle part.** It gives the shortest keys. But other projects of the owner can use the same domain with a different meaning.
 - **The prefix `platform.gsuquet.com`.** It fits a later internal developer platform. But it is a new word, different from the API group and from the name of the repository.
+- **Keep the name `homelab`, or rename the repository in this RFC.** The owner announced the rename to `gsuquet/infra`, and [RFC 0005](https://github.com/gsuquet/homelab/pull/171) ("Repository scope and naming") records it. Labels do not need the same name.
+- **`app.kubernetes.io/managed-by: argocd`, or no `managed-by` label.** The upstream charts do not always let the repository change this label. The tracking annotation already tells which `Application` applies an object.
+- **Rely on the default tracking method, or use `annotation+label`.** A later version of Argo CD can change the default, and a check cannot test a missing value. `annotation+label` brings back the conflicts of `app.kubernetes.io/instance`.
+- **Filter or remove the volatile pod labels now.** A Cilium label filter or a post-render step is a part of the network policy design. The zero-trust RFC decides it.
+- **One rule for each cloud, or short aliases.** Each form needs its own check. Aliases can collide with the keys of other tools in the same cloud project.
+- **Check all rendered objects, or only `Namespace` objects.** Many upstream charts cannot add labels to all their objects. The `Namespace` alone does not cover the `app.kubernetes.io/*` labels of the hand-written charts.
+- **An explicit `type` field in `instance.yaml`, or no type key.** A field puts the same fact in two places. Without a key, a cost report cannot group the resources by type.
 - **No rules.** Each chart and each agent continues to use different keys. The zero-trust RFC then has no stable base.
 
 ## Prior art
@@ -513,16 +520,13 @@ The owner answered these questions in chat on 2026-11-01. The options that the o
 
 - **Control of the domain.** The owner controls `gsuquet.com`. The owner registered the domain with Cloudflare Registrar, and its DNS is on Cloudflare. Source: owner, in chat, 2026-11-01.
 - **The prefix of the repository.** `infra.gsuquet.com`, with the sub-groups `<subgroup>.infra.gsuquet.com/<name>`. Reason: one word, `infra`, for the name of the repository, the prefix of the keys and the cloud tag keys. The repository will become `gsuquet/infra`. The new RFC "Repository scope and naming" records the rename and the shared word. Source: owner, in chat, 2026-11-01.
-
-### Q3: Rename the repository
-
-The owner asked if the repository name must match the prefix. On 2026-11-01, the owner said in chat that the repository will become `gsuquet/infra`. The new RFC "Repository scope and naming" records this. This question stays open in this RFC until that RFC has a PR.
-
-- **A.** Keep `homelab`. No work. The prefix and the name stay different. This option is against the rename that the owner announced.
-- **B.** Rename the repository to match the prefix, for example `infra`. GitHub redirects the web pages and the Git operations. But GitHub does not redirect calls to actions in a renamed repository, and the old name must stay free. The rename also changes `gitops.repoURL`, the Argo CD repository settings, the badges and the links in `docs/`.
-- **C.** Decide in the RFC "Repository scope and naming", which records the rename and the shared word `infra`.
-
-Recommendation: C. The name of the repository is a subject of the RFC "Repository scope and naming". Labels do not need the same name.
+- **Rename the repository.** [RFC 0005](https://github.com/gsuquet/homelab/pull/171) ("Repository scope and naming") decides the name of the repository. Source: owner, in chat, 2026-11-01.
+- **The value of `app.kubernetes.io/managed-by`.** Keep the value of the chart, `Helm`. The tracking annotation tells which `Application` applies the object. Source: owner, in chat, 2026-11-01.
+- **The Argo CD tracking method.** Set `application.resourceTrackingMethod: annotation` explicitly in the values, and add check K9. Source: owner, in chat, 2026-11-01.
+- **Volatile labels on pod templates.** No change now. The zero-trust RFC decides. Check K8 keeps `app.kubernetes.io/version` and `helm.sh/chart` out of selectors. Source: owner, in chat, 2026-11-01.
+- **The mapping to cloud keys.** One mechanical rule for Google Cloud, Azure and AWS: `.` and `/` to `_`, lowercase, max. 63 characters. Rollout step 6 tests the Azure DNS risk. Source: owner, in chat, 2026-11-01.
+- **The scope of the required keys.** Check the hand-written objects and the `Namespace` objects. Warn on the rendered upstream objects. Source: owner, in chat, 2026-11-01.
+- **The type of an instance.** Derive `instance.<p>/type` from the first `cluster-*` module, without `cluster-`. No change of the schema. Source: owner, in chat, 2026-11-01.
 
 ### Q4: The sub-groups
 
@@ -532,59 +536,10 @@ Recommendation: C. The name of the repository is a subject of the RFC "Repositor
 
 Recommendation: B. A key without a reader has no check that proves its use.
 
-### Q5: The value of `app.kubernetes.io/managed-by`
+On 2026-11-01, the owner answered in chat: "add all groups now" (option A). Before this RFC records the decision, the owner must confirm one point. Three sub-groups have no source for their values yet: `network` (the zero-trust RFC), `backup` (a backup RFC) and `cost` (no field in `instance.yaml`).
 
-The rendered objects have `Helm`, because `helm template` makes them. Argo CD applies them. The legacy manifests have `argocd`.
-
-- **A.** Keep the value of the chart (`Helm`). The label tells which tool makes the manifest. The tracking annotation tells which `Application` applies it.
-- **B.** Set `argocd` on all objects. The upstream charts do not always let the repository change this label.
-- **C.** Remove the label from the hand-written charts.
-
-Recommendation: A. It needs no change of upstream charts, and the tracking annotation already tells the owner.
-
-### Q6: The Argo CD tracking method
-
-- **A.** Keep the default. Argo CD 3.0 and later use `annotation`.
-- **B.** Set `application.resourceTrackingMethod: annotation` explicitly in the values, and add check K9.
-- **C.** Use `annotation+label`, to see the owner in label queries.
-
-Recommendation: B. An explicit value stays the same if a later version changes the default, and a check can test it.
-
-### Q7: Volatile labels on pod templates
-
-`app.kubernetes.io/version` and `helm.sh/chart` change at each upgrade. On a pod template, they give a new Cilium identity at each upgrade.
-
-- **A.** Do nothing now. The zero-trust RFC decides.
-- **B.** Add exclusive patterns to the Cilium `labels` setting now, for example `!app\.kubernetes\.io/version` and `!helm\.sh/chart`.
-- **C.** Remove the two labels from the rendered pod templates, for example with a post-render step.
-
-Recommendation: A. The network policy design is out of the scope of this RFC. This RFC only records that policies must not select on these labels (check K8 for selectors).
-
-### Q8: The mapping to cloud keys
-
-- **A.** One mechanical rule for all the clouds: `.` and `/` to `_`, lowercase, max. 63 characters.
-- **B.** One rule for each cloud. Azure keeps `.` and changes only `/`. AWS keeps the Kubernetes key.
-- **C.** A short alias for each key in `data.labels`, for example `tenant` for `tenant.<p>/name`.
-
-Recommendation: A. One rule gives one check, and the same query works on all the clouds. C gives shorter keys, but the aliases can collide with the keys of other tools in the same cloud project. A has one risk: Azure DNS can refuse `_` or `-` in tag names. Rollout step 6 tests this before the ADR.
-
-### Q9: The scope of the required keys
-
-- **A.** Check only the hand-written objects and the `Namespace` objects. Warn on the rendered upstream objects.
-- **B.** Check all objects, also the rendered upstream objects. Use chart values (`commonLabels`) to add the keys.
-- **C.** Check only the `Namespace` objects. Cilium and the reports read the namespace labels.
-
-Recommendation: A. The `Namespace` holds the tenant and the trust zone for all its objects. Many upstream charts cannot add labels to all their objects, thus B fails on charts that the repository cannot change.
-
-### Q10: The type of an instance
-
-RFC 0003 keeps free instance names and gives the type of an instance to this RFC.
-
-- **A.** Derive `instance.<p>/type` from the first `cluster-*` module, without `cluster-`. No change of the schema.
-- **B.** Add a `type` field with an enum to `schemas/instance.schema.json`, for example `kind`, `talos`, `gke`, `aks`. The label copies the field. A check makes sure that the field matches the modules.
-- **C.** No type key. A report reads `instance.yaml`.
-
-Recommendation: A. It adds no new fact, and the value set grows with the modules. B is clearer to read, but the same fact is then in two places.
+- **A1.** Define all six sub-groups now in `data.labels`, and check them with K4. Require now only the keys with a source: `tenant`, `instance` and `ownership`. The other keys become required in the PR of the RFC that gives their values.
+- **A2.** Require all six now. The keys without a source get a documented placeholder value, for example `unset`, until a later RFC replaces it.
 
 ## Future possibilities
 
