@@ -87,7 +87,7 @@ Each sub-group has one subject. `data.labels` defines all six sub-groups now, an
 | --- | --- | --- | --- | --- | --- |
 | `tenant` | The tenant that owns a namespace | `name` | Label, on `Namespace` only | Network policies, quotas, reports | Now |
 | `instance` | The instance that owns a cloud resource. The values come from `instance.yaml`. | `name`, `purpose`, `lifecycle`, `ttl`, `type` | Label, on cloud resources | Clean-up jobs, cost reports | Now |
-| `ownership` | The person or the team to contact. Today the only value of `owner` is the fixed value `gsuquet`, the GitHub account of the owner. | `owner` (label), `contact` (annotation) | Both, on `Namespace` | Persons, alerts | `owner` now. `contact` is optional |
+| `ownership` | The person or the team to contact. Today the only value of `owner` is the proposed fixed value `gsuquet`, the GitHub account of the owner. | `owner` (label), `contact` (annotation) | Both, on `Namespace` | Persons, alerts | `owner` now. `contact` is optional |
 | `network` | The trust zone and the exposure, for the zero-trust RFC | `zone`, `exposure` | Label, on `Namespace` only | `CiliumNetworkPolicy`, Conftest | In the PR of the zero-trust RFC |
 | `backup` | The backup policy of a volume or a namespace | `policy` (label), `retention` (annotation) | Both | The backup tool | In the PR of a backup RFC |
 | `cost` | The cost center. No file of the repository holds it yet. | `center` | Label, on cloud resources | Cloud billing reports | In the PR of the RFC that adds a cost field to `instance.yaml` |
@@ -270,7 +270,7 @@ Google Cloud labels, Azure tags and AWS tags have rules that are different from 
 
 Sources: [Google Cloud: labels](https://docs.cloud.google.com/resource-manager/docs/labels-overview), [Azure: tags](https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/tag-resources). The Google Cloud page does not list `/` or `.` as permitted characters. Azure forbids `/` in tag names, and Azure Front Door and Traffic Manager refuse `:` and `#`. Azure DNS tag names do not support "special and Unicode characters". The page does not tell if `_` and `-` are special characters. Azure Automation, Azure Content Delivery Network, Azure public and private DNS (zones and A records) and Log Analytics saved searches accept only 15 tags.
 
-The AWS column comes from [AWS: tagging best practices](https://docs.aws.amazon.com/tag-editor/latest/userguide/best-practices-and-strats.html), verified by the round 9 reviewer, 2026-11-01.
+The AWS column comes from [AWS: tagging best practices](https://docs.aws.amazon.com/tag-editor/latest/userguide/best-practices-and-strats.html).
 
 Google Cloud also has Resource Manager tags. Tags can set conditions on IAM policies, and labels cannot. This RFC covers only labels.
 
@@ -390,7 +390,7 @@ No cloud provider exists in the code yet. No `default_labels` and no `tags` exis
 
 ### Reference table
 
-This table is the draft of a future reference page, `docs/reference/labels-and-annotations.md`. `<p>` is the prefix of the repository. The custom keys stay proposals until the owner answers the unresolved questions.
+This table is the draft of a future reference page, `docs/reference/labels-and-annotations.md`. `<p>` is the prefix of the repository. The owner answered all the questions of this RFC. Refer to [Decided questions](#decided-questions).
 
 | Key | Type | Kinds | Values | Set by | Required | Stable |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -441,7 +441,7 @@ This table is the draft of a future reference page, `docs/reference/labels-and-a
 
 ## Rollout
 
-1. The owner answers the unresolved questions in this PR. When the owner asks, the author sets the final status, and the owner merges this PR.
+1. The owner reviews this PR. When the owner asks, the author sets the final status, and the owner merges this PR.
 2. The author derives the ADRs in a new PR. Possible ADRs:
    - "Use the custom prefix `<subgroup>.infra.gsuquet.com`".
    - "Use the required keys and the sub-groups of the reference table".
@@ -450,11 +450,16 @@ This table is the draft of a future reference page, `docs/reference/labels-and-a
 3. In a separate PR, an author adds `policy/data/labels.yaml` and the `--data policy/data` option in `.mise/tasks/lint/policy.sh`. The same PR changes `render.sh` for the `upstream--` prefix, adds the `sources/charts/` check to `instance-checks.sh`, and adds the checks K1 to K10, K14 and K15, with tests. The checks start as `warn` for one PR if the existing files fail them. Then they change to `deny`.
 4. An author adds the reference page `docs/reference/labels-and-annotations.md` from the reference table, and updates `docs/reference/policies.md`.
 5. An author adds the required labels to the `argocd` Namespace and to the later components, through the chart sources and `mise run manifests:render`: `tenant.<p>/name: platform` and `ownership.<p>/owner: gsuquet`.
-6. The checks K11 to K13 come with the first Google Cloud, Azure or AWS instance. Before the ADR for Azure, an author tests a tag name with `_` and `-` on an Azure DNS zone. If Azure refuses it, K11 and K12 exempt the Azure DNS resources, and these resources get their tags from a separate map. K13 also checks the keys of the separate map.
-7. The legacy manifests in `kubernetes/` do not change. The migration removes them.
+6. An author sets `application.resourceTrackingMethod: annotation` in `gitops/infrastructure/argocd/sources/values.yaml`, in the `configs.cm` values of the chart. Check K9 tests it.
+7. The checks K11 to K13 come with the first Google Cloud, Azure or AWS instance. Before the ADR for Azure, an author tests a tag name with `_` and `-` on an Azure DNS zone. If Azure refuses it, K11 and K12 exempt the Azure DNS resources, and these resources get their tags from a separate map. K13 also checks the keys of the separate map.
+8. The legacy manifests in `kubernetes/` do not change. The migration removes them. The legacy Argo CD v3.3.7 is out of scope, thus K9 checks only the new tree in `gitops/`.
 
 Verify in the implementation PR:
 
+- The exact key path of `application.resourceTrackingMethod` in the values of the `argo-cd` chart (`configs.cm`).
+- The tracking method that the legacy Argo CD v3.3.7 uses today.
+- Align the selector text of [Recommended labels and Helm labels](#recommended-labels-and-helm-labels) with K8. The text permits only `app.kubernetes.io/name` and `app.kubernetes.io/instance`, but K8 refuses only `app.kubernetes.io/version` and `helm.sh/chart`.
+- The annotation `argocd.argoproj.io/installation-id`.
 - `data.labels` defines all six sub-groups, and K4 refuses a wrong `network`, `backup` or `cost` key also before the checks require these keys.
 
 - The `# Source:` paths of the `argocd` component, also of the CRDs from `--include-crds`, with the rule "second segment is `charts`".
@@ -470,7 +475,7 @@ Verify in the implementation PR:
 - `instance.<p>/type` has no value for an AWS cluster module yet.
 - K11 checks each `provider "aws"` block, also each block with an `alias`.
 
-To go back, revert the PRs of steps 3 to 5. Labels and annotations do not change the behavior of the workloads, except for the Argo CD tracking method and the Cilium policies. After a change of the tracking method, Argo CD writes new tracking keys at the next sync. Refer to the [Argo CD 3.0 upgrade notes](https://argo-cd.readthedocs.io/en/stable/operator-manual/upgrading/2.14-3.0/).
+To go back, revert the PRs of steps 3 to 6. Labels and annotations do not change the behavior of the workloads, except for the Argo CD tracking method and the Cilium policies. After a change of the tracking method, Argo CD writes new tracking keys at the next sync. Refer to the [Argo CD 3.0 upgrade notes](https://argo-cd.readthedocs.io/en/stable/operator-manual/upgrading/2.14-3.0/).
 
 ## Drawbacks
 
@@ -513,7 +518,7 @@ To go back, revert the PRs of steps 3 to 5. Labels and annotations do not change
 - **Gateway API.** The [CRD management guide](https://gateway-api.sigs.k8s.io/guides/crd-management/) explains the release channels.
 - **Google Cloud.** [Labels overview](https://docs.cloud.google.com/resource-manager/docs/labels-overview) gives the label rules and the difference from tags. [GKE cluster labels](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/creating-managing-labels) tells how GKE copies the labels to the nodes and the disks.
 - **Azure.** [Use tags](https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/tag-resources) gives the tag rules.
-- **AWS.** [Tagging best practices](https://docs.aws.amazon.com/tag-editor/latest/userguide/best-practices-and-strats.html) gives the tag rules, verified by the round 9 reviewer, 2026-11-01.
+- **AWS.** [Tagging best practices](https://docs.aws.amazon.com/tag-editor/latest/userguide/best-practices-and-strats.html) gives the tag rules.
 - **Terraform.** The [Google provider reference](https://registry.terraform.io/providers/hashicorp/google/latest/docs/guides/provider_reference) gives `default_labels` and the attribution label. The [`google_container_cluster`](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/container_cluster) page gives `resource_labels`, `terraform_labels` and `node_config.resource_labels`. The [AzureRM provider](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs) and the [Kubernetes provider](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs) have no default labels or tags.
 - **GitHub.** [Renaming a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/renaming-a-repository) tells what GitHub redirects after a rename.
 - **Conftest and OPA.** [Conftest](https://www.conftest.dev/) runs the policies. [OPA regex built-ins](https://www.openpolicyagent.org/docs/policy-reference/builtins/regex) give `regex.match`.
@@ -532,9 +537,9 @@ The owner answered these questions in chat on 2026-11-01. The options that the o
 - **The value of `app.kubernetes.io/managed-by`.** Keep the value of the chart, `Helm`. The tracking annotation tells which `Application` applies the object. Source: owner, in chat, 2026-11-01.
 - **The Argo CD tracking method.** Set `application.resourceTrackingMethod: annotation` explicitly in the values, and add check K9. Source: owner, in chat, 2026-11-01.
 - **Volatile labels on pod templates.** No change now. The zero-trust RFC decides. Check K8 keeps `app.kubernetes.io/version` and `helm.sh/chart` out of selectors. Source: owner, in chat, 2026-11-01.
-- **The mapping to cloud keys.** One mechanical rule for Google Cloud, Azure and AWS: `.` and `/` to `_`, lowercase, max. 63 characters. Rollout step 6 tests the Azure DNS risk. Source: owner, in chat, 2026-11-01.
+- **The mapping to cloud keys.** One mechanical rule for Google Cloud, Azure and AWS: `.` and `/` to `_`, lowercase, max. 63 characters. Rollout step 7 tests the Azure DNS risk. Source: owner, in chat, 2026-11-01.
 - **The scope of the required keys.** Check the hand-written objects and the `Namespace` objects. Warn on the rendered upstream objects. Source: owner, in chat, 2026-11-01.
-- **The sub-groups.** Define all six sub-groups now in `data.labels`: `tenant`, `instance`, `ownership`, `network`, `backup`, `cost`. K4 checks them on each object. Require now `tenant`, `instance` and `ownership`, with the fixed value `gsuquet` for `ownership.<p>/owner`. `network`, `backup` and `cost` become required in the PR of the RFC that gives their values. These RFCs are the zero-trust RFC, a backup RFC, and the RFC that adds a cost field. Source: owner, in chat, 2026-11-01.
+- **The sub-groups.** Define all six sub-groups now in `data.labels`: `tenant`, `instance`, `ownership`, `network`, `backup`, `cost`. K4 checks them on each object. Require now `tenant`, `instance` and `ownership`, with a fixed value for `ownership.<p>/owner`. The value `gsuquet` is an author proposal, to confirm by the owner. `network`, `backup` and `cost` become required in the PR of the RFC that gives their values. These RFCs are the zero-trust RFC, a backup RFC, and the RFC that adds a cost field. Source: owner, in chat, 2026-11-01.
 - **The type of an instance.** Derive `instance.<p>/type` from the first `cluster-*` module, without `cluster-`. No change of the schema. Source: owner, in chat, 2026-11-01.
 
 ## Future possibilities
