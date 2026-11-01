@@ -122,7 +122,7 @@ This RFC proposes these required keys. [Q9](#q9-the-scope-of-the-required-keys) 
 
 | Kind | Required labels | Required annotations |
 | --- | --- | --- |
-| `Namespace` in `gitops/` | `pod-security.kubernetes.io/enforce`, `audit` and `warn` (a check exists), `tenant.<p>/name`. The namespaces of the `infrastructure` components use the reserved value `platform`. The namespaces of the `apps` components use a tenant from `data.labels`, but not `platform`. | `argocd.argoproj.io/sync-wave: "-2"` (a check exists) |
+| `Namespace` in `gitops/` | `pod-security.kubernetes.io/enforce`, `audit` and `warn` (a check exists), `tenant.<p>/name`. The namespaces of the `infrastructure` components use the reserved value `platform`. The namespaces of the `apps` components use the tenant of the component in `data.labels`, but not `platform`. | `argocd.argoproj.io/sync-wave: "-2"` (a check exists) |
 | `CustomResourceDefinition` in `gitops/` | None | `argocd.argoproj.io/sync-wave: "-1"` (a check exists) |
 | Pod template of a workload in a hand-written chart | `app.kubernetes.io/name`, `app.kubernetes.io/instance`, `app.kubernetes.io/part-of` | None |
 | Other objects of a hand-written chart | `app.kubernetes.io/name`, `app.kubernetes.io/instance`, `app.kubernetes.io/managed-by` | None |
@@ -342,7 +342,7 @@ K1 to K7 read the keys in `metadata.labels` and `metadata.annotations`, also in 
 | K2 Reserved prefixes | Hand-written objects in `gitops/` | No key with the prefix `kubernetes.io/`, `k8s.io/` or one of their subdomains, except the allowlist in `data.labels`: `app.kubernetes.io/`, the Pod Security labels, `kubernetes.io/metadata.name`, `kubernetes.io/os`, `kubectl.kubernetes.io/default-container`, `node-restriction.kubernetes.io/` and `gateway.networking.k8s.io/`. The last entry is for hand-written Gateway API objects. | `deny` |
 | K3 No prefix | Hand-written objects in `gitops/` | No key without a prefix, except the allowlist in `data.labels`. Conftest has no earlier state to compare with, thus the check refuses all keys without a prefix, not only new keys. | `deny` |
 | K3w No prefix in upstream charts | Upstream objects in `gitops/` | The same rule as K3. | `warn` |
-| K4 Custom keys | All objects in `gitops/`, with an allowlist for upstream exceptions | Each key with the custom prefix uses a sub-group and a name from `data.labels`, on a permitted kind, with a permitted value. The `tenant` and `network` keys are only permitted on a `Namespace`, with the permitted `tenant` and `network` values of the component. | `deny` |
+| K4 Custom keys | All objects in `gitops/`, with an allowlist for upstream exceptions | Each key with the custom prefix uses a sub-group and a name from `data.labels`, on a permitted kind, with a permitted value. The `tenant` and `network` keys are only permitted on a `Namespace`, with the one `tenant` value and the permitted `network` values of the component. | `deny` |
 | K5 Required keys | `Namespace` objects in `gitops/` | The required labels of the table in [Required keys](#required-keys). `tenant.<p>/name` is `platform` for an `infrastructure` component, and the tenant of the component in `data.labels` for an `apps` component. That tenant is not `platform`. | `deny` |
 | K6 Required keys of workloads | Pod templates and objects of the hand-written objects in `gitops/` | The required `app.kubernetes.io/*` labels. | `deny` |
 | K7 Required keys in upstream charts | Rendered upstream objects | The same keys as K6. Upstream charts do not always let the repository set them. | `warn` |
@@ -396,7 +396,7 @@ This table is the draft of a future reference page, `docs/reference/labels-and-a
 | `helm.sh/chart` | Label | All | `<chart>-<version>` | Chart | No | No |
 | `pod-security.kubernetes.io/enforce`, `audit`, `warn` | Label | `Namespace` | `privileged`, `baseline`, `restricted` | Repository | Yes | Yes |
 | `node-restriction.kubernetes.io/<name>` | Label | `Node` | Lowercase, digits, `-` | An administrator, after the node joins | No | Yes |
-| `tenant.<p>/name` | Label | `Namespace` | A tenant of `data.labels`. `platform` for the `infrastructure` components. | Repository | Yes | Yes |
+| `tenant.<p>/name` | Label | `Namespace` | The tenant of the component in `data.labels`. `platform` for the `infrastructure` components. | Repository | Yes | Yes |
 | `ownership.<p>/owner` | Label | `Namespace` | Owner name | Repository | No | Yes |
 | `ownership.<p>/contact` | Annotation | `Namespace` | URL or address | Repository | No | Not applicable |
 | `network.<p>/zone` | Label | `Namespace` | Refer to the zero-trust RFC | Repository | No | Yes |
