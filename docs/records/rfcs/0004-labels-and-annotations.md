@@ -9,9 +9,9 @@ pr: 169
 
 ## Summary
 
-This RFC proposes one set of rules for the labels and the annotations of the Kubernetes objects in this repository. It also covers the labels and tags of the cloud resources. It collects the syntax rules of Kubernetes, the recommended `app.kubernetes.io/*` labels, and the keys that Helm, Argo CD, Cilium, cert-manager and Gateway API use. It proposes the custom prefix `<subgroup>.infra.gsuquet.com/<name>` for the keys of the repository. The owner selected this prefix. It also proposes a mapping from the Kubernetes keys to Google Cloud labels and Azure tags, and the Conftest checks that enforce the rules. A reference table at the end can become a Diátaxis reference page later.
+This RFC proposes one set of rules for the labels and the annotations of the Kubernetes objects in this repository. It also covers the labels and tags of the cloud resources. It collects the syntax rules of Kubernetes, the recommended `app.kubernetes.io/*` labels, and the keys that Helm, Argo CD, Cilium, cert-manager and Gateway API use. It proposes the custom prefix `<subgroup>.infra.gsuquet.com/<name>` for the keys of the repository. The owner selected this prefix. It also proposes a mapping from the Kubernetes keys to Google Cloud labels, Azure tags and AWS tags. It describes the Conftest checks that enforce the rules. A reference table at the end can become a Diátaxis reference page later.
 
-These subjects are out of scope. RFC 0002 covers the GitHub issue and PR labels, for example `kind/` and `area/`. RFC 0003 covers the structure of the repository. A later zero-trust RFC covers the design of the network policies.
+These subjects are out of scope. RFC 0002 covers the GitHub issue and PR labels, for example `kind/` and `area/`. RFC 0003 covers the structure of the repository. A later zero-trust RFC covers the design of the network policies. The RFC "Repository scope and naming" covers the tags and labels of Cloudflare and Grafana Cloud.
 
 ## Motivation
 
@@ -21,7 +21,7 @@ Later work needs a stable set of keys:
 
 - **A zero-trust network policy.** Cilium makes a security identity from the labels of a pod. A policy selects pods by these labels. A label that changes at each upgrade gives a new identity. A label that an attacker can change can move a pod into a different policy. The later zero-trust RFC must know which labels are stable.
 - **Tenants.** The repository will host applications of more than one tenant. A tenant key on each `Namespace` lets policies, quotas and reports select the objects of one tenant.
-- **Cloud instances.** The demo and test instances on GKE and Azure create cloud resources. The owner must find, count and delete them. Cloud labels and tags do this, but their syntax is different from Kubernetes labels.
+- **Cloud instances.** The demo and test instances on Google Cloud, Azure and AWS create cloud resources. The owner must find, count and delete them. Cloud labels and tags do this, but their syntax is different from Kubernetes labels.
 - **Argo CD.** Argo CD records which `Application` owns each object. A wrong tracking setting can make Argo CD delete objects that another tool owns.
 
 Use cases:
@@ -253,20 +253,22 @@ Thus a node label for isolation, for example the nodes that can run the internet
 
 ### Cloud labels and tags
 
-Google Cloud labels and Azure tags have rules that are different from Kubernetes labels.
+Google Cloud labels, Azure tags and AWS tags have rules that are different from Kubernetes labels. The owner keeps Azure in scope and adds AWS (owner, in chat, 2026-11-01).
 
-| Rule | Kubernetes label | Google Cloud label | Azure tag |
-| --- | --- | --- | --- |
-| Max. count on one resource | No limit in the label documentation | 64 | 50 (15 on some resource types) |
-| Key length | Prefix 253, name 63 | 1 to 63 | 512 (128 on storage accounts) |
-| Key characters | Letters, digits, `-`, `_`, `.`, one `/` | Lowercase letters, digits, `_`, `-`, international characters | All except `<`, `>`, `%`, `&`, `\`, `?`, `/` |
-| Key start | Letter or digit | Lowercase letter or international character | Some types refuse a digit, for example Azure DNS and Traffic Manager |
-| Case | Keys and values are case-sensitive | Lowercase only | Names are not case-sensitive in operations, values are case-sensitive |
-| Value length | 63, can be empty | 63, can be empty | 256 |
-| Value characters | Letters, digits, `-`, `_`, `.` | Lowercase letters, digits, `_`, `-`, international characters | All |
-| Sensitive data | Not for secrets | Do not put sensitive data | Tags are plain text. Do not put sensitive values. |
+| Rule | Kubernetes label | Google Cloud label | Azure tag | AWS tag |
+| --- | --- | --- | --- | --- |
+| Max. count on one resource | No limit in the label documentation | 64 | 50 (15 on some resource types) | 50 user tags |
+| Key length | Prefix 253, name 63 | 1 to 63 | 512 (128 on storage accounts) | 1 to 128 |
+| Key characters | Letters, digits, `-`, `_`, `.`, one `/` | Lowercase letters, digits, `_`, `-`, international characters | All except `<`, `>`, `%`, `&`, `\`, `?`, `/` | Letters, digits, spaces and `_ . : / = + - @`. Some services accept fewer characters. |
+| Key start | Letter or digit | Lowercase letter or international character | Some types refuse a digit, for example Azure DNS and Traffic Manager | AWS keeps the prefix `aws:` for its own tags |
+| Case | Keys and values are case-sensitive | Lowercase only | Names are not case-sensitive in operations, values are case-sensitive | Keys and values are case-sensitive |
+| Value length | 63, can be empty | 63, can be empty | 256 | 0 to 256 |
+| Value characters | Letters, digits, `-`, `_`, `.` | Lowercase letters, digits, `_`, `-`, international characters | All | The same as the keys |
+| Sensitive data | Not for secrets | Do not put sensitive data | Tags are plain text. Do not put sensitive values. | Not verified in this RFC |
 
 Sources: [Google Cloud: labels](https://docs.cloud.google.com/resource-manager/docs/labels-overview), [Azure: tags](https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/tag-resources). The Google Cloud page does not list `/` or `.` as permitted characters. Azure forbids `/` in tag names, and Azure Front Door and Traffic Manager refuse `:` and `#`. Azure DNS tag names do not support "special and Unicode characters". The page does not tell if `_` and `-` are special characters. Azure Automation, Azure Content Delivery Network, Azure public and private DNS (zones and A records) and Log Analytics saved searches accept only 15 tags.
+
+The AWS column comes from [AWS: tagging best practices](https://docs.aws.amazon.com/tag-editor/latest/userguide/best-practices-and-strats.html), as the reviewer of this RFC read it. The author did not read the page, because `docs.aws.amazon.com` is not in the list of permitted domains of the author. The implementation PR verifies it.
 
 Google Cloud also has Resource Manager tags. Tags can set conditions on IAM policies, and labels cannot. This RFC covers only labels.
 
@@ -276,6 +278,7 @@ Google Cloud also has Resource Manager tags. Tags can set conditions on IAM poli
 | --- | --- | --- |
 | `hashicorp/google` | `default_labels` in the `provider` block | Applies to each resource with a top-level `labels` field, or a `labels` field in a top-level `metadata` field. A label on the resource overrides the default. The plan shows them in `terraform_labels` and `effective_labels`. The provider also adds `goog-terraform-provisioned = true` by default (`add_terraform_attribution_label`). Source: [provider reference](https://registry.terraform.io/providers/hashicorp/google/latest/docs/guides/provider_reference). |
 | `hashicorp/azurerm` | None at the provider level | The [provider documentation](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs) of version 5.12.0 has no default tags. Each module takes a `tags` variable and gives it to each resource. Resources do not get the tags of their resource group. Azure Policy can copy them. |
+| `hashicorp/aws` | `default_tags { tags = ... }` in the `provider` block | Applies to each resource with `tags`, except `aws_autoscaling_group`. A tag on the resource overrides the default with the same key, but a resource cannot remove a default tag. The read-only attribute `tags_all` shows all the tags. Sources, version 6.71.0: [provider documentation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs), [resource tagging guide](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/guides/resource-tagging). |
 | `hashicorp/kubernetes` | None | The provider has `ignore_labels` and `ignore_annotations` to ignore keys that other tools add ([provider documentation](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs)). The modules `bootstrap-cilium` and `bootstrap-cert-manager` have a `common_labels` variable for the chart values. |
 
 On GKE, two sets of labels exist, and they do not share labels ([GKE: cluster labels](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/creating-managing-labels)). The Google Cloud labels of the cluster and the node pools go on the cloud resources. The Kubernetes labels of a node pool go on the `Node` objects. This RFC applies the Kubernetes rules to the second set.
@@ -289,19 +292,21 @@ On GKE, two sets of labels exist, and they do not share labels ([GKE: cluster la
 1. Change each `.` and `/` to `_`.
 2. Change all letters to lowercase.
 3. The result must have max. 63 characters. A Conftest check refuses a longer key.
-4. The value stays the same. The value rules of the repository already give valid Google Cloud values. `schemas:check` validates the values in `instance.yaml`. The permitted key set of K13 keeps keys with other values, for example `app.kubernetes.io/version` with `2.0.22`, out of the map of cloud labels.
+4. The value stays the same. The value rules of the repository already give valid Google Cloud values. These values are also valid Azure and AWS values. `schemas:check` validates the values in `instance.yaml`. The permitted key set of K13 keeps keys with other values, for example `app.kubernetes.io/version` with `2.0.22`, out of the map of cloud labels.
 
 ```mermaid
 flowchart LR
     k8s["Key<br/>instance.infra.gsuquet.com/name"] --> rule["Change . and / to _<br/>Lowercase<br/>Max. 63 characters"]
     rule --> gcp["Google Cloud label key<br/>instance_infra_gsuquet_com_name"]
     rule --> az["Azure tag name<br/>instance_infra_gsuquet_com_name"]
+    rule --> aws["AWS tag key<br/>instance_infra_gsuquet_com_name"]
     yaml["instance.yaml"] --> tf["Terraform: local.cloud_labels"]
     tf --> gdl["google: default_labels"]
     tf --> azt["azurerm: tags variable of each module"]
+    tf --> awst["aws: default_tags"]
 ```
 
-In text: the rule changes `instance.infra.gsuquet.com/name` to `instance_infra_gsuquet_com_name`. Google Cloud and Azure use the same key. Each instance builds one map of cloud labels from `instance.yaml`. Terraform gives it to `default_labels` on Google Cloud and to the `tags` variables on Azure. This map does not go to the Kubernetes objects. The Kubernetes labels come from the chart sources in `gitops/`.
+In text: the rule changes `instance.infra.gsuquet.com/name` to `instance_infra_gsuquet_com_name`. Google Cloud, Azure and AWS use the same key. AWS accepts `.` and `/`, thus the rule is stricter than AWS needs. Each instance builds one map of cloud labels from `instance.yaml`. Terraform gives it to `default_labels` on Google Cloud, to the `tags` variables on Azure and to `default_tags` on AWS. This map does not go to the Kubernetes objects. The Kubernetes labels come from the chart sources in `gitops/`.
 
 The root module of an instance builds the map in a local value, for example `local.cloud_labels`, from `yamldecode(file("${path.module}/instance.yaml"))`. Thus the values have one source, and `schemas:check` already validates that source.
 
@@ -349,9 +354,9 @@ K1 to K7 read the keys in `metadata.labels` and `metadata.annotations`, also in 
 | K8 Stable selectors | `spec.selector.matchLabels` of workloads, and `spec.selector` of a `Service` | No `app.kubernetes.io/version` and no `helm.sh/chart`. | `deny` |
 | K9 Argo CD tracking | The rendered `argocd-cm` ConfigMap | `application.resourceTrackingMethod` is `annotation`, if the owner selects this in Q6. | `deny` |
 | K10 Sync options | All rendered objects and `Application` objects in `gitops/`, with an allowlist for upstream exceptions | No `Replace=true` and no `Force=true`, in the annotation `argocd.argoproj.io/sync-options` and in `spec.syncPolicy.syncOptions` of an `Application`. | `deny` |
-| K11 Cloud defaults | `provider "google"` blocks and module calls in `instances/` | `default_labels` and each `tags` argument of a module call are exactly `local.cloud_labels`. A `merge()` that overrides keys fails. Conftest does not read the values of the local. Refer to [Rollout](#rollout). | `deny` |
+| K11 Cloud defaults | `provider "google"` and `provider "aws"` blocks and module calls in `instances/` | `default_labels`, `default_tags.tags` and each `tags` argument of a module call are exactly `local.cloud_labels`. A `merge()` that overrides keys fails. Conftest does not read the values of the local. Refer to [Rollout](#rollout). | `deny` |
 | K12 Cloud tags | `azurerm` resources in `modules/` with a `tags` argument | The argument comes from the `tags` variable of the module. Azure DNS resources can need an exemption. Refer to [Rollout](#rollout). | `deny` |
-| K13 Cloud keys | The keys of the `cloud_labels` local in `instances/` | The required keys of `data.labels` are present, and each key is in the permitted set of `data.labels`. The cloud form of each key has max. 63 characters. No two keys have the same cloud form. | `deny` |
+| K13 Cloud keys | The keys of the `cloud_labels` local in `instances/` | The required keys of `data.labels` are present, and each key is in the permitted set of `data.labels`. The cloud form of each key has max. 63 characters, the limit of Google Cloud. Thus the key is also valid on Azure and AWS. No two keys have the same cloud form. | `deny` |
 | K14 Pod Security of applications | `Namespace` objects of the components in `apps` | `pod-security.kubernetes.io/enforce` is `restricted` or `baseline`, except for the namespaces in the allowlist of `data.labels`. | `deny` |
 | K15 Namespace of a component | All `Namespace` objects in `rendered/<component>/`, and `cluster.yaml` | `metadata.name` is the `namespace` of the component in `cluster.yaml`. Each namespace in `cluster.yaml` is unique. An `apps` namespace is not in the reserved list of `data.labels`: `default`, `kube-*`, `argocd` and the namespaces that Terraform creates. A second `Namespace` from an upstream chart needs an entry in the allowlist. | `deny` |
 
@@ -428,7 +433,7 @@ This table is the draft of a future reference page, `docs/reference/labels-and-a
   - Check K15: a `Namespace` in `rendered/<component>/` has the name of the `namespace` of that component in `cluster.yaml`. Thus a component cannot apply a `Namespace` with another name.
 - The [Argo CD projects page](https://argo-cd.readthedocs.io/en/stable/user-guide/projects/) shows a `clusterResourceWhitelist` entry for `Namespace` objects with a name pattern. The zero-trust RFC can use it. This RFC did not verify if Argo CD applies the destination rules `!argocd` and `!kube-system` to a `Namespace` object, which is cluster-scoped.
 - A node label for isolation must use `node-restriction.kubernetes.io/`. A kubelet cannot change this prefix. Thus a compromised node cannot attract the pods of another trust zone with this label. An administrator identity sets the label, not the node configuration.
-- The custom prefix uses the domain `gsuquet.com`, which the owner controls. If the registration of the domain stops, another party can register it and use the same keys with a different meaning. Thus the owner must keep the registration. Refer to [Decided questions](#decided-questions).
+- The custom prefix uses the domain `gsuquet.com`, which the owner controls. If the registration of the domain stops, another party can register it and use the same keys with a different meaning. A takeover of the Cloudflare account or of its DNS has the same effect. Thus the owner must keep the registration and protect the account. No tool resolves the keys as DNS names, thus the only risk is a collision of names. Refer to [Decided questions](#decided-questions).
 - The Argo CD `annotation` tracking method stops a chart or an operator from changing the owner of an object through `app.kubernetes.io/instance`. Thus Argo CD does not prune objects of another tool by mistake.
 - The sync options `Replace=true` and `Force=true` can delete objects and their data. Check K10 forbids them in all rendered objects and in `Application` objects, with an allowlist for upstream exceptions.
 
@@ -443,7 +448,7 @@ This table is the draft of a future reference page, `docs/reference/labels-and-a
 3. In a separate PR, an author adds `policy/data/labels.yaml` and the `--data policy/data` option in `.mise/tasks/lint/policy.sh`. The same PR changes `render.sh` for the `upstream--` prefix, adds the `sources/charts/` check to `instance-checks.sh`, and adds the checks K1 to K10, K14 and K15, with tests. The checks start as `warn` for one PR if the existing files fail them. Then they change to `deny`.
 4. An author adds the reference page `docs/reference/labels-and-annotations.md` from the reference table, and updates `docs/reference/policies.md`.
 5. An author adds the required labels to the `argocd` Namespace and to the later components, through the chart sources and `mise run manifests:render`.
-6. The checks K11 to K13 come with the first GKE or Azure instance. Before the ADR for Azure, an author tests a tag name with `_` and `-` on an Azure DNS zone. If Azure refuses it, K11 and K12 exempt the Azure DNS resources, and these resources get their tags from a separate map. K13 also checks the keys of the separate map.
+6. The checks K11 to K13 come with the first Google Cloud, Azure or AWS instance. Before the ADR for Azure, an author tests a tag name with `_` and `-` on an Azure DNS zone. If Azure refuses it, K11 and K12 exempt the Azure DNS resources, and these resources get their tags from a separate map. K13 also checks the keys of the separate map.
 7. The legacy manifests in `kubernetes/` do not change. The migration removes them.
 
 Verify in the implementation PR:
@@ -456,6 +461,7 @@ Verify in the implementation PR:
 - Open item: how the canonical `labels.tf` adds `ttl` only for an ephemeral instance. A `for` expression that drops null values can do it, but `hcl2` gives it as one string, thus K13 cannot read the keys. If so, `instance-checks.sh` checks the keys of the canonical file. This RFC did not verify if `default_labels` accepts a null value.
 - If the destination rules `!argocd` and `!kube-system` apply to `Namespace` objects.
 - With a plan, that `default_labels` do not reach `node_config.resource_labels`.
+- The AWS tag rules on `docs.aws.amazon.com`, and the `hcl2` string of `default_tags { tags = local.cloud_labels }` for K11.
 
 To go back, revert the PRs of steps 3 to 5. Labels and annotations do not change the behavior of the workloads, except for the Argo CD tracking method and the Cilium policies. After a change of the tracking method, Argo CD writes new tracking keys at the next sync. Refer to the [Argo CD 3.0 upgrade notes](https://argo-cd.readthedocs.io/en/stable/operator-manual/upgrading/2.14-3.0/).
 
@@ -473,7 +479,7 @@ To go back, revert the PRs of steps 3 to 5. Labels and annotations do not change
 - **One flat prefix, for example `infra.gsuquet.com/tenant`.** It is shorter. But each new subject adds names to one flat list, and a selector cannot match one subject by its prefix. The sub-groups follow Kubernetes and Argo CD.
 - **Only the recommended labels.** `app.kubernetes.io/*` has no key for a tenant, a trust zone or an instance.
 - **Annotations for the tenant and the zone.** Selectors and Cilium policies cannot select by annotations.
-- **One cloud key form for each cloud.** Azure accepts `.` in tag names, thus it can keep more of the Kubernetes key. But two forms need two checks, and a query that covers both clouds needs two keys. Refer to Q8.
+- **One cloud key form for each cloud.** Azure accepts `.` in tag names, and AWS accepts `.` and `/`. Thus they can keep more of the Kubernetes key. But each form needs its own check, and a query that covers all the clouds needs more than one key. Refer to Q8.
 - **A different domain for the prefix.** The owner controls `gsuquet.com`, thus the repository does not need to register a domain or use a different one. `gsuquet.github.io` was also an option, but GitHub controls it, and it can change with the account name.
 - **The prefix `homelab.gsuquet.com`.** It has the current name of the repository. But the repository also holds GKE and Azure instances, which are not a homelab, and the API group is `infra.gsuquet.com`.
 - **The prefix `gsuquet.com`, without a middle part.** It gives the shortest keys. But other projects of the owner can use the same domain with a different meaning.
@@ -491,6 +497,7 @@ To go back, revert the PRs of steps 3 to 5. Labels and annotations do not change
 - **Gateway API.** The [CRD management guide](https://gateway-api.sigs.k8s.io/guides/crd-management/) explains the release channels.
 - **Google Cloud.** [Labels overview](https://docs.cloud.google.com/resource-manager/docs/labels-overview) gives the label rules and the difference from tags. [GKE cluster labels](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/creating-managing-labels) tells how GKE copies the labels to the nodes and the disks.
 - **Azure.** [Use tags](https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/tag-resources) gives the tag rules.
+- **AWS.** [Tagging best practices](https://docs.aws.amazon.com/tag-editor/latest/userguide/best-practices-and-strats.html) gives the tag rules. The reviewer read this page, not the author.
 - **Terraform.** The [Google provider reference](https://registry.terraform.io/providers/hashicorp/google/latest/docs/guides/provider_reference) gives `default_labels` and the attribution label. The [`google_container_cluster`](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/container_cluster) page gives `resource_labels`, `terraform_labels` and `node_config.resource_labels`. The [AzureRM provider](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs) and the [Kubernetes provider](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs) have no default labels or tags.
 - **GitHub.** [Renaming a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/renaming-a-repository) tells what GitHub redirects after a rename.
 - **Conftest and OPA.** [Conftest](https://www.conftest.dev/) runs the policies. [OPA regex built-ins](https://www.openpolicyagent.org/docs/policy-reference/builtins/regex) give `regex.match`.
@@ -508,11 +515,11 @@ The owner answered these questions in chat on 2026-11-01. The options that the o
 
 The owner asked if the repository name must match the prefix. On 2026-11-01, the owner said in chat that the repository will become `gsuquet/infra`. The new RFC "Repository scope and naming" records this. This question stays open in this RFC until that RFC has a PR.
 
-- **A.** Keep `homelab`. No work. The prefix and the name stay different.
+- **A.** Keep `homelab`. No work. The prefix and the name stay different. This option is against the rename that the owner announced.
 - **B.** Rename the repository to match the prefix, for example `infra`. GitHub redirects the web pages and the Git operations. But GitHub does not redirect calls to actions in a renamed repository, and the old name must stay free. The rename also changes `gitops.repoURL`, the Argo CD repository settings, the badges and the links in `docs/`.
-- **C.** Decide in RFC 0003, which covers the structure of the repository.
+- **C.** Decide in the RFC "Repository scope and naming", which records the rename and the shared word `infra`.
 
-Recommendation: C. The name of the repository is a subject of RFC 0003. Labels do not need the same name.
+Recommendation: C. The name of the repository is a subject of the RFC "Repository scope and naming". Labels do not need the same name.
 
 ### Q4: The sub-groups
 
@@ -552,11 +559,11 @@ Recommendation: A. The network policy design is out of the scope of this RFC. Th
 
 ### Q8: The mapping to cloud keys
 
-- **A.** One mechanical rule for both clouds: `.` and `/` to `_`, lowercase, max. 63 characters.
-- **B.** One rule for each cloud. Azure keeps `.` and changes only `/`.
+- **A.** One mechanical rule for all the clouds: `.` and `/` to `_`, lowercase, max. 63 characters.
+- **B.** One rule for each cloud. Azure keeps `.` and changes only `/`. AWS keeps the Kubernetes key.
 - **C.** A short alias for each key in `data.labels`, for example `tenant` for `tenant.<p>/name`.
 
-Recommendation: A. One rule gives one check, and the same query works on both clouds. C gives shorter keys, but the aliases can collide with the keys of other tools in the same cloud project. A has one risk: Azure DNS can refuse `_` or `-` in tag names. Rollout step 6 tests this before the ADR.
+Recommendation: A. One rule gives one check, and the same query works on all the clouds. C gives shorter keys, but the aliases can collide with the keys of other tools in the same cloud project. A has one risk: Azure DNS can refuse `_` or `-` in tag names. Rollout step 6 tests this before the ADR.
 
 ### Q9: The scope of the required keys
 
