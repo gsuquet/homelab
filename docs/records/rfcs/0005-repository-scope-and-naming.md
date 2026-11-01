@@ -2,7 +2,7 @@
 rfc: "0005"
 status: draft
 start-date: 2026-11-01
-pr: null
+pr: 171
 ---
 
 # RFC 0005: Repository scope and naming
