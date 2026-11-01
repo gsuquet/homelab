@@ -65,7 +65,7 @@ flowchart TD
     root --> docs["docs/"]
     root --> tooling[".mise/, .github/, .vale/, .vscode/, tool configuration files"]
     root --> health["README.md, LICENSE, CONTRIBUTING.md"]
-    shared["gsuquet/.github: CODE_OF_CONDUCT.md, SECURITY.md, SUPPORT.md, templates"]
+    shared["gsuquet/.github: CODE_OF_CONDUCT.md, SECURITY.md, SUPPORT.md, generic CONTRIBUTING.md, generic templates, reusable workflows"]
     legacy["ansible/, kubernetes/, scripts/ (legacy, removed after the migration)"]
     agents["AGENTS.md, CLAUDE.md, GEMINI.md, .claude/, .gemini/, .entire/ (out of scope: agents RFC)"]
     root -.-> legacy
@@ -86,7 +86,7 @@ homelab/
 ├── policy/<input>/                  # Conftest policies and their tests
 ├── schemas/                         # JSON Schemas and their test fixtures
 ├── docs/                            # Diátaxis sections, records/, archive/
-├── .github/                         # Workflows, labeler. No local templates.
+├── .github/                         # Workflows, labeler, homelab issue forms, config.yml, PR template
 ├── .mise/                           # config.toml, mise.lock, tasks/
 ├── .vale/                           # Vale styles
 ├── .vscode/extensions.json          # Recommended editor extensions
@@ -101,12 +101,12 @@ homelab/
 ├── .yamllint.yaml                   # yamllint
 ├── README.md
 ├── LICENSE
-├── CONTRIBUTING.md                  # Specific to this repository (question 12)
+├── CONTRIBUTING.md                  # Homelab file, wins over the shared default
 ├── CHANGELOG.md
 └── renovate.json
 ```
 
-`CODE_OF_CONDUCT.md`, `SECURITY.md`, `SUPPORT.md` and the templates are not in this tree. They are in the shared `gsuquet/.github` repository. Refer to "Community health files".
+`CODE_OF_CONDUCT.md`, `SECURITY.md` and `SUPPORT.md` are not in this tree. They are in the shared `gsuquet/.github` repository. Refer to "Community health files".
 
 `ansible/`, `kubernetes/` and `scripts/` are legacy. They are not in the target tree. Refer to "Legacy folders". The agent files are not in this tree, because the agents RFC decides their place.
 
@@ -309,22 +309,22 @@ The page does not tell if the community profile score counts a default file, and
 Thus this repository keeps these files at its root:
 
 - `README.md` and `LICENSE`, because GitHub cannot inherit them.
-- `CONTRIBUTING.md`, for now. Its content is specific to this repository: the mise tasks, the checks and the review flow. This differs from the owner answer "all common files". Refer to unresolved question 12.
+- `CONTRIBUTING.md`. Its content is specific to this repository: the mise tasks, the checks and the review flow. `gsuquet/.github` gets a generic `CONTRIBUTING.md` for the other repositories, and the file of this repository wins over it. The owner decided this (in chat, 2026-11-01). Refer to "Rationale and alternatives".
 - `CHANGELOG.md`, because git-cliff generates it from the commits of this repository.
 
-`CODE_OF_CONDUCT.md`, `SECURITY.md` and `SUPPORT.md` move to `gsuquet/.github`. This repository then has no copy of them. RFC 0002 designs the templates. A local template wins over the default, and a valid local issue template turns off all the default issue templates. Thus, when the shared templates exist, this repository removes `.github/pull_request_template.md` and keeps no local issue templates. RFC 0002 also decides if the shared workflows go in `gsuquet/.github`. This RFC does not decide that.
+`CODE_OF_CONDUCT.md`, `SECURITY.md` and `SUPPORT.md` move to `gsuquet/.github`. This repository then has no copy of them. RFC 0002 designs the templates. The owner decided "shared and a homelab copy" (in chat, 2026-11-01). `gsuquet/.github` holds generic issue forms, `config.yml` and a PR template for the other repositories. This repository keeps its own issue forms, `config.yml` and PR template, because they are specific to the homelab. Examples: the Instance dropdown, the `kind/` labels, the board key and the link to the security advisories. A local template wins over the default, and the local issue forms turn off all the shared issue forms in this repository. Thus this repository removes no template. The owner also decided that the reusable workflows live only in `gsuquet/.github`, and RFC 0002 records it.
 
 | File | Current state | Target |
 | --- | --- | --- |
 | `README.md` | Old design: Ansible quickstart, Sealed Secrets. Not in ASD-STE100. | Rewrite: purpose, the target tree in short, a quickstart with `mise install` and `mise run instance:up`, links to `docs/`, license. |
 | `LICENSE.md` | MIT, 2024. GitHub reads it as MIT. | Refer to unresolved question 8. |
-| `CONTRIBUTING.md` | Current, but it names `kubernetes/**/sources/` as the place for charts. | Update the table of "Specific changes" to the target tree. |
+| `CONTRIBUTING.md` | Current, but it names `kubernetes/**/sources/` as the place for charts. | Keep here, and update the table of "Specific changes" to the target tree. Add a generic default to `gsuquet/.github`. |
 | `SECURITY.md` | Describes Sealed Secrets, UFW and Trivy. Names only email as the report channel, but GitHub private vulnerability reporting is already on. | Move to `gsuquet/.github`, and remove it here. Rewrite it there as a generic policy for all the repositories of the owner: the report channels. The old-design content goes away, and no local copy stays. Refer to unresolved question 10. The security RFC gives the rest of the content, for example the answer time. |
 | `CODE_OF_CONDUCT.md` | Contributor Covenant 2.0. | Move to `gsuquet/.github`, and remove it here. Refer to unresolved question 9. |
 | `SUPPORT.md` | None | Add to `gsuquet/.github`. It tells that the repositories are personal, without support, and where to ask a question. |
 | `.github/CODEOWNERS` | Gives most paths to the owner. Gives `docs/` (except the records and the standards) and the `kind-local` test instance to a reviewing agent. | Remove. Refer to "Remove `CODEOWNERS`". |
 | `FUNDING.yml` | None | Do not add, here or in `gsuquet/.github`. The owner does not ask for money for this repository. |
-| Issue and PR templates | PR template only | RFC 0002 designs them, in `gsuquet/.github`. Remove the local PR template when the shared one exists. |
+| Issue and PR templates | PR template only | Keep homelab issue forms, `config.yml` and a PR template here. RFC 0002 designs them, and the generic set in `gsuquet/.github`. |
 
 ### Remove `CODEOWNERS`
 
@@ -434,7 +434,7 @@ Verdict: the branch has nothing to salvage. PR #163 has the same features in the
    1. Add the deprecation `README.md` files and the `lint:legacy` check. Refer to "Verify in the implementation PR".
    2. Delete `modules/bootstrap-agent-sandbox/` and `docs/reference/terraform-modules/bootstrap-agent-sandbox/`, in a separate PR. The owner decided this on 2026-10-31.
    3. Apply the license decision.
-   4. Rewrite `README.md`. Update `CONTRIBUTING.md`. After the owner accepts RFC 0002 and `gsuquet/.github` exists: put the rewritten `SECURITY.md`, `CODE_OF_CONDUCT.md` (as the decision says) and a new `SUPPORT.md` there, then remove `SECURITY.md` and `CODE_OF_CONDUCT.md` from this repository.
+   4. Rewrite `README.md`. Update `CONTRIBUTING.md`. Then wait until the owner accepts RFC 0002 and `gsuquet/.github` exists. Put these files there: the rewritten `SECURITY.md`, `CODE_OF_CONDUCT.md` (as the decision says), a new `SUPPORT.md` and a generic `CONTRIBUTING.md`. Then remove `SECURITY.md` and `CODE_OF_CONDUCT.md` from this repository.
    5. Rewrite `docs/reference/repository-structure.md` in ASD-STE100, with the target tree and a legacy section.
    6. After the owner accepts the ADR that supersedes ADR 0001: delete `.github/CODEOWNERS`, and remove the references to it in `AGENTS.md` and `CONTRIBUTING.md`.
    7. Add the checks for the naming rules that have no check yet. Examples: a TFLint rule for the Terraform file names, a check of the Rego file names.
@@ -452,6 +452,11 @@ These details of `lint:legacy` come from the review of this RFC. The implementat
 - `lint:legacy` joins the `depends` list of `.mise/tasks/lint/_default.sh`.
 - `.pre-commit-config.yaml` gets a hook `lint-legacy` with `entry: mise run lint:legacy`, `always_run: true`, `pass_filenames: false` and no `files` filter, and it comes after the `render-manifests` hook in the file. The `render-manifests` hook runs `git add kubernetes/`, which can stage untracked files. pre-commit computes the list of staged files one time, at the start. With a `files` filter, a commit that changes only the trigger paths of `render-manifests` skips `lint-legacy`. The task is a fast `git diff --cached`, thus it can run on each commit. In CI, the comparison with the base commit also catches these files.
 
+The implementation PR of the community files must verify these points:
+
+- A default `SECURITY.md` has the link "in the Security tab of the repository, if it is on". Make sure that it works in a fork, and in a repository where private vulnerability reporting is off.
+- The Contributor Covenant 2.0 text in `CODE_OF_CONDUCT.md` has no link to this repository before it becomes the shared default.
+
 This RFC has a rule: each structure rule has a check, or the RFC tells that the check does not exist yet. Step 3.7 adds the missing checks.
 
 To go back: each implementation PR is a separate revert. No step moves a folder that a live system reads.
@@ -461,6 +466,7 @@ To go back: each implementation PR is a separate revert. No step moves a folder 
 - The rewrite of the community health files and of the structure page takes time, and the owner must review it.
 - The legacy folders stay for an unknown time. During that time, the repository has two designs, and authors must know which one applies.
 - The new checks add more rules to `mise run lint`.
+- The community profile score of this repository (85 % now) can go down when the files move to `gsuquet/.github`. The docs do not tell if the score counts a default file.
 - The naming rules can conflict with names from upstream projects. The exceptions list must grow with them.
 
 ## Rationale and alternatives
@@ -472,6 +478,8 @@ To go back: each implementation PR is a separate revert. No step moves a folder 
 - **A separate GitOps repository, as the Argo CD best practices recommend.** The best practice separates the manifests from the application source code. This repository holds no application source code. The reasons of the best practice (CI loops, access control between teams) do not apply.
 - **`examples/` in each module.** The HashiCorp structure recommends it for modules that other people use. Here the instances call the modules. `kind-local` is a working example that the owner tests.
 - **The layout by component and the ApplicationSets of the branch `claude/project-thread-v2la4i`.** Refer to unresolved questions 1 and 2.
+- **`CONTRIBUTING.md` in this repository only.** The content stays next to the code that it describes. But it differs from the owner answer "all common files", and the other repositories get no default.
+- **`CONTRIBUTING.md` only as a generic default in `gsuquet/.github`.** One file, as the owner asked. But the default cannot name the tasks of this repository, and the specific rules must go to `docs/`. The owner selected the generic default and a homelab file (in chat, 2026-11-01).
 
 ## Prior art
 
@@ -603,19 +611,9 @@ Recommendation: B. The report stays in GitHub with the repository when the setti
 
 Recommendation: A. This RFC has the rule that each structure rule has a check. The allowlist makes each exception visible in the diff.
 
-### 12. `CONTRIBUTING.md`
-
-The owner asked for "all common files" in `gsuquet/.github`. The current `CONTRIBUTING.md` describes this repository: the mise tasks, the checks and the review flow.
-
-- **A. Keep it in this repository only.** Good: the content stays next to the code that it describes. Bad: it differs from "all common files", and other repositories get no default.
-- **B. A generic default in `gsuquet/.github`, and a specific file in this repository.** The local file wins over the default here. Good: each repository gets a default, and this repository keeps its specific rules. Bad: two files to maintain, and a reader of this repository never sees the generic text.
-- **C. Only a generic default in `gsuquet/.github`.** The specific rules of this repository go to `docs/`, and the default links to `docs/` of each repository. Good: one file, as the owner asked. Bad: the default cannot name the tasks of this repository, and clones lose it.
-
-Recommendation: B. It follows "all common files" and keeps the specific rules where a contributor of this repository looks for them. The owner also has this question directly.
-
 ### Dependencies on other RFCs
 
-- **RFC 0002** ([PR #167](https://github.com/gsuquet/homelab/pull/167)) records the owner decision that a public `gsuquet/.github` repository holds all the common community files. RFC 0002 is still in review, and Rollout step 3.4 waits for its acceptance. It designs the issue templates and the PR template, and it decides if the shared workflows go there. This RFC lists the files that stay at the root of this repository. RFC 0002 also proposes the required status check on `main`. Without it, a failed `lint:legacy` does not stop a merge.
+- **RFC 0002** ([PR #167](https://github.com/gsuquet/homelab/pull/167)) records the owner decision that a public `gsuquet/.github` repository holds all the common community files. RFC 0002 is still in review, and Rollout step 3.4 waits for its acceptance. It designs the issue templates and the PR template. It also records the owner decision that the reusable workflows live only in `gsuquet/.github`. This RFC lists the files that stay at the root of this repository. RFC 0002 also proposes the required status check on `main`. Without it, a failed `lint:legacy` does not stop a merge.
 - **RFC 0004** proposes the Kubernetes label prefix `<sub>.<prefix>.gsuquet.com`. It can propose a new name for the repository, for coherence with the prefix. It can also change the `apiVersion` group `infra.gsuquet.com` of the metadata files. This RFC does not decide the name of the repository. A rename changes `repoURL` in `gitops/infrastructure/argocd/sources/values.yaml` and the `$id` of the schemas.
 - **The tooling RFC** decides the tools and the pins. **The agents RFC** decides the place of the agent files. **The secrets RFC** decides the secrets.
 
