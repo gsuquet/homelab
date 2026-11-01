@@ -168,11 +168,7 @@ Rules for generated code. The repository is public:
 - The author removes each secret from the generated code before the commit. The secret scan of pre-commit (`Detect hardcoded secrets`) is a second control, not the first.
 - The code never sets `tunnel_secret`. The provider marks it sensitive. This RFC did not verify what the plan does when the code sets it. A new secret can disconnect `olympus` from its tunnel. Thus a plan that updates or replaces the tunnel of `olympus` blocks the import.
 
-Cautions:
-
-- The Cloudflare import page says that its examples "refer to the v4 SDK only". The provider is now at version 5, with renamed resources. This RFC did not verify that the output of `cf-terraforming` matches version 5. Thus the `import` blocks of Terraform are the primary method, and `cf-terraforming` is a help for the inventory.
-- The Cloudflare provider 5.28.1 has no resource for the registration of a domain. The author searched the titles of its 747 documentation pages for "registrar". The registration of `gsuquet.com`, its auto-renewal and its transfer lock stay manual. `accounts/cloudflare/README.md` records them as manual items.
-- The order of import depends on the state. Refer to "Terraform state".
+Cautions: the `import` blocks are the primary method, and `cf-terraforming` is a help for the inventory. The registration of `gsuquet.com` stays manual, and `accounts/cloudflare/README.md` records it. The order of import depends on the state. Refer to "Terraform state".
 
 ### Drift detection
 
@@ -237,13 +233,12 @@ Only the agent identity RFC closes this gap.
 
 ### Free-tier guardrails
 
-An alerts-only budget does not stop a charge. Some providers have stronger controls:
+An alerts-only budget does not stop a charge, and its data arrives with a delay. Some providers have stronger controls:
 
-- **AWS.** AWS Budgets sends an alert by email or Amazon SNS, for the actual cost and the forecast. A budget action can apply an IAM policy that denies new resources. The data has a delay, and the cost can go above the threshold before the alert ([AWS: managing your costs with AWS Budgets](https://docs.aws.amazon.com/cost-management/latest/userguide/budgets-managing-costs.html)). A new account selects a Free account plan or a Paid account plan. The Free plan does not charge. It ends after six months or when the credits end. Then the account closes, and AWS deletes the account and its resources after 90 days, unless the owner upgrades ([AWS: choosing a plan](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/free-tier-plans.html)).
-- **GCP.** An alerts-only budget "doesn't automatically cap" the use. Spend cap budgets pause some services when the cost goes above the target. The cost data has a delay ([Google Cloud: budgets](https://docs.cloud.google.com/billing/docs/how-to/budgets)). The Free Trial does not charge. If the owner does not upgrade, GCP stops the resources and deletes them after 30 days. The Free Tier needs a billing account ([Google Cloud: free features](https://docs.cloud.google.com/free/docs/free-cloud-features)).
-- **Azure.** A budget sends alerts, and "resources aren't affected". Data arrives in 8 to 24 hours ([Azure: budgets](https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-acm-create-budgets)). A free account has a spending limit equal to its credit. At the limit, Azure disables the services. Pay-as-you-go has no spending limit. "A spending limit doesn't prevent all charges": some Marketplace services charge separately ([Azure: spending limit](https://learn.microsoft.com/en-us/azure/cost-management-billing/manage/spending-limit)).
-- **Cloudflare.** R2 has a free tier that does not end ([Cloudflare: R2 pricing](https://developers.cloudflare.com/r2/pricing/)). This RFC did not verify the limits of the other free products, for example Workers.
-- **Grafana Cloud.** This RFC did not verify the free tier limits for metrics, logs and traces ([Grafana Cloud: usage limits](https://grafana.com/docs/grafana-cloud/cost-management-and-billing/understand-your-invoice/usage-limits/)).
+- **AWS.** AWS Budgets alerts by email or Amazon SNS. A budget action can apply an IAM policy that denies new resources ([AWS Budgets](https://docs.aws.amazon.com/cost-management/latest/userguide/budgets-managing-costs.html)). The Free account plan does not charge. It ends after six months or when the credits end. Then the account closes, and AWS deletes it with its resources after 90 days, unless the owner upgrades ([AWS: choosing a plan](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/free-tier-plans.html)).
+- **GCP.** An alerts-only budget "doesn't automatically cap" the use. Spend cap budgets pause some services ([Google Cloud: budgets](https://docs.cloud.google.com/billing/docs/how-to/budgets)). An ended Free Trial that the owner does not upgrade loses its resources after 30 days ([Google Cloud: free features](https://docs.cloud.google.com/free/docs/free-cloud-features)).
+- **Azure.** With a budget, "resources aren't affected" ([Azure: budgets](https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-acm-create-budgets)). A free account has a spending limit equal to its credit, and Azure disables the services at the limit. But "a spending limit doesn't prevent all charges" ([Azure: spending limit](https://learn.microsoft.com/en-us/azure/cost-management-billing/manage/spending-limit)).
+- **Cloudflare and Grafana Cloud.** R2 has a free tier that does not end ([R2 pricing](https://developers.cloudflare.com/r2/pricing/)). This RFC did not verify the other free limits.
 
 The guardrails as code:
 
@@ -278,58 +273,34 @@ One word, `infra`, has these uses:
 
 ### The rename
 
-[Renaming a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/renaming-a-repository) gives these facts:
-
-- GitHub redirects "all existing information, with the exception of project site URLs": the web pages, issues, wikis, stars and followers.
-- `git clone`, `git fetch` and `git push` to the old location continue to work. GitHub still recommends `git remote set-url`.
-- GitHub Pages project sites do not get a redirect. The repository has no Pages site (`has_pages: false`, 2026-11-01).
-- "GitHub will not redirect calls to an action hosted by a renamed repository." A workflow that uses that action fails with `repository not found`. The repository hosts no action, and no other repository calls a workflow of it. Its own workflows call `gsuquet/workflows`, which does not change.
-- If somebody creates a repository with the old name, the redirects stop.
-
-The name `gsuquet/infra` is free: the API gave `404 Not Found` on 2026-11-01, with the token of the owner.
+[Renaming a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/renaming-a-repository): GitHub redirects the web pages and the Git operations. It does not redirect Pages sites (the repository has none) or calls to an action in the renamed repository (the repository hosts none). If somebody creates a repository with the old name, the redirects stop. The name `gsuquet/infra` was free on 2026-11-01 (`404 Not Found`).
 
 **The old name.** The agents use the GitHub token of the owner. Thus an agent can create `gsuquet/homelab` again, for example with `gh repo create`. Then the redirect stops, and a client of the old URL reads the new, empty repository. The plan has two controls. No agent session runs between the rename and the merge of the new `repoURL` (steps R3 and R4). The agent permissions deny the creation of a repository. The owner never reuses the name.
 
-#### The references to the old name
-
-The author searched `main` on 2026-11-01 for `gsuquet/homelab` and `homelab`, and ran `gh search code "gsuquet/homelab" --owner gsuquet`.
-
-| Group | Files | Effect if not changed |
-| --- | --- | --- |
-| Production Argo CD (`olympus`) | `kubernetes/bootstrap/argo-cd/bootstrap-application.yaml`, `projects-application.yaml`, `applications-applicationset.yaml`, `system-applicationset.yaml` (`repoURL`), `kubernetes/projects/system.yaml` and `applications.yaml` (`sourceRepos`) | Argo CD can stop at the rename. Refer to "Argo CD on `olympus`". |
-| New Argo CD (`kind-local`) | `gitops/infrastructure/argocd/sources/values.yaml`, and the rendered `application-argocd.yaml`, `appproject-infrastructure.yaml`, `appproject-apps.yaml` | Same. A test instance. |
-| Legacy Ansible | `ansible/roles/k8s_argocd/templates/root-app.yaml.j2` (default of `argocd_repo_url`) | A new install uses the old URL. |
-| Schemas | `$id` of `gitops-cluster.schema.json`, `module.schema.json`, `instance.schema.json` | An `$id` is a name, not a download. A wrong name only confuses. |
-| Documentation | `README.md`, `CONTRIBUTING.md`, `docs/tutorials/01-getting-started.md`, `docs/explanation/architecture.md`, `docs/explanation/gitops-with-argocd.md`, `docs/reference/repository-structure.md` | Old links and old clone commands. |
-| Text with the word "homelab" | `renovate.json` (description), `AGENTS.md`, `SECURITY.md`, `.github/CODEOWNERS`, fixtures such as `schemas/tests/instance/valid/homelab.yaml` | No effect. Change only where the word names the repository. |
-| GitHub settings | The auto-add workflow of the project "Perso", which watches this repository (RFC 0002) | Not verified. The owner checks it after the rename. |
-| Other repositories | `gsuquet/knowledge-vault` (links in notes), `gsuquet/dotfiles` (a log message that names "the homelab repository") | Links work through the redirect. |
-
-The search found no reference in `gsuquet/choco-setup`, no Terraform `git::` source, and no badge with the repository name. GitHub code search reads only the default branch, thus the search can miss a branch.
+**The references.** The production Argo CD of `olympus` names the old URL in `kubernetes/bootstrap/argo-cd/` (four files, `repoURL`) and in `kubernetes/projects/` (`sourceRepos`). Steps R1 to R6 change them. Step R5 changes all the other references. The verify list holds the inventory.
 
 #### Argo CD on `olympus`
 
 A change of the repository URL must not delete the production workloads. These include the data volumes of Home Assistant, Actual Budget, Mosquitto and Zigbee2MQTT, and the `sealed-secrets` controller with its key. A revert does not bring back deleted volume data.
 
-The facts from the Argo CD documentation:
+The facts, from the Argo CD documentation and the v3.3.7 source that the reviewer of this RFC read:
 
-- **Redirects.** "Argo CD will **not** follow these redirects". This is in the note about Git hosts that send an HTTP 301 to the URL with `.git` ([Argo CD: declarative setup, Repositories](https://argo-cd.readthedocs.io/en/stable/operator-manual/declarative-setup/)). The note is about GitLab, not about a GitHub rename. Thus this RFC does not assume that Argo CD reads the old URL after the rename. Step R0 tests it.
-- **The main deletion path.** The two ApplicationSets use a Git directory generator on `kubernetes/applications/*` and `kubernetes/system/*`. If the generator sees a repository where no folder matches, the ApplicationSet deletes its Applications, and the finalizer `resources-finalizer.argocd.argoproj.io` deletes their resources. A re-created repository or a wrong revision gives this result. The [Git generator](https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Generators-Git/) page does not tell what the controller does when the fetch fails. Step R0 tests both cases.
-- **The finalizer.** Both ApplicationSet templates set this finalizer explicitly. `argocd-bootstrap` and `argocd-projects` also set it. The Argo CD page says that `spec.syncPolicy.preserveResourcesOnDeletion: true` "prevents the finalizer from being added" ([Argo CD: Application deletion](https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Application-Deletion/)). The page does not say that it removes a finalizer that the template sets. Thus step R2 removes the finalizer from the templates and the manifests, and a check proves that the live Applications have no finalizer.
-- **The sync guards.** `spec.syncPolicy.automated.enabled: false` stops automated sync, also with `prune`, `selfHeal` and `allowEmpty` set ([Argo CD: automated sync](https://argo-cd.readthedocs.io/en/stable/user-guide/auto_sync/)). The ApplicationSet policy `create-update` stops the deletion of Applications. The per-ApplicationSet field `applicationsSync` has an effect only with `--enable-policy-override`, which is `false` by default. The controller parameter `--policy` sets it for all ApplicationSets ([Argo CD: controlling resource modification](https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Controlling-Resource-Modification/)).
-- **Tracking.** Argo CD tracks a resource with the annotation `argocd.argoproj.io/tracking-id`, for example `my-app:apps/Deployment:default/my-deployment` ([Argo CD: resource tracking](https://argo-cd.readthedocs.io/en/stable/user-guide/resource_tracking/)). The example holds no repository URL, but the page does not say that the ID never holds it. RFC 0004 sets the `annotation` method explicitly. The legacy Argo CD v3.3.7 in Git sets `application.instanceLabelKey` and no method. `argocd-bootstrap` does not sync `manifests/`, thus the live configuration can differ from Git. Step R0 records it.
-- **Updates.** When the template of an ApplicationSet changes, the controller patches each Application (same page as the sync guards). The Application names come from `{{.path.basename}}`, and they do not change.
-- **AppProjects.** An Application uses a repository only if its AppProject permits it in `sourceRepos` ([Argo CD: projects](https://argo-cd.readthedocs.io/en/stable/user-guide/projects/)). The page does not tell if a URL with `.git` and a URL without `.git` are equal. The live `system` project has the URL without `.git`, and the `system` Applications use `.git` and run. Thus the forms are probably equal. Step R1 adds both forms.
-- **Repository Secrets.** Argo CD matches a repository Secret by its `url`, and a credential template by a URL prefix ([Argo CD: declarative setup](https://argo-cd.readthedocs.io/en/stable/operator-manual/declarative-setup/)).
+- **Redirects.** "Argo CD will **not** follow these redirects", in the note about the 301 of GitLab to the URL with `.git` ([declarative setup](https://argo-cd.readthedocs.io/en/stable/operator-manual/declarative-setup/)). Thus the plan does not assume that Argo CD follows the GitHub redirect. R0 tests it.
+- **Deletion by the generator.** The two ApplicationSets use a Git directory generator on `kubernetes/applications/*` and `kubernetes/system/*`. When no folder matches, the controller deletes the generated Applications. With the finalizer `resources-finalizer.argocd.argoproj.io`, Argo CD then deletes their resources. Without the finalizer, the resources stay, and the Applications come back when the folders match again. A fetch error stops the reconcile before the delete step.
+- **The finalizer.** Both templates, `argocd-bootstrap` and `argocd-projects` set it. The controller copies the finalizers of the template to each generated Application, and it adds `resources-finalizer` only when the template has none and `preserveResourcesOnDeletion` is `false` ([Application deletion](https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Application-Deletion/)). Thus R2 removes it from the templates and sets `preserveResourcesOnDeletion: true` in the same PR.
+- **The sync guards.** `spec.syncPolicy.automated.enabled: false` stops automated sync, also with `prune`, `selfHeal` and `allowEmpty` set ([automated sync](https://argo-cd.readthedocs.io/en/stable/user-guide/auto_sync/)). Without it, a prune deletes the resources, the PVCs too, with or without a finalizer. The ApplicationSet policies `create-only` and `create-delete` stop all updates of the Applications ([controlling resource modification](https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Controlling-Resource-Modification/)). The plan never uses them, because they block the R2 and R4 updates. `create-update` permits updates and stops deletions.
+- **Tracking.** The annotation `argocd.argoproj.io/tracking-id` holds the Application name, the group, the kind, the namespace and the name, for example `my-app:apps/Deployment:default/my-deployment` ([resource tracking](https://argo-cd.readthedocs.io/en/stable/user-guide/resource_tracking/)). RFC 0004 sets the `annotation` method for the new Argo CD in `gitops/`. `olympus` uses its live value, which R0d records.
+- **AppProjects and Secrets.** `sourceRepos` limits the repositories of an Application ([projects](https://argo-cd.readthedocs.io/en/stable/user-guide/projects/)). R1 adds both URL forms, with and without `.git`. A repository Secret matches by its `url`, and a credential template by a URL prefix.
+- **`manifests/` is not synced.** `argocd-bootstrap` syncs only the top-level files. Thus the live CRDs, `argocd-cm` and `argocd-cmd-params-cm` can differ from Git. R0 checks them.
 
-The plan does not depend on the redirect. The changes that are safe before the rename merge before it. The new `repoURL` merges at once after the rename. The automated sync and the finalizers are off during the change, and a manual recovery exists. The rename does not move `kubernetes/`. It changes only the URL strings in the files.
+The plan does not depend on the redirect. The changes that are safe before the rename merge before it. The new `repoURL` merges at once after the rename. The automated sync and the finalizers are off during the change, each PV has the reclaim policy `Retain`, and a manual recovery exists. The rename does not move `kubernetes/`. It changes only the URL strings in the files.
 
 ```mermaid
 sequenceDiagram
     participant O as Owner
     participant G as GitHub
     participant A as Argo CD on olympus
-    O->>A: R0. Rehearse on kind-local, record, back up, freeze
+    O->>A: R0. Rehearse on kind-local, record, Retain, back up, freeze
     O->>G: R1. PR: both new URL forms in sourceRepos
     O->>G: R2. PR: no finalizers, preserveResourcesOnDeletion, automated sync off
     A->>A: Sync, check: no finalizer, same UIDs
@@ -351,7 +322,7 @@ In text: the owner rehearses the rename on `kind-local`, records `olympus`, back
 - **Generated code.** Import tools write code from the live account. The author removes the secrets before the commit, because the repository is public.
 - **No `terraform_remote_state` between root modules.** It needs read access to the full state of the other root module, with its secrets.
 - **A read token can read secrets.** The Cloudflare provider has the data source `cloudflare_zero_trust_tunnel_cloudflared_token`. This RFC did not verify which permission reads a tunnel token. Thus a read token can be a secret too. Q5 handles this.
-- **The rename and production.** The Git directory generators can delete all the Applications of `olympus` and their data. The plan turns off the finalizers and the automated sync first, backs up the data, and checks the UIDs. Agents can re-create the old name with the token of the owner. No agent session runs during the change.
+- **The rename and production.** The Git directory generators can delete all the Applications of `olympus` and their data. The plan turns off the finalizers and the automated sync first, sets each PV to `Retain`, backs up the data, and checks the UIDs. Agents can re-create the old name with the token of the owner. No agent session runs during the change.
 - **Budgets do not stop a charge.** They alert with a delay. A leaked credential can create costs before the alert. Scoped tokens and the free plans with a spending limit reduce this risk.
 - **The repository is public.** Account IDs, zone IDs and budget amounts become public. They are not secrets, but they help an attacker to target the accounts. Tokens, tunnel secrets and state never go into Git.
 
@@ -367,25 +338,32 @@ In text: the owner rehearses the rename on `kind-local`, records `olympus`, back
    - "Only the owner applies account changes, with scoped credentials".
    - "Put a budget in each AWS, GCP and Azure account first".
    Refer to "Effects on the other records" for the relation with the ADRs of RFC 0003.
-3. The rename, now. Steps R0 to R2 change nothing for the users of the repository. Until R4 merges, the rollback is to rename the repository back.
-   - **R0a. Rehearse.** Use `kind-local` with the Argo CD version of `olympus`. The owner creates a throwaway repository in `gsuquet`. Point one Application and one Git directory ApplicationSet at it, with the finalizer in the template. Apply the R2 changes, and check that the live finalizers go away. Rename the throwaway repository, and watch two reconcile cycles. Record if Argo CD reads the old URL.
-   - **R0b. Rehearse the failures.** On the same test, make the generator match no folder, and make the fetch fail. Record what the controller does with the Applications in each case. Test `automated.enabled: false`.
-   - **R0c. Record `olympus`.** Save `kubectl -n argocd get applications,applicationsets,appprojects -o yaml` outside of Git. Record `argocd version` and the live `argocd-cm`: `application.resourceTrackingMethod` and `application.instanceLabelKey`. Record one live tracking ID or instance label.
-   - **R0d. Record the projects and the Applications.** Record `sourceRepos` of each AppProject, also `default`, which `argocd-bootstrap` and `argocd-projects` use. List each Application that the four bootstrap files do not make, for example an old root Application from the Ansible template. Record the flags of the ApplicationSet controller.
-   - **R0e. Record the repository Secrets.** List the repository Secrets and credential templates in `argocd`, with their `url`.
-   - **R0f. Record the UIDs.** Record the UIDs of the Namespaces, the Deployments and StatefulSets, and the PVCs of each Application. Record the `reclaimPolicy` of each PV. Make sure that all Applications are `Synced` and `Healthy`.
-   - **R0g. Back up.** Back up the volume data of Home Assistant, Actual Budget, Mosquitto and Zigbee2MQTT. Back up the key of the Sealed Secrets controller, encrypted, outside of Git.
-   - **R0h. Freeze.** Merge a PR that stops the Renovate automerge. Stop all agent sessions from R3 to R4. Make sure that the agent permissions deny `gh repo create`.
-   - **R1. AppProjects.** One PR adds `https://github.com/gsuquet/infra` and `https://github.com/gsuquet/infra.git` to `sourceRepos` in `system.yaml` and `applications.yaml`. It keeps the old URLs. If R0d shows a limited `default` project, the PR changes it the same way. If R0e shows a Secret for the old URL, the owner adds one for the new URL. Check: all Applications stay `Synced` and `Healthy`.
+3. The rename, now. Steps R0 to R2 change nothing for the users of the repository. Until R4 merges, the rollback is to rename the repository back. Each R0 step has a stop rule: if it fails, the plan stops, and the owner corrects the plan first.
+   - **R0a. Rehearse the safety settings.** Use `kind-local` with the Argo CD version of `olympus`, and a throwaway repository in `gsuquet`. Make an Application that manages itself and a Git directory ApplicationSet, as `argocd-bootstrap` does, with the finalizer in the template. Apply the R2 changes and the R0j policy. Stop if a finalizer stays, if an automated sync occurs with `enabled: false`, or if `create-update` blocks an update.
+   - **R0b. Rehearse the failures.** Make the generator match no folder. Expect the Applications to go away and their resources to stay with the same UIDs. Stop if a resource goes away. Make the fetch fail. Stop if an Application goes away.
+   - **R0c. Rehearse R3, R4 and the rollback.** Rename the throwaway repository. Push a new commit, and run `argocd app get <app> --hard-refresh`. Record if Argo CD reads the old URL. Rehearse the R4 merge, the R4 recovery and the R4 rollback in their order. Stop if one of them does not give the R4 check.
+   - **R0d. Record `olympus`.** Save `kubectl -n argocd get applications,applicationsets,appprojects -o yaml` outside of Git. Record `argocd version` and the live `argocd-cm`: `application.resourceTrackingMethod` and `application.instanceLabelKey`. Record one live tracking ID or instance label. Stop if `kubectl explain application.spec.syncPolicy.automated.enabled` fails, because then the live CRD does not have the field.
+   - **R0e. Record the projects, the Applications and the controller.** Record `sourceRepos` of each AppProject, also `default`, which `argocd-bootstrap` and `argocd-projects` use. List each Application that the four bootstrap files do not make, for example the `applications` root Application of the Ansible template. Record the flags of the ApplicationSet controller and `applicationsetcontroller.policy` in the live `argocd-cmd-params-cm`. Stop if the policy is not unset, `sync` or `create-update`.
+   - **R0f. Record the repository Secrets.** List the repository Secrets and credential templates in `argocd`, with their `url`.
+   - **R0g. Record the UIDs and protect the volumes.** Record the UIDs of the Namespaces, the Deployments and StatefulSets, and the PVCs of each Application. Record the `reclaimPolicy` of each PV. Then patch each PV: `kubectl patch pv <pv> -p '{"spec":{"persistentVolumeReclaimPolicy":"Retain"}}'`. Stop if an Application is not `Synced` and `Healthy`.
+   - **R0h. Back up and restore.** Back up the volume data of Home Assistant, Actual Budget, Mosquitto and Zigbee2MQTT. Back up the key of the Sealed Secrets controller, encrypted, outside of Git. Check each archive against its PVC, and check that the key decrypts one live SealedSecret. Stop if a check fails.
+   - **R0i. Freeze.** Merge a PR that stops the Renovate automerge. No other PR merges into `kubernetes/` from R1 until R6. Stop all agent sessions from R3 to R4. Make sure that the agent permissions deny `gh repo create`.
+   - **R0j. Second guard.** The owner sets `applicationsetcontroller.policy: create-update` in the live `argocd-cmd-params-cm` with `kubectl`, and restarts the ApplicationSet controller. `manifests/` is not synced, thus the change stays. R0a tests it first. It permits the R2 and R4 updates and stops deletions of Applications.
+   - **R1. AppProjects.** One PR adds `https://github.com/gsuquet/infra` and `https://github.com/gsuquet/infra.git` to `sourceRepos` in `system.yaml` and `applications.yaml`. It keeps the old URLs. If R0e shows a limited `default` project, the PR changes it the same way. If R0f shows a Secret for the old URL, the owner adds one for the new URL. Check: all Applications stay `Synced` and `Healthy`.
    - **R2. Safety settings.** One PR changes the two ApplicationSets, `bootstrap-application.yaml` and `projects-application.yaml`. It removes the finalizer and sets `automated.enabled: false`. The ApplicationSets also get `preserveResourcesOnDeletion: true`. The owner syncs by hand.
-   - **R2 check.** No live Application has the finalizer: `kubectl -n argocd get applications -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.metadata.finalizers}{"\n"}{end}'`. If one remains, the owner removes it with `kubectl patch`. The UIDs equal R0f.
+   - **R2 extra Applications.** For each Application from R0e that the bootstrap files do not make, the owner removes the finalizer with `kubectl patch`, and sets `automated.enabled: false`. The owner can also delete it after the finalizer is gone.
+   - **R2 check, finalizers.** `kubectl -n argocd get applications -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.metadata.finalizers}{"\n"}{end}'` shows no finalizer. If one remains on `argocd-bootstrap` or `argocd-projects`, the owner removes it with `kubectl patch`.
+   - **R2 check, sync.** `kubectl -n argocd get applications -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.spec.syncPolicy.automated.enabled}{"\n"}{end}'` shows `false` on each line. The UIDs equal R0g.
    - **R2 prepare.** The author opens the `repoURL` PR. It changes `repoURL` in the four bootstrap files, in the generators and in the templates, to `https://github.com/gsuquet/infra.git`. It does not merge yet.
    - **R3. Rename.** The owner renames `gsuquet/homelab` to `gsuquet/infra` in the settings. Only the owner does this step.
    - **R4. Merge the `repoURL` PR** at once. The owner runs `argocd app diff argocd-bootstrap`. The diff must show only the URL changes. Then the owner syncs `argocd-bootstrap`, then `argocd-projects` and each generated Application, by hand.
    - **R4 recovery.** If `argocd-bootstrap` cannot read the old URL, it cannot see the PR. The owner runs `kubectl -n argocd patch application argocd-bootstrap --type merge -p '{"spec":{"source":{"repoURL":"https://github.com/gsuquet/infra.git"}}}'`. Then the owner syncs it as above.
-   - **R4 check.** The Application names and count equal R0c. Each `spec.source.repoURL` and each generator has the new URL. All Applications are `Synced` and `Healthy`. The UIDs equal R0f, and each PVC is `Bound`. Rollback: revert the PR and rename the repository back, together. If data is lost, restore it from R0g.
+   - **R4 check.** The Application names and count equal R0d. Each `spec.source.repoURL` and each generator has the new URL. All Applications are `Synced` and `Healthy`. The UIDs equal R0g, and each PVC is `Bound`.
+   - **R4 rollback.** One URL is always a redirect that Argo CD may not follow, thus the steps keep this order. Automated sync stays off, and no finalizer comes back. First revert the PR. Then run `argocd app diff argocd-bootstrap`, and sync by hand while `infra` is the real name. Then rename the repository back. If `argocd-bootstrap` shows a comparison error, run the R4 recovery patch with `https://github.com/gsuquet/homelab.git`. Then run the R4 check. If data is lost, restore it from R0h.
    - **R5. Other references.** In each clone: `git remote set-url origin git@github.com:gsuquet/infra.git`, then `mise run repos`. A rename of the local folder is optional. One PR changes the schemas, the documentation, the `kind-local` values and rendered files, the Ansible default, and the text in `renovate.json` and `AGENTS.md`. It does not move `kubernetes/`.
-   - **R6. Clean up.** First check that no Application and no generator uses the old URL. Then one PR removes the old URLs from `sourceRepos`, and the owner removes the old repository Secret. The PR sets `automated.enabled: true` again. The owner decides if the finalizers come back. Then the Renovate automerge comes back.
+   - **R6. Clean up.** First check that no Application and no generator uses the old URL. Then one PR removes the old URLs from `sourceRepos`, and the owner removes the old repository Secret.
+   - **R6 sync on.** Each Application is `Synced`, and `argocd app diff` shows no resource to prune. Turn on `automated.enabled` for one Application, and compare its UIDs with R0g. Then turn it on for the rest, and compare all the UIDs.
+   - **R6 restore.** The owner decides if the finalizers and the policy `create-update` stay. The owner restores the recorded `reclaimPolicy` of each PV, or keeps `Retain`. Then the Renovate automerge comes back, and the freeze ends.
    - **R7. After.** Check that a PR runs the CI workflows and the labeler, and that Renovate updates its dependency dashboard. Check that a new issue goes into the project "Perso". Check that `gh search code "gsuquet/homelab" --owner gsuquet` finds only the records and the notes. Check that `mise run instance:up` on `kind-local` syncs from the new URL. Update the links in `gsuquet/knowledge-vault`.
 4. The accounts:
    1. Add `schemas/account.schema.json`, its fixtures, the `accounts/` checks, the G1 policy and the policy for secret resources in local state.
@@ -403,15 +381,18 @@ To go back on the accounts: the account root modules are new code. `terraform st
 - GitHub: the auto-add workflow of "Perso" and the Renovate App installation keep the repository after the rename.
 - Agents: the GitHub guard hook of `gsuquet/dotfiles` PR #9 denies `gh repo create` and `POST /user/repos`. A search of the hook found no rule for them on 2026-11-01.
 - Terraform: an `import` block can stay after the apply, or the PR removes it. Select one rule for `imports.tf`.
+- Rename inventory of 2026-11-01 for R5: `gitops/infrastructure/argocd/sources/values.yaml` and the rendered `kind-local` files, `ansible/roles/k8s_argocd/templates/root-app.yaml.j2`, the `$id` of the three schemas, `README.md`, `CONTRIBUTING.md`, `docs/tutorials/01-getting-started.md`, `docs/explanation/architecture.md`, `docs/explanation/gitops-with-argocd.md`, `docs/reference/repository-structure.md`, the text in `renovate.json` and `AGENTS.md`, and the notes of `gsuquet/knowledge-vault`. No reference in `gsuquet/choco-setup`, no Terraform `git::` source, no badge. Code search reads only the default branch.
+- R0h: the backup commands, and `kubeseal --recovery-unseal` for the check of the key.
 - Terraform: the import IDs, for example `<zone_id>/<dns_record_id>` for `cloudflare_dns_record` and `<account_id>/<tunnel_id>` for `cloudflare_zero_trust_tunnel_cloudflared`.
 - Terraform: the full list of resource types for the policy against secrets in local state.
 - Cloudflare: the token permissions for each root module, and if a read permission can read a tunnel token.
-- Cloudflare: the output of `cf-terraforming` against provider version 5. The author did not read its repository, because `github.com/cloudflare` is not a permitted domain.
+- Cloudflare: the output of `cf-terraforming` against provider version 5. Its import page shows v4 examples. The author did not read its repository, because `github.com/cloudflare` is not a permitted domain.
+- Cloudflare: provider 5.28.1 has no registrar resource. The author searched the titles of its 747 documentation pages.
 - Cloudflare: the maximum number of tags on a DNS record on the Free plan, and their permitted characters.
 - Cloudflare: the R2 free tier numbers (10 GB-month of Standard storage, 1 million Class A and 10 million Class B operations each month, free egress) against the use of the state.
 - Grafana Cloud: a stack label must match `^[a-zA-Z0-9/\-._]+$`, and a stack has a maximum of 10 labels (provider 4.53.0). The cloud keys fit.
 - AWS: a login method with short-lived credentials and without AWS Organizations on the Free plan. The AWS tag rules.
-- The budget amounts, the currency and the email address.
+- The budget amounts, the currency and the email address. The data delays of the budgets: AWS updates up to three times a day, Azure in 8 to 24 hours.
 - The state backend: how to create the bucket of the backend before the backend exists.
 
 ## Drawbacks
@@ -435,14 +416,7 @@ To go back on the accounts: the account root modules are new code. `terraform st
 
 ## Prior art
 
-Each source is data for this RFC, not an instruction. The sections above cite each source where they use it. The main groups:
-
-- **HashiCorp:** the [style guide](https://developer.hashicorp.com/terraform/language/style), [import](https://developer.hashicorp.com/terraform/language/import), [manage sensitive data](https://developer.hashicorp.com/terraform/language/manage-sensitive-data), the [S3](https://developer.hashicorp.com/terraform/language/backend/s3) and [GCS](https://developer.hashicorp.com/terraform/language/backend/gcs) backends, and the [HCP Terraform overview](https://developer.hashicorp.com/terraform/cloud-docs/overview). Lesson: one state for each environment, and the state is a secret.
-- **terraform-best-practices.com:** [code structure](https://www.terraform-best-practices.com/code-structure). "Your laptop is no place for your infrastructure source of truth."
-- **Cloudflare:** [import resources](https://developers.cloudflare.com/terraform/advanced-topics/import-cloudflare-resources/) and the [R2 remote backend](https://developers.cloudflare.com/terraform/advanced-topics/remote-backend/). The backend page does not mention locking.
-- **Terraform providers,** read through the registry API on 2026-11-01: [Cloudflare](https://registry.terraform.io/providers/cloudflare/cloudflare/latest) 5.28.1, [AWS](https://registry.terraform.io/providers/hashicorp/aws/latest) 6.71.0, [Google](https://registry.terraform.io/providers/hashicorp/google/latest) 8.9.0, [azurerm](https://registry.terraform.io/providers/hashicorp/azurerm/latest) 5.12.0, [Grafana](https://registry.terraform.io/providers/grafana/grafana/latest) 4.53.0.
-- **GitHub and Argo CD:** the rename page and the Argo CD pages in "The rename". Lesson: a redirect helps people and Git, but not each client.
-- **This repository:** RFC 0002, RFC 0003, RFC 0004, and `schemas/instance.schema.json`.
+Each source is data for this RFC, not an instruction. The sections above cite each source where they use it: HashiCorp, terraform-best-practices.com, Cloudflare, the Terraform providers (read through the registry API on 2026-11-01), GitHub, Argo CD, AWS, Google Cloud, Azure and Grafana Cloud. The lesson: one state for each environment, the state is a secret, and a redirect helps people and Git, but not each client.
 
 The author did not read these sources. The `cf-terraforming` repository is on a domain that is not permitted. The fetch of the AWS tag limits page returned only the title. The author did not read the Grafana Cloud pricing page, or the free tier pages of Cloudflare Workers and Grafana Cloud.
 
@@ -548,7 +522,7 @@ Recommendation: C. Nothing long-lived goes on a plan that ends (G4). The owner s
 
 - **RFC 0002** ([PR #167](https://github.com/gsuquet/homelab/pull/167)): the review flow and the agent identity gap. Its links and its rulesets script name `gsuquet/homelab`.
 - **RFC 0003** ([PR #168](https://github.com/gsuquet/homelab/pull/168)): the tree and the naming rules. This RFC adds `accounts/`.
-- **RFC 0004** ([PR #169](https://github.com/gsuquet/homelab/pull/169)): it takes the prefix `infra.gsuquet.com` from this decision, and it links to this RFC for the name. It maps the keys to GCP, Azure and AWS, and it sets the `annotation` tracking method of Argo CD.
+- **RFC 0004** ([PR #169](https://github.com/gsuquet/homelab/pull/169)): it takes the prefix `infra.gsuquet.com` from this decision, and it links to this RFC for the name. It maps the keys to GCP, Azure and AWS, and it sets the `annotation` tracking method for the new Argo CD in `gitops/`, not for `olympus`.
 - **The tooling RFC** decides the state backend. **The secrets RFC** decides where the tokens live. **The agents RFC** decides the place of the agent skills and hooks. **The agent identity RFC** closes the credential gap.
 
 ### Effects on the other records
