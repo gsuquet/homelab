@@ -244,7 +244,7 @@ An instruction file alone does not enforce a rule, and an agent hook works only 
 
 | Tool | What it enforces | Limit |
 | --- | --- | --- |
-| GitHub rulesets | On `main`: no direct push, no force push, no deletion. On all branches: signed commits. On all tags: no creation, update or deletion. Required checks. | The token of the owner can change the rulesets. No ruleset blocks the deletion of other branches. |
+| GitHub rulesets | On `main`: no direct push, no force push, no deletion. On all branches: signed commits, no force push except by the Renovate App, and deletion only by administrators and the Renovate App. On all tags: no creation, update or deletion. Required checks. | The token of the owner can change the rulesets. Agents use the administrator token of the owner, so they can use the administrator bypass of the deletion rule. |
 | Git hooks | A plain Git `pre-push` script refuses a push to `main`, a tag, a deletion and a non-fast-forward push. The pre-commit `commit-msg` hook checks Conventional Commits. | `git push --no-verify` skips the hooks. |
 | CI checks | `mise run lint`, the PR title check | Only on PRs and on `main`. |
 | Conftest policies | The rules on the files, for example pinned versions and no secrets | Only on files. |
@@ -479,7 +479,7 @@ The rule "Require signed commits" lets only signed and verified commits into the
 
 Today, the rule targets only `main`. An unsigned commit can thus go into a branch. To correct it, the author must make a new signed commit with a rebase. The author must not force-push, so the author must push to a new branch and open a new PR. The old branch then stays, because agents must not delete a remote branch.
 
-This RFC proposes a second branch ruleset with the target `~ALL`, the value for all branches in the REST API ([GitHub: rules API](https://docs.github.com/en/rest/repos/rules)). It holds only "Require signed commits", with no exclusion. Then GitHub refuses an unsigned commit when the agent pushes it, and the stale branch cannot occur. Two more rulesets block force pushes and restrict deletions on all branches except `renovate/**`. Refer to "Rulesets and settings".
+This RFC proposes a second branch ruleset with the target `~ALL`, the value for all branches in the REST API ([GitHub: rules API](https://docs.github.com/en/rest/repos/rules)). It holds only "Require signed commits", with no exclusion. Then GitHub refuses an unsigned commit when the agent pushes it, and the stale branch cannot occur. Two more rulesets block force pushes and restrict deletions on all branches, with the Renovate App in their bypass lists. Refer to "Rulesets and settings".
 
 #### How the commits get a signature
 
@@ -533,13 +533,19 @@ The owner makes these changes. Agents do not change settings or rulesets.
   - Permit only the squash merge in the PR rule.
   - Remove "Require review from Code Owners" after RFC 0003 removes `CODEOWNERS`. Without the file, the rule has no use.
 - **New branch ruleset for `~ALL`, with no exclusion and an empty bypass list:** "Require signed commits" only. It does not block Renovate: GitHub signs the commits of Renovate, and the commits of PRs #153 to #156 show `verified: true`.
-- **New branch ruleset for `~ALL` except `refs/heads/renovate/**`, with an empty bypass list:** "Block force pushes" only. The owner decided on 2026-11-01 (owner, in chat) to add the force-push rule. It excludes `renovate/**`, because Renovate force-pushes its branches when it rebases them (`:rebaseStalePrs`).
-- **New branch ruleset for `~ALL` except `refs/heads/renovate/**`, with the repository administrator role as bypass actor:** "Restrict deletions" only. It excludes `renovate/**`, because Renovate deletes the branches of closed PRs. The owner decided on 2026-11-01 (owner, in chat) to add the deletion rule with an admin bypass. A deletion rule can also prevent the automatic deletion of head branches after a merge ([GitHub: managing the automatic deletion of branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-the-automatic-deletion-of-branches)). With the admin bypass, the owner can delete merged branches. The setting "Automatically delete head branches" stays on.
-- **Three rulesets, not one.** GitHub sets the target branches and the exclusions for each ruleset, not for each rule ([GitHub: rules API](https://docs.github.com/en/rest/repos/rules)). It also sets the bypass list for each ruleset, and it combines the rules of all rulesets that target a branch. When two rulesets define the same rule, the strictest version applies ([GitHub: about rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets)). Thus the signed-commit rule has no exclusion. The force-push rule and the signed-commit rule must not be in the ruleset with the admin bypass. The deletion rule must be only in that ruleset, else the strictest version blocks the owner too. The ruleset `main` keeps its own deletion rule with an empty bypass list, because nobody deletes `main`.
+- **New branch ruleset for `~ALL`, with no exclusion, and the Renovate GitHub App (`renovate-gsuquet[bot]`) as the only bypass actor:** "Block force pushes" only. The owner decided on 2026-11-01 (owner, in chat) to add the force-push rule, and to give the bypass to the Renovate App. Renovate force-pushes its branches when it rebases them (`:rebaseStalePrs`).
+- **New branch ruleset for `~ALL`, with no exclusion, and the administrator role and the Renovate App as bypass actors:** "Restrict deletions" only. Renovate deletes the branches of closed PRs. The owner decided on 2026-11-01 (owner, in chat) to add the deletion rule with these two bypass actors. A deletion rule can also prevent the automatic deletion of head branches after a merge ([GitHub: managing the automatic deletion of branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-the-automatic-deletion-of-branches)). With the admin bypass, the owner can delete merged branches. The setting "Automatically delete head branches" stays on.
+- **The bypass of the Renovate App.** A bypass list can hold roles, teams or GitHub Apps ([GitHub: about rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets)). An exclusion of `renovate/**` matches the branch name, not the actor. Each account with write access could then rewrite or delete a `renovate/` branch. The App bypass matches the actor. Agents use the token of the owner, so they cannot use the bypass of the App. They can still use the administrator bypass of the deletion rule. Refer to "Known gaps".
+- **Three rulesets, not one.** GitHub sets the target branches and the exclusions for each ruleset, not for each rule ([GitHub: rules API](https://docs.github.com/en/rest/repos/rules)). It also sets the bypass list for each ruleset, and it combines the rules of all rulesets that target a branch. When two rulesets define the same rule, the strictest version applies ([GitHub: about rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets)). Thus the signed-commit rule has no exclusion. The force-push rule and the signed-commit rule must not be in the ruleset with the admin bypass. The deletion rule must be only in that ruleset, else the strictest version blocks the owner and the App too. The ruleset `main` keeps its own deletion rule with an empty bypass list, because nobody deletes `main`. Verify in the implementation PR, after Rollout step 5:
+  - An administrator cannot delete `main`, and the owner can delete a feature branch. The GitHub pages do not tell in so many words that the bypass of one ruleset does not lift the same rule in another ruleset.
+  - The installation ID or the name of the Renovate App for the bypass entry.
+  - Renovate rebases still work, and they still make commits that GitHub signs.
+  - Renovate can still delete its own branches.
+  - The automatic deletion of head branches still works for Renovate PRs after a merge.
 - **New tag ruleset for `~ALL` tags:** restrict creation, update and deletion, with an empty bypass list. Agents use the account of the owner, so a right of the owner to create tags is also a right of each agent. When the repository makes releases, a release GitHub App goes into the bypass list.
 - **Settings:** set the default squash message to "the pull request title and description". Turn off "Allow auto-merge", because an agent could use it to merge a PR without the owner. Only the lock file maintenance PRs of Renovate use it today. When the platform auto-merge is not available, Renovate merges through the API itself, after the checks of the branch ([Renovate: configuration options](https://docs.renovatebot.com/configuration-options/), `platformAutomerge`). This setting does not fix the lock file risk of "The Renovate exception".
 
-The bypass lists stay empty, except for the deletion ruleset and a release App later. Agents use the account of the owner, so each bypass of the owner is also a bypass of each agent. Refer to "Known gaps".
+The bypass lists stay empty, except for the force-push and deletion rulesets and a release App later. Agents use the account of the owner, so each bypass of the owner is also a bypass of each agent. Refer to "Known gaps".
 
 ### Enforcement while the agents use the account of the owner
 
@@ -551,7 +557,7 @@ These controls do not depend on one agent:
 | --- | --- | --- |
 | (a) Separate credentials for the agents | A fine-grained token with "Contents: read", "Pull requests: write" and "Issues: write". Pushes go over SSH with a deploy key or a separate key. To open a PR needs "Pull requests: write". To merge a PR needs "Contents: write". Thus the token can open PRs, but it cannot merge or change settings. | It works only if the agents run as a separate OS user, in a container or in a sandbox. An agent that runs as the owner can read the keyring token of `gh` and use the SSH and GPG agents of the owner. A fine-grained token cannot access the user project "Perso". The board then needs a second classic token with only the `project` scope, which reaches all projects of the owner. Other ways: the owner moves the items, or the agents wait for the installation token of a GitHub App. |
 | (b) A plain Git `pre-push` script | It reads each line on its standard input, one line for each reference. It refuses a push to `main`, to `refs/tags/*`, a deletion (a local SHA of zeros) and a non-fast-forward push. A `mise` task installs it in the hooks folder of the repository and chains the existing `pre-push` hook of the Entire CLI. It works for each agent and each Git client. | `git push --no-verify` skips it. |
-| (c) Rulesets on `~ALL` branches and tags | GitHub refuses unsigned commits on all branches, and tags. It also refuses force pushes on all branches except `renovate/**`, and deletions by a person or an agent that is not an administrator. | The token of the owner can change the rulesets. |
+| (c) Rulesets on `~ALL` branches and tags | GitHub refuses unsigned commits on all branches, and tags. It also refuses force pushes on all branches, except by the Renovate App. It refuses deletions, except by an administrator or the Renovate App. | The token of the owner can change the rulesets. |
 | (d) Auto-merge off | No agent can set auto-merge on a PR. | The token of the owner can turn it on again. |
 
 Control (b) does not use the `pre-push` stage of the pre-commit framework. pre-commit 4.7.0 skips the references with a local SHA of zeros, so a deletion never reaches the hook. It also skips the references whose commits are already on the remote, for example a tag on a pushed commit. It gives only the first such reference to the hook. The reviewer of this RFC read this in `pre_commit/commands/hook_impl.py`.
@@ -572,7 +578,7 @@ The owner decided on 2026-11-01 to use the recommended controls:
 - Now: (b) the plain Git `pre-push` script, (c) the `~ALL` ruleset with signed commits and the tag ruleset, and (d) auto-merge off.
 - Later: (a) separate credentials, when the agents run as a separate OS user or in a sandbox. Before that, (a) gives no real protection.
 
-The owner decided on 2026-11-01 (owner, in chat) to also add the deletion and force-push rules on all branches, except `renovate/**`. Nobody can rewrite a branch. Only an administrator can delete a branch, through the bypass of the deletion ruleset. Agents use the administrator token of the owner, so they can delete branches too. Refer to "Known gaps". Agent identity stays out of scope.
+The owner decided on 2026-11-01 (owner, in chat) to also add the deletion and force-push rules on all branches. The Renovate App can bypass both. Only the Renovate App can rewrite a branch. Only an administrator or the Renovate App can delete a branch, through the bypass of the deletion ruleset. Agents use the administrator token of the owner, so they can delete branches too. Refer to "Known gaps". Agent identity stays out of scope.
 
 ### Shared defaults for the personal repositories
 
@@ -616,12 +622,9 @@ Rollout step 11 creates `gsuquet/.github`.
 ### Known gaps
 
 - **Signatures.** Until the agent identity RFC, the agents sign with the GPG key of the owner. A signature does not tell the commits of the owner from the commits of an agent.
-- **Branch deletion.** The deletion ruleset has the administrator role in its bypass list. Agents use the administrator token of the owner, so the ruleset does not stop an agent from deleting a branch. This RFC plans two partial mitigations, and none is in place today:
-
-- The guard hook of [gsuquet/dotfiles#9](https://github.com/gsuquet/dotfiles/pull/9). The PR is not merged, and the owner must connect the hook in the settings of Claude Code by hand. It works only for Claude Code, and it matches the command text, so it is best effort. It refuses `git push --delete`, `:branch` pushes, `gh api` writes to `/git/refs` and the `deleteRef` mutation.
-- The `pre-push` script of control (b), from Rollout step 10. It refuses deletions through `git push`. `git push --no-verify` skips it, and it does not see deletions through the API or the web interface.
-
-The agent identity RFC closes the gap.
+- **Branch deletion.** The deletion ruleset has the administrator role in its bypass list. Agents use the administrator token of the owner, so the ruleset does not stop an agent from deleting a branch. This RFC plans two partial mitigations, and none is in place today. The agent identity RFC closes the gap.
+  - The guard hook of [gsuquet/dotfiles#9](https://github.com/gsuquet/dotfiles/pull/9). The PR is not merged, and the owner must connect the hook in the settings of Claude Code by hand. It works only for Claude Code, and it matches the command text, so it is best effort. It refuses `git push --delete`, `:branch` pushes, `gh api` writes to `/git/refs` and the `deleteRef` mutation.
+  - The `pre-push` script of control (b), from Rollout step 10. It refuses deletions through `git push`. `git push --no-verify` skips it, and it does not see deletions through the API or the web interface.
 
 ## Rollout
 
@@ -725,6 +728,7 @@ The owner refused these alternatives in chat on 2026-11-01:
 - **Deletion and force-push rules.** Keep them off on the other branches. Then an agent with the token of the owner can rewrite or delete a branch.
 - **Cleanup of merged branches by hand.** A deletion rule with an empty bypass list, which the owner turns off for each cleanup. It is manual work, and a rule can stay off by mistake.
 - **No deletion rule.** Then GitHub deletes the merged branches, but any account with write access can delete any branch, each agent included.
+- **An exclusion of `renovate/**` from the force-push and deletion rulesets.** The exclusion matches the branch name, not the actor. Each account with write access, each agent included, can then create, rewrite and delete a `renovate/` branch. The owner selected the bypass of the Renovate App.
 
 ## Prior art
 
@@ -745,8 +749,8 @@ The owner refused these alternatives in chat on 2026-11-01:
 None. The owner answered the eleven questions of the review on 2026-11-01, in a comment on PR #167. On the same day, the owner answered four more points in chat:
 
 - The homelab keeps its own templates.
-- The deletion and force-push rules apply to all branches except `renovate/**`.
-- Deletion uses a separate ruleset with the admin role as bypass.
+- The deletion and force-push rules apply to all branches, with no exclusion. The Renovate App can bypass both rules.
+- Deletion uses a separate ruleset with the admin role and the Renovate App as bypass actors.
 - `gsuquet/.github` alone holds the shared files and the reusable workflows.
 
 The body of this RFC states each decision. "Rationale and alternatives" lists the options that the owner did not select.
