@@ -1,6 +1,6 @@
 ---
 rfc: "0005"
-status: draft
+status: review
 start-date: 2026-11-01
 pr: 171
 ---
