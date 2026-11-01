@@ -70,27 +70,27 @@ Each key in the repository belongs to one family. The family tells who owns the 
 | Kubernetes core | `kubernetes.io/`, `k8s.io/` and their subdomains, for example `pod-security.kubernetes.io/`, but not `app.kubernetes.io/` | Kubernetes | Only the keys that Kubernetes documents for users, for example the Pod Security labels |
 | Recommended labels | `app.kubernetes.io/` | Shared convention | Yes, in the hand-written charts. The upstream charts set them too |
 | Tools | `helm.sh/`, `argocd.argoproj.io/`, `cert-manager.io/`, `gateway.networking.k8s.io/` (a subdomain of `k8s.io`, but owned by the Gateway API project), Cilium keys | The tool | Only the documented settings, for example sync options |
-| Repository | `<subgroup>.infra.gsuquet.com/` | This repository | Yes. This RFC defines them |
+| Repository | `<subgroup>.infra.gsuquet.com/` | This repository | Yes. This RFC defines six sub-groups. The checks require `tenant`, `instance` and `ownership` now |
 | No prefix | None | The user | No. This RFC proposes to forbid new keys without a prefix |
 
 ### The custom prefix
 
-The keys of the repository have the form `<subgroup>.infra.gsuquet.com/<name>`. This follows the Kubernetes model. The owner controls `gsuquet.com` and selected `infra.gsuquet.com`. The prefix follows from a decision of the owner. One word, `infra`, is the name of the repository, the prefix of the keys and the prefix of the cloud tag keys. A new RFC, "Repository scope and naming", records that decision. A link follows when its PR exists. Refer to [Decided questions](#decided-questions).
+The keys of the repository have the form `<subgroup>.infra.gsuquet.com/<name>`. This follows the Kubernetes model. The owner controls `gsuquet.com` and selected `infra.gsuquet.com`. The prefix follows from a decision of the owner. One word, `infra`, is the name of the repository, the prefix of the keys and the prefix of the cloud tag keys. [RFC 0005](https://github.com/gsuquet/homelab/pull/171), "Repository scope and naming", records that decision. Refer to [Decided questions](#decided-questions).
 
 The repository already uses `infra.gsuquet.com` as an API group. The files `cluster.yaml`, `instance.yaml` and `module.yaml` have `apiVersion: infra.gsuquet.com/v1alpha1`, and the schemas in `schemas/` check this value. Projects often use the same domain for their API group and for their keys. Argo CD has the API group `argoproj.io` and the keys `argocd.argoproj.io/*`. cert-manager has the API group `cert-manager.io` and the keys `cert-manager.io/*`.
 
 ### Proposed sub-groups
 
-Each sub-group has one subject. A key goes into a sub-group only when a tool, a policy or a report reads it. [Q4](#q4-the-sub-groups) asks which sub-groups to add first.
+Each sub-group has one subject. `data.labels` defines all six sub-groups now, and K4 checks them on each object. The checks require three of them now. The other three become required in the PR of the RFC that gives their values. Refer to [Decided questions](#decided-questions).
 
-| Sub-group | Subject | Possible keys | Type | Reader |
-| --- | --- | --- | --- | --- |
-| `tenant` | The tenant that owns a namespace | `name` | Label, on `Namespace` only | Network policies, quotas, reports |
-| `instance` | The instance that owns a cloud resource. The values come from `instance.yaml`. | `name`, `purpose`, `lifecycle`, `ttl`, `type` | Label, on cloud resources | Clean-up jobs, cost reports |
-| `ownership` | The person or the team to contact | `owner` (label), `contact` (annotation) | Both | Persons, alerts |
-| `network` | The trust zone and the exposure, for the zero-trust RFC | `zone`, `exposure` | Label, on `Namespace` only | `CiliumNetworkPolicy`, Conftest |
-| `backup` | The backup policy of a volume or a namespace | `policy` (label), `retention` (annotation) | Both | The backup tool |
-| `cost` | The cost center. No file of the repository holds it yet, thus Q4 reserves it. | `center` | Label | Cloud billing reports |
+| Sub-group | Subject | Keys | Type | Reader | Required |
+| --- | --- | --- | --- | --- | --- |
+| `tenant` | The tenant that owns a namespace | `name` | Label, on `Namespace` only | Network policies, quotas, reports | Now |
+| `instance` | The instance that owns a cloud resource. The values come from `instance.yaml`. | `name`, `purpose`, `lifecycle`, `ttl`, `type` | Label, on cloud resources | Clean-up jobs, cost reports | Now |
+| `ownership` | The person or the team to contact. Today the only value of `owner` is the fixed value `gsuquet`, the GitHub account of the owner. | `owner` (label), `contact` (annotation) | Both, on `Namespace` | Persons, alerts | `owner` now. `contact` is optional |
+| `network` | The trust zone and the exposure, for the zero-trust RFC | `zone`, `exposure` | Label, on `Namespace` only | `CiliumNetworkPolicy`, Conftest | In the PR of the zero-trust RFC |
+| `backup` | The backup policy of a volume or a namespace | `policy` (label), `retention` (annotation) | Both | The backup tool | In the PR of a backup RFC |
+| `cost` | The cost center. No file of the repository holds it yet. | `center` | Label, on cloud resources | Cloud billing reports | In the PR of the RFC that adds a cost field to `instance.yaml` |
 
 The sub-group names are singular nouns, as `node`, `topology` and `notice` in the examples above.
 
@@ -122,13 +122,15 @@ This RFC proposes these required keys. The checks apply to the hand-written obje
 
 | Kind | Required labels | Required annotations |
 | --- | --- | --- |
-| `Namespace` in `gitops/` | `pod-security.kubernetes.io/enforce`, `audit` and `warn` (a check exists), `tenant.<p>/name`. The namespaces of the `infrastructure` components use the reserved value `platform`. The namespaces of the `apps` components use the tenant of the component in `data.labels`, but not `platform`. | `argocd.argoproj.io/sync-wave: "-2"` (a check exists) |
+| `Namespace` in `gitops/` | `pod-security.kubernetes.io/enforce`, `audit` and `warn` (a check exists), `tenant.<p>/name`. The namespaces of the `infrastructure` components use the reserved value `platform`. The namespaces of the `apps` components use the tenant of the component in `data.labels`, but not `platform`. `ownership.<p>/owner: gsuquet`. | `argocd.argoproj.io/sync-wave: "-2"` (a check exists) |
 | `CustomResourceDefinition` in `gitops/` | None | `argocd.argoproj.io/sync-wave: "-1"` (a check exists) |
 | Pod template of a workload in a hand-written chart | `app.kubernetes.io/name`, `app.kubernetes.io/instance`, `app.kubernetes.io/part-of` | None |
 | Other objects of a hand-written chart | `app.kubernetes.io/name`, `app.kubernetes.io/instance`, `app.kubernetes.io/managed-by` | None |
 | Cloud resource that supports labels or tags | The cloud form of `instance.<p>/name`, `instance.<p>/purpose`, `instance.<p>/lifecycle` and `instance.<p>/type`. `instance.<p>/ttl` for an ephemeral instance. | Not applicable |
 
 A Kubernetes object does not need the `instance` keys. Each cluster is one instance. The `tenant` keys go only on a `Namespace`, not on cloud resources.
+
+The keys of `network`, `backup` and `cost` are not required yet, because no file gives their values. Until the RFC that gives the values, K4 checks them only when an object has them. That RFC adds them to this table and to the required keys of `data.labels`, in its own PR.
 
 `<p>` is the full prefix of the repository: `infra.gsuquet.com`.
 
@@ -322,7 +324,7 @@ The rule can give the same cloud key for two keys of other tools, for example `f
 
 Rule 8 of `AGENTS.md` asks for a check for each rule. This RFC describes the checks. It does not implement them. All the checks go in `policy/kubernetes/kubernetes.rego` and `policy/terraform/terraform.rego`, with a test for each case that must pass and each case that must fail. Conftest supports `deny` rules, which fail the check, and `warn` rules, which do not fail it ([Conftest](https://www.conftest.dev/)).
 
-A data file, for example `policy/data/labels.yaml`, holds the reference table: the sub-groups, the keys, their type, their kinds and their permitted values. It also holds the allowlists of K2, K3, K4, K10, K14 and K15, and a map from each component to its permitted `tenant` and `network` values. `conftest --data` loads it, and the policies read it as `data.labels`. Thus the table and the checks have one source. Today `.mise/tasks/lint/policy.sh` gives no `--data` option to Conftest. The implementation PR adds it.
+A data file, for example `policy/data/labels.yaml`, holds the reference table: the sub-groups, the keys, their type, their kinds and their permitted values. It also holds the allowlists of K2, K3, K4, K10, K14 and K15, a map from each component to its permitted `tenant` and `network` values. It also holds the list of required keys for each kind. The list has `tenant`, `instance` and `ownership.<p>/owner` now. `conftest --data` loads it, and the policies read it as `data.labels`. Thus the table and the checks have one source. Today `.mise/tasks/lint/policy.sh` gives no `--data` option to Conftest. The implementation PR adds it.
 
 **Input of the checks.** `.mise/tasks/lint/policy.sh` runs the `kubernetes` namespace on `kubernetes/*.yaml` and `gitops/*.yaml`, but not on `gitops/*/sources/templates/*`, because Helm templates are not YAML before they render. Thus the objects of the hand-written charts of `gitops/` exist only in `rendered/<component>/`. The checks find the origin of a rendered object in this way:
 
@@ -347,8 +349,8 @@ K1 to K7 read the keys in `metadata.labels` and `metadata.annotations`, also in 
 | K2 Reserved prefixes | Hand-written objects in `gitops/` | No key with the prefix `kubernetes.io/`, `k8s.io/` or one of their subdomains, except the allowlist in `data.labels`: `app.kubernetes.io/`, the Pod Security labels, `kubernetes.io/metadata.name`, `kubernetes.io/os`, `kubectl.kubernetes.io/default-container`, `node-restriction.kubernetes.io/` and `gateway.networking.k8s.io/`. The last entry is for hand-written Gateway API objects. | `deny` |
 | K3 No prefix | Hand-written objects in `gitops/` | No key without a prefix, except the allowlist in `data.labels`. Conftest has no earlier state to compare with, thus the check refuses all keys without a prefix, not only new keys. | `deny` |
 | K3w No prefix in upstream charts | Upstream objects in `gitops/` | The same rule as K3. | `warn` |
-| K4 Custom keys | All objects in `gitops/`, with an allowlist for upstream exceptions | Each key with the custom prefix uses a sub-group and a name from `data.labels`, on a permitted kind, with a permitted value. The `tenant` and `network` keys are only permitted on a `Namespace`, with the one `tenant` value and the permitted `network` values of the component. | `deny` |
-| K5 Required keys | `Namespace` objects in `gitops/` | The required labels of the table in [Required keys](#required-keys). `tenant.<p>/name` is `platform` for an `infrastructure` component, and the tenant of the component in `data.labels` for an `apps` component. That tenant is not `platform`. | `deny` |
+| K4 Custom keys | All objects in `gitops/`, with an allowlist for upstream exceptions | Each key with the custom prefix uses one of the six sub-groups and a name from `data.labels`, on a permitted kind, with a permitted value. This also applies to the keys that are not required yet. The `tenant` and `network` keys are only permitted on a `Namespace`, with the one `tenant` value and the permitted `network` values of the component. | `deny` |
+| K5 Required keys | `Namespace` objects in `gitops/` | The required labels of the table in [Required keys](#required-keys). `tenant.<p>/name` is `platform` for an `infrastructure` component, and the tenant of the component in `data.labels` for an `apps` component. That tenant is not `platform`. `ownership.<p>/owner` is `gsuquet`. | `deny` |
 | K6 Required keys of workloads | Pod templates and objects of the hand-written objects in `gitops/` | The required `app.kubernetes.io/*` labels. | `deny` |
 | K7 Required keys in upstream charts | Rendered upstream objects | The same keys as K6. Upstream charts do not always let the repository set them. | `warn` |
 | K8 Stable selectors | `spec.selector.matchLabels` of workloads, and `spec.selector` of a `Service` | No `app.kubernetes.io/version` and no `helm.sh/chart`. | `deny` |
@@ -356,7 +358,7 @@ K1 to K7 read the keys in `metadata.labels` and `metadata.annotations`, also in 
 | K10 Sync options | All rendered objects and `Application` objects in `gitops/`, with an allowlist for upstream exceptions | No `Replace=true` and no `Force=true`, in the annotation `argocd.argoproj.io/sync-options` and in `spec.syncPolicy.syncOptions` of an `Application`. | `deny` |
 | K11 Cloud defaults | `provider "google"` and `provider "aws"` blocks and module calls in `instances/` | `default_labels`, `default_tags.tags` and each `tags` argument of a module call are exactly `local.cloud_labels`. A `merge()` that overrides keys fails. Conftest does not read the values of the local. Refer to [Rollout](#rollout). | `deny` |
 | K12 Cloud tags | `azurerm` resources in `modules/` with a `tags` argument | The argument comes from the `tags` variable of the module. Azure DNS resources can need an exemption. Refer to [Rollout](#rollout). | `deny` |
-| K13 Cloud keys | The keys of the `cloud_labels` local in `instances/` | The required keys of `data.labels` are present, and each key is in the permitted set of `data.labels`. The cloud form of each key has max. 63 characters, the limit of Google Cloud. Thus the key is also valid on Azure and AWS. No two keys have the same cloud form. | `deny` |
+| K13 Cloud keys | The keys of the `cloud_labels` local in `instances/` | The required cloud keys of `data.labels` are present: the `instance` keys now, and `cost.<p>/center` after the RFC that adds the cost field. Each key is in the permitted set of `data.labels`. The cloud form of each key has max. 63 characters, the limit of Google Cloud. Thus the key is also valid on Azure and AWS. No two keys have the same cloud form. | `deny` |
 | K14 Pod Security of applications | `Namespace` objects of the components in `apps` | `pod-security.kubernetes.io/enforce` is `restricted` or `baseline`, except for the namespaces in the allowlist of `data.labels`. | `deny` |
 | K15 Namespace of a component | All `Namespace` objects in `rendered/<component>/`, and `cluster.yaml` | `metadata.name` is the `namespace` of the component in `cluster.yaml`. Each namespace in `cluster.yaml` is unique. An `apps` namespace is not in the reserved list of `data.labels`: `default`, `kube-*`, `argocd` and the namespaces that Terraform creates. A second `Namespace` from an upstream chart needs an entry in the allowlist. | `deny` |
 
@@ -402,13 +404,13 @@ This table is the draft of a future reference page, `docs/reference/labels-and-a
 | `pod-security.kubernetes.io/enforce`, `audit`, `warn` | Label | `Namespace` | `privileged`, `baseline`, `restricted` | Repository | Yes | Yes |
 | `node-restriction.kubernetes.io/<name>` | Label | `Node` | Lowercase, digits, `-` | An administrator, after the node joins | No | Yes |
 | `tenant.<p>/name` | Label | `Namespace` | The tenant of the component in `data.labels`. `platform` for the `infrastructure` components. | Repository | Yes | Yes |
-| `ownership.<p>/owner` | Label | `Namespace` | Owner name | Repository | No | Yes |
+| `ownership.<p>/owner` | Label | `Namespace` | `gsuquet` | Repository | Yes | Yes |
 | `ownership.<p>/contact` | Annotation | `Namespace` | URL or address | Repository | No | Not applicable |
-| `network.<p>/zone` | Label | `Namespace` | Refer to the zero-trust RFC | Repository | No | Yes |
-| `network.<p>/exposure` | Label | `Namespace` | Refer to the zero-trust RFC | Repository | No | Yes |
-| `backup.<p>/policy` | Label | `Namespace`, `PersistentVolumeClaim` | Refer to a later backup RFC | Repository | No | Yes |
+| `network.<p>/zone` | Label | `Namespace` | Refer to the zero-trust RFC | Repository | From the zero-trust RFC | Yes |
+| `network.<p>/exposure` | Label | `Namespace` | Refer to the zero-trust RFC | Repository | From the zero-trust RFC | Yes |
+| `backup.<p>/policy` | Label | `Namespace`, `PersistentVolumeClaim` | Refer to a later backup RFC | Repository | From the backup RFC | Yes |
 | `backup.<p>/retention` | Annotation | `Namespace`, `PersistentVolumeClaim` | Refer to a later backup RFC | Repository | No | Not applicable |
-| `cost.<p>/center` | Label | None yet. Refer to Q4. | Lowercase, digits, `-` | Not defined | No | Yes |
+| `cost.<p>/center` | Label | Cloud resources | Lowercase, digits, `-` | Instance, after the RFC that adds the cost field | From that RFC | Yes |
 | `instance.<p>/name` | Label | Cloud resources | `name` of `instance.yaml` | Instance | Yes | Yes |
 | `instance.<p>/purpose` | Label | Cloud resources | `production`, `test`, `demo` | Instance | Yes | Yes |
 | `instance.<p>/lifecycle` | Label | Cloud resources | `long-lived`, `ephemeral` | Instance | Yes | Yes |
@@ -447,11 +449,13 @@ This table is the draft of a future reference page, `docs/reference/labels-and-a
    - "Map Kubernetes keys to cloud labels and tags with one rule".
 3. In a separate PR, an author adds `policy/data/labels.yaml` and the `--data policy/data` option in `.mise/tasks/lint/policy.sh`. The same PR changes `render.sh` for the `upstream--` prefix, adds the `sources/charts/` check to `instance-checks.sh`, and adds the checks K1 to K10, K14 and K15, with tests. The checks start as `warn` for one PR if the existing files fail them. Then they change to `deny`.
 4. An author adds the reference page `docs/reference/labels-and-annotations.md` from the reference table, and updates `docs/reference/policies.md`.
-5. An author adds the required labels to the `argocd` Namespace and to the later components, through the chart sources and `mise run manifests:render`.
+5. An author adds the required labels to the `argocd` Namespace and to the later components, through the chart sources and `mise run manifests:render`: `tenant.<p>/name: platform` and `ownership.<p>/owner: gsuquet`.
 6. The checks K11 to K13 come with the first Google Cloud, Azure or AWS instance. Before the ADR for Azure, an author tests a tag name with `_` and `-` on an Azure DNS zone. If Azure refuses it, K11 and K12 exempt the Azure DNS resources, and these resources get their tags from a separate map. K13 also checks the keys of the separate map.
 7. The legacy manifests in `kubernetes/` do not change. The migration removes them.
 
 Verify in the implementation PR:
+
+- `data.labels` defines all six sub-groups, and K4 refuses a wrong `network`, `backup` or `cost` key also before the checks require these keys.
 
 - The `# Source:` paths of the `argocd` component, also of the CRDs from `--include-crds`, with the rule "second segment is `charts`".
 - The `extraObjects` value in the current `argo-cd` chart. The cached chart 9.0.5 has it.
@@ -487,6 +491,8 @@ To go back, revert the PRs of steps 3 to 5. Labels and annotations do not change
 - **The prefix `homelab.gsuquet.com`.** It has the current name of the repository. But the repository also holds Google Cloud, Azure and AWS instances, which are not a homelab, and the API group is `infra.gsuquet.com`.
 - **The prefix `gsuquet.com`, without a middle part.** It gives the shortest keys. But other projects of the owner can use the same domain with a different meaning.
 - **The prefix `platform.gsuquet.com`.** It fits a later internal developer platform. But it is a new word, different from the API group and from the name of the repository.
+- **Add only `tenant` and `instance` now (the first recommendation).** The owner wants all the sub-groups defined now, thus K4 checks each key from the start.
+- **Require all six sub-groups now, with a placeholder value.** A placeholder such as `unset` on each object has no meaning, and the checks then accept it as a valid value.
 - **Keep the name `homelab`, or rename the repository in this RFC.** The owner announced the rename to `gsuquet/infra`, and [RFC 0005](https://github.com/gsuquet/homelab/pull/171) ("Repository scope and naming") records it. Labels do not need the same name.
 - **`app.kubernetes.io/managed-by: argocd`, or no `managed-by` label.** The upstream charts do not always let the repository change this label. The tracking annotation already tells which `Application` applies an object.
 - **Rely on the default tracking method, or use `annotation+label`.** A later version of Argo CD can change the default, and a check cannot test a missing value. `annotation+label` brings back the conflicts of `app.kubernetes.io/instance`.
@@ -514,6 +520,8 @@ To go back, revert the PRs of steps 3 to 5. Labels and annotations do not change
 
 ## Unresolved questions
 
+None. The owner answered all the questions.
+
 ### Decided questions
 
 The owner answered these questions in chat on 2026-11-01. The options that the owner did not select are in [Rationale and alternatives](#rationale-and-alternatives).
@@ -526,20 +534,8 @@ The owner answered these questions in chat on 2026-11-01. The options that the o
 - **Volatile labels on pod templates.** No change now. The zero-trust RFC decides. Check K8 keeps `app.kubernetes.io/version` and `helm.sh/chart` out of selectors. Source: owner, in chat, 2026-11-01.
 - **The mapping to cloud keys.** One mechanical rule for Google Cloud, Azure and AWS: `.` and `/` to `_`, lowercase, max. 63 characters. Rollout step 6 tests the Azure DNS risk. Source: owner, in chat, 2026-11-01.
 - **The scope of the required keys.** Check the hand-written objects and the `Namespace` objects. Warn on the rendered upstream objects. Source: owner, in chat, 2026-11-01.
+- **The sub-groups.** Define all six sub-groups now in `data.labels`: `tenant`, `instance`, `ownership`, `network`, `backup`, `cost`. K4 checks them on each object. Require now `tenant`, `instance` and `ownership`, with the fixed value `gsuquet` for `ownership.<p>/owner`. `network`, `backup` and `cost` become required in the PR of the RFC that gives their values. These RFCs are the zero-trust RFC, a backup RFC, and the RFC that adds a cost field. Source: owner, in chat, 2026-11-01.
 - **The type of an instance.** Derive `instance.<p>/type` from the first `cluster-*` module, without `cluster-`. No change of the schema. Source: owner, in chat, 2026-11-01.
-
-### Q4: The sub-groups
-
-- **A.** Add all six sub-groups now: `tenant`, `instance`, `ownership`, `network`, `backup`, `cost`.
-- **B.** Add only the sub-groups with a reader now: `tenant` and `instance`. Reserve `network` for the zero-trust RFC, `backup` for a backup RFC and `cost` for the first cloud instance. Remove `ownership`, until a later RFC adds a second person or team. RFC 0002 has no Kubernetes key for ownership.
-- **C.** A different list.
-
-Recommendation: B. A key without a reader has no check that proves its use.
-
-On 2026-11-01, the owner answered in chat: "add all groups now" (option A). Before this RFC records the decision, the owner must confirm one point. Three sub-groups have no source for their values yet: `network` (the zero-trust RFC), `backup` (a backup RFC) and `cost` (no field in `instance.yaml`).
-
-- **A1.** Define all six sub-groups now in `data.labels`, and check them with K4. Require now only the keys with a source: `tenant`, `instance` and `ownership`. The other keys become required in the PR of the RFC that gives their values.
-- **A2.** Require all six now. The keys without a source get a documented placeholder value, for example `unset`, until a later RFC replaces it.
 
 ## Future possibilities
 
