@@ -9,7 +9,7 @@ pr: 169
 
 ## Summary
 
-This RFC proposes one set of rules for the labels and the annotations of the Kubernetes objects in this repository. It also covers the labels and tags of the cloud resources. It collects the syntax rules of Kubernetes, the recommended `app.kubernetes.io/*` labels, and the keys that Helm, Argo CD, Cilium, cert-manager and Gateway API use. It proposes a custom prefix of the form `<subgroup>.<prefix>.gsuquet.com/<name>` for the keys of the repository, but it gives options and does not select the prefix. It also proposes a mapping from the Kubernetes keys to Google Cloud labels and Azure tags, and the Conftest checks that enforce the rules. A reference table at the end can become a Diátaxis reference page later.
+This RFC proposes one set of rules for the labels and the annotations of the Kubernetes objects in this repository. It also covers the labels and tags of the cloud resources. It collects the syntax rules of Kubernetes, the recommended `app.kubernetes.io/*` labels, and the keys that Helm, Argo CD, Cilium, cert-manager and Gateway API use. It proposes the custom prefix `<subgroup>.infra.gsuquet.com/<name>` for the keys of the repository. The owner selected this prefix. It also proposes a mapping from the Kubernetes keys to Google Cloud labels and Azure tags, and the Conftest checks that enforce the rules. A reference table at the end can become a Diátaxis reference page later.
 
 These subjects are out of scope. RFC 0002 covers the GitHub issue and PR labels, for example `kind/` and `area/`. RFC 0003 covers the structure of the repository. A later zero-trust RFC covers the design of the network policies.
 
@@ -53,11 +53,11 @@ flowchart LR
     key --> slash["/"]
     key --> name["Name: name<br/>max. 63 characters"]
     prefix --> sub["Sub-group: tenant"]
-    prefix --> group["Prefix of the repository: infra (one of the options)"]
+    prefix --> group["Prefix of the repository: infra"]
     prefix --> domain["Domain of the owner: gsuquet.com"]
 ```
 
-In text: the key `tenant.infra.gsuquet.com/name` has the prefix `tenant.infra.gsuquet.com` and the name `name`. The prefix has three parts: the sub-group `tenant`, the prefix of the repository `infra`, and the domain `gsuquet.com`. The example uses `infra` only to show the structure. Refer to [Q2](#q2-the-prefix-of-the-repository).
+In text: the key `tenant.infra.gsuquet.com/name` has the prefix `tenant.infra.gsuquet.com` and the name `name`. The prefix has three parts: the sub-group `tenant`, the prefix of the repository `infra`, and the domain `gsuquet.com`. The owner selected `infra`. Refer to [Decided questions](#decided-questions).
 
 Many projects use sub-groups in the same way. Kubernetes has `node.kubernetes.io`, `topology.kubernetes.io` and `pod-security.kubernetes.io`. Argo CD has `link.argocd.argoproj.io`, `notice.argocd.argoproj.io` and `pref.argocd.argoproj.io` ([Argo CD: annotations and labels](https://argo-cd.readthedocs.io/en/stable/user-guide/annotations-and-labels/)). cert-manager has `acme.cert-manager.io` and `venafi.cert-manager.io` ([cert-manager: annotations](https://cert-manager.io/docs/reference/annotations/)).
 
@@ -70,12 +70,12 @@ Each key in the repository belongs to one family. The family tells who owns the 
 | Kubernetes core | `kubernetes.io/`, `k8s.io/` and their subdomains, for example `pod-security.kubernetes.io/`, but not `app.kubernetes.io/` | Kubernetes | Only the keys that Kubernetes documents for users, for example the Pod Security labels |
 | Recommended labels | `app.kubernetes.io/` | Shared convention | Yes, in the hand-written charts. The upstream charts set them too |
 | Tools | `helm.sh/`, `argocd.argoproj.io/`, `cert-manager.io/`, `gateway.networking.k8s.io/` (a subdomain of `k8s.io`, but owned by the Gateway API project), Cilium keys | The tool | Only the documented settings, for example sync options |
-| Repository | `<subgroup>.<prefix>.gsuquet.com/` | This repository | Yes. This RFC defines them |
+| Repository | `<subgroup>.infra.gsuquet.com/` | This repository | Yes. This RFC defines them |
 | No prefix | None | The user | No. This RFC proposes to forbid new keys without a prefix |
 
 ### The custom prefix
 
-The owner wants keys of the form `<subgroup>.<prefix>.gsuquet.com/<name>`. This follows the Kubernetes model. This RFC does not select `<prefix>`. [Q1](#q1-control-of-the-domain), [Q2](#q2-the-prefix-of-the-repository) and [Q3](#q3-rename-the-repository) give the options.
+The keys of the repository have the form `<subgroup>.infra.gsuquet.com/<name>`. This follows the Kubernetes model. The owner controls `gsuquet.com` and selected `infra.gsuquet.com`. The prefix follows from a decision of the owner. One word, `infra`, is the name of the repository, the prefix of the keys and the prefix of the cloud tag keys. A new RFC, "Repository scope and naming", records that decision. A link follows when its PR exists. Refer to [Decided questions](#decided-questions).
 
 The repository already uses `infra.gsuquet.com` as an API group. The files `cluster.yaml`, `instance.yaml` and `module.yaml` have `apiVersion: infra.gsuquet.com/v1alpha1`, and the schemas in `schemas/` check this value. Projects often use the same domain for their API group and for their keys. Argo CD has the API group `argoproj.io` and the keys `argocd.argoproj.io/*`. cert-manager has the API group `cert-manager.io` and the keys `cert-manager.io/*`.
 
@@ -130,7 +130,7 @@ This RFC proposes these required keys. [Q9](#q9-the-scope-of-the-required-keys) 
 
 A Kubernetes object does not need the `instance` keys. Each cluster is one instance. The `tenant` keys go only on a `Namespace`, not on cloud resources.
 
-`<p>` is the full prefix of the repository, for example `infra.gsuquet.com`.
+`<p>` is the full prefix of the repository: `infra.gsuquet.com`.
 
 ## Detailed design
 
@@ -428,7 +428,7 @@ This table is the draft of a future reference page, `docs/reference/labels-and-a
   - Check K15: a `Namespace` in `rendered/<component>/` has the name of the `namespace` of that component in `cluster.yaml`. Thus a component cannot apply a `Namespace` with another name.
 - The [Argo CD projects page](https://argo-cd.readthedocs.io/en/stable/user-guide/projects/) shows a `clusterResourceWhitelist` entry for `Namespace` objects with a name pattern. The zero-trust RFC can use it. This RFC did not verify if Argo CD applies the destination rules `!argocd` and `!kube-system` to a `Namespace` object, which is cluster-scoped.
 - A node label for isolation must use `node-restriction.kubernetes.io/`. A kubelet cannot change this prefix. Thus a compromised node cannot attract the pods of another trust zone with this label. An administrator identity sets the label, not the node configuration.
-- The custom prefix uses a domain. If the owner does not control the domain, another party can use the same keys with a different meaning. Refer to Q1.
+- The custom prefix uses the domain `gsuquet.com`, which the owner controls. If the registration of the domain stops, another party can register it and use the same keys with a different meaning. Thus the owner must keep the registration. Refer to [Decided questions](#decided-questions).
 - The Argo CD `annotation` tracking method stops a chart or an operator from changing the owner of an object through `app.kubernetes.io/instance`. Thus Argo CD does not prune objects of another tool by mistake.
 - The sync options `Replace=true` and `Force=true` can delete objects and their data. Check K10 forbids them in all rendered objects and in `Application` objects, with an allowlist for upstream exceptions.
 
@@ -436,7 +436,7 @@ This table is the draft of a future reference page, `docs/reference/labels-and-a
 
 1. The owner answers the unresolved questions in this PR. When the owner asks, the author sets the final status, and the owner merges this PR.
 2. The author derives the ADRs in a new PR. Possible ADRs:
-   - "Use the custom prefix `<subgroup>.<prefix>.gsuquet.com`".
+   - "Use the custom prefix `<subgroup>.infra.gsuquet.com`".
    - "Use the required keys and the sub-groups of the reference table".
    - "Use the `annotation` tracking method of Argo CD".
    - "Map Kubernetes keys to cloud labels and tags with one rule".
@@ -474,6 +474,10 @@ To go back, revert the PRs of steps 3 to 5. Labels and annotations do not change
 - **Only the recommended labels.** `app.kubernetes.io/*` has no key for a tenant, a trust zone or an instance.
 - **Annotations for the tenant and the zone.** Selectors and Cilium policies cannot select by annotations.
 - **One cloud key form for each cloud.** Azure accepts `.` in tag names, thus it can keep more of the Kubernetes key. But two forms need two checks, and a query that covers both clouds needs two keys. Refer to Q8.
+- **A different domain for the prefix.** The owner controls `gsuquet.com`, thus the repository does not need to register a domain or use a different one. `gsuquet.github.io` was also an option, but GitHub controls it, and it can change with the account name.
+- **The prefix `homelab.gsuquet.com`.** It has the current name of the repository. But the repository also holds GKE and Azure instances, which are not a homelab, and the API group is `infra.gsuquet.com`.
+- **The prefix `gsuquet.com`, without a middle part.** It gives the shortest keys. But other projects of the owner can use the same domain with a different meaning.
+- **The prefix `platform.gsuquet.com`.** It fits a later internal developer platform. But it is a new word, different from the API group and from the name of the repository.
 - **No rules.** Each chart and each agent continues to use different keys. The zero-trust RFC then has no stable base.
 
 ## Prior art
@@ -493,35 +497,18 @@ To go back, revert the PRs of steps 3 to 5. Labels and annotations do not change
 
 ## Unresolved questions
 
-### Q1: Control of the domain
+### Decided questions
 
-A prefix must be a domain that the owner controls. Else another party can use the same keys. The API group `infra.gsuquet.com` has the same need.
+The owner answered these questions in chat on 2026-11-01. The options that the owner did not select are in [Rationale and alternatives](#rationale-and-alternatives).
 
-- **A.** The owner controls `gsuquet.com`. Use it.
-- **B.** The owner does not control `gsuquet.com`, but can register it. Register it before the ADR.
-- **C.** The owner controls a different domain. Use that domain, and change the API group in `schemas/` too.
-- **D.** Use `gsuquet.github.io`. GitHub gives this domain to the account `gsuquet`. But GitHub controls it, and it can change with the account name.
-
-Recommendation: A, if the owner controls the domain. Else B. The owner must answer before Q2.
-
-### Q2: The prefix of the repository
-
-The form is `<subgroup>.<prefix>.gsuquet.com/<name>`.
-
-| Option | Example key | For | Against |
-| --- | --- | --- | --- |
-| **A.** `homelab.gsuquet.com` | `tenant.homelab.gsuquet.com/name` | Same name as the repository. | The repository also holds GKE and Azure instances, which are not a homelab. Different from the API group. |
-| **B.** `infra.gsuquet.com` | `tenant.infra.gsuquet.com/name` | Same as the existing API group `infra.gsuquet.com`. Covers all the instances. | Different from the name of the repository. |
-| **C.** `gsuquet.com` (no middle part) | `tenant.gsuquet.com/name` | Shortest keys. | Other projects of the owner can use the same domain with a different meaning. |
-| **D.** `platform.gsuquet.com` | `tenant.platform.gsuquet.com/name` | Fits a later internal developer platform, for example OpenChoreo. | A new name. Different from the API group and the repository. |
-
-Recommendation: B. It has one domain for the API group and the keys, as Argo CD and cert-manager do.
+- **Control of the domain.** The owner controls `gsuquet.com`. The owner registered the domain with Cloudflare Registrar, and its DNS is on Cloudflare. Source: owner, in chat, 2026-11-01.
+- **The prefix of the repository.** `infra.gsuquet.com`, with the sub-groups `<subgroup>.infra.gsuquet.com/<name>`. Reason: one word, `infra`, for the name of the repository, the prefix of the keys and the cloud tag keys. The repository will become `gsuquet/infra`. The new RFC "Repository scope and naming" records the rename and the shared word. Source: owner, in chat, 2026-11-01.
 
 ### Q3: Rename the repository
 
-The owner asked if the repository name must match the prefix.
+The owner asked if the repository name must match the prefix. On 2026-11-01, the owner said in chat that the repository will become `gsuquet/infra`. The new RFC "Repository scope and naming" records this. This question stays open in this RFC until that RFC has a PR.
 
-- **A.** Keep `homelab`. No work. The prefix and the name stay different, if the owner selects B, C or D in Q2.
+- **A.** Keep `homelab`. No work. The prefix and the name stay different.
 - **B.** Rename the repository to match the prefix, for example `infra`. GitHub redirects the web pages and the Git operations. But GitHub does not redirect calls to actions in a renamed repository, and the old name must stay free. The rename also changes `gitops.repoURL`, the Argo CD repository settings, the badges and the links in `docs/`.
 - **C.** Decide in RFC 0003, which covers the structure of the repository.
 
