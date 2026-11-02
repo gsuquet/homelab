@@ -1,78 +1,95 @@
-# Labels and annotations
+# Why the label scheme has its form
 
-This page tells why the Kubernetes keys, the cloud label keys and their checks have their form. The exact rules are in [Labels and annotations (reference)](../reference/labels-and-annotations.md).
+Each upstream chart sets its own label and annotation keys, and each hand-written chart can add more. Without rules, the keys of the platform drift apart, and no tool can rely on them. Stable keys serve these needs. A network policy or a quota can select namespaces by their tenant. A zero-trust network policy can select them by their trust zone. A clean-up job can find the cloud resources of a demo instance by the name of the instance.
 
-Each upstream chart sets its own keys, and before these rules, the hand-written manifests copied the recommended labels by hand. Later work needs stable keys: policies and quotas need a tenant key, the zero-trust network policies need a trust zone, and I need instance keys to find and delete the cloud resources of a demo instance.
+The label scheme gives these needs one set of keys with one meaning. It has four parts. A prefix marks the keys of the repository. Sub-groups hold the subjects. The checks require some keys. Conftest checks read one data file. This page tells why each part has its form and how the parts fit. The exact rules are in [Labels and annotations (reference)](../reference/labels-and-annotations.md).
+
+## Label or annotation
+
+A label is for selection: a selector, a network policy, a query or a report. An annotation is for everything else: a setting for a controller, a URL, a contact, a long text or JSON. Thus, if no tool and no person selects or queries objects by a key, the key is an annotation. This is the rule of the [Helm best practices](https://helm.sh/docs/chart_best_practices/labels/).
+
+The rule has a direct effect on the scheme. The tenant and the trust zone must be labels, because selectors and Cilium policies cannot select by annotations. A contact or a backup retention is information for a person or a tool, not a selector, so it is an annotation.
 
 ## The prefix `<subgroup>.infra.gsuquet.com`
 
-Kubernetes lets a user set a key without a prefix, but each automated component must use a prefix. Agents and Argo CD are tools of this type. A prefix is a DNS subdomain, and a domain that I control prevents a collision with the keys of other parties.
+Kubernetes permits a key without a prefix, but it asks each automated component to use a prefix. Argo CD and the agents are components of this type. A prefix is a DNS subdomain. A domain under the control of the repository prevents a collision with the keys of other parties.
 
-I use `<subgroup>.infra.gsuquet.com`. I control `gsuquet.com`, and `infra.gsuquet.com` is already the API group of the metadata files. Many projects use the same domain for their API group and for their keys, for example Argo CD with `argoproj.io` and cert-manager with `cert-manager.io`. The same word `infra` is the name of the repository, so a reader who sees a key finds its source ([Repository scope](repository-scope.md)).
+The repository uses `<subgroup>.infra.gsuquet.com`. `infra.gsuquet.com` is already the API group of the metadata files `cluster.yaml`, `instance.yaml` and `module.yaml`. Many projects use the same domain for their API group and for their keys, for example Argo CD with `argoproj.io` and cert-manager with `cert-manager.io`. The reasons for the word `infra` are in [Repository scope](repository-scope.md#the-name-infra).
 
-I did not select these alternatives:
+The other options have problems:
 
 - **No prefix.** Keys without a prefix can collide with the keys of upstream charts, for example `app` or `component`.
-- **`gsuquet.com` alone.** It gives the shortest keys, but my other projects can use the same domain with a different meaning.
-- **`homelab.gsuquet.com`.** The repository also holds Google Cloud, Azure and AWS instances, which are not a homelab.
+- **`gsuquet.com` alone.** It gives the shortest keys, but other projects can use the same domain with a different meaning.
 - **`platform.gsuquet.com`.** It is a new word, different from the API group.
 - **Another domain**, for example `gsuquet.github.io`. GitHub controls it, and it can change with the account name.
 
-The cost: the prefix is long. A key such as `instance.infra.gsuquet.com/purpose` has 34 characters. I must also keep the registration of `gsuquet.com` and protect the Cloudflare account. If the registration stops, or if somebody takes over the account or its DNS, another party can use the same keys with a different meaning.
+The prefix has a cost. It is long: `instance.infra.gsuquet.com/purpose` has 34 characters. It also depends on the registration of `gsuquet.com` and on the Cloudflare account that holds its DNS. If the registration stops, or if another party takes over the account, that party can use the same keys with a different meaning. No tool resolves the keys as DNS names, so the only risk is a collision of names.
 
-## Families, and no keys without a prefix
+## Families of keys
 
-The prefix of a key gives its family, and the family tells who owns the key. The custom prefix keeps the keys of the repository apart. I did not select these alternatives:
+The prefix of a key gives its family, and the family tells which party defines the key. The party is Kubernetes, the shared convention of `app.kubernetes.io/*`, a tool such as Helm or Argo CD, or the repository. The checks treat each family differently. A hand-written object can use the keys of a tool. It can use only the Kubernetes keys that Kubernetes documents for users. It can use only the keys of the repository that the data file defines.
 
-- No rules: each chart and each agent continues to use different keys, and the zero-trust design has no stable base.
-- Only the recommended `app.kubernetes.io/*` labels: they have no key for a tenant, a trust zone or an instance.
-- Keys without a prefix for the repository: they can collide with the keys of upstream charts.
+Two other designs are possible, and both fail:
 
-The keys of the repository use lowercase letters, digits and `-` in their name and their label values. Thus the cloud form of a key has no collision, and each value is also a valid Google Cloud value.
+- **No rules.** Each chart and each agent continues to use different keys, and the zero-trust design has no stable base.
+- **Only the recommended `app.kubernetes.io/*` labels.** They tell what an application is, but they have no key for a tenant, a trust zone or an instance.
 
-A node label for isolation uses `node-restriction.kubernetes.io/`, because a kubelet cannot change this prefix. Thus a compromised node cannot attract the pods of another trust zone.
+The keys of the repository use only lowercase letters, digits and `-` in their name and in their label values. The reason is the cloud labels. Google Cloud permits no `.` and no `/` in a label key, and only lowercase letters ([Google Cloud: labels](https://docs.cloud.google.com/resource-manager/docs/labels-overview)). With this restriction, one mechanical rule can change a key of the repository to a cloud key: each `.` and `/` becomes `_`. Two keys with no `_`, no `.` and no uppercase letter in the name cannot give the same cloud key. Each label value is also a valid Google Cloud label value.
 
-## Six sub-groups, three required now
+## Sub-groups
 
-Each subject gets its own sub-group, so that a selector can match one subject by its prefix. One flat prefix, for example `infra.gsuquet.com/tenant`, adds names to one flat list with each subject.
+Each subject gets its own sub-group: `tenant`, `instance`, `ownership`, `network`, `backup` and `cost`. A selector or a query can then match one subject by its prefix. One flat prefix, for example `infra.gsuquet.com/tenant`, puts the names of all the subjects in one flat list, and the list grows with each subject.
 
-All six sub-groups (`tenant`, `instance`, `ownership`, `network`, `backup`, `cost`) are defined now, so that a check covers each key from the start. Only three are required now, because `network`, `backup` and `cost` have no values yet. A placeholder value such as `unset` has no meaning, and a check would then accept it as valid.
+The data file defines all six sub-groups, and K4 checks each key against them. A wrong key fails at once, also in a sub-group that has no required key. Only `tenant` and `ownership` have required keys. `backup` has an empty list of values, so K4 refuses each value. `network` has values only when the entry of a component in the data file gives them. Without them, K4 refuses each value. A placeholder value such as `unset` has no meaning, and a check would accept it as valid.
 
-- `tenant` and `network` go only on a `Namespace`, never on a pod. An application author controls the labels of the pods, so a pod could select its own trust zone. Annotations are not an option for them, because selectors and Cilium policies cannot select by annotations.
-- The instance keys copy the facts of `instance.yaml`, which `schemas:check` already validates. Thus they have one source.
-- The `type` key comes from the cluster module, not from a new `type` field in `instance.yaml`. A field puts the same fact in two places. Without a type key, a cost report cannot group the resources by type.
+The `tenant` and `network` keys go only on a `Namespace`, never on a pod. The author of an application controls the labels of its pods. With a trust zone on the pod, a pod could select its own trust zone. Cilium reads the labels of the `Namespace` of a pod through `io.cilium.k8s.namespace.labels.<key>`. Thus a policy can select the pods by the labels of their namespace ([Cilium: Kubernetes policies](https://docs.cilium.io/en/stable/security/policy/kubernetes/)).
+
+The `instance` and `cost` keys are for cloud resources, never for a Kubernetes object. Each cluster is one instance, so an instance key on its objects adds no information. K4 refuses these keys on each Kubernetes object. No policy checks cloud resources.
 
 ## Required keys, and a warning for upstream charts
 
-The check denies a missing key on a `Namespace` in `gitops/` and on a hand-written object, and only warns on a rendered upstream object. Many upstream charts cannot add labels to all their objects, so a check on all the rendered objects blocks each PR. A check on the `Namespace` objects only does not cover the `app.kubernetes.io/*` labels of the hand-written charts.
+Many upstream charts cannot add labels to all their objects. A strict check of the labels on all the rendered objects would block each pull request until each chart changes. Thus two rules are lenient on upstream objects. K3 refuses a key without a prefix on a hand-written object, and K3w only warns on an upstream object. K6 reads the required `app.kubernetes.io/*` labels of each hand-written object, and K7 reads them on each upstream object, as a warning. A check on the `Namespace` objects only would be lenient too, but it does not cover the `app.kubernetes.io/*` labels of the hand-written charts.
 
-The rendered objects keep `app.kubernetes.io/managed-by: Helm`, although Argo CD applies them. The upstream charts do not always let the repository change this label, and the tracking annotation of Argo CD already tells which `Application` applies an object.
+K1, K4, K8 and K10 apply to all the objects in `gitops/`, also the upstream objects. They refuse a wrong key, value, selector or sync option. K4 and K10 have allowlists for the exceptions of upstream objects.
 
-## The `annotation` tracking method, set explicitly
+K5 and K6 also warn on hand-written objects, because the objects of the `argocd` component do not have their keys. K9 warns because the `argocd-cm` ConfigMap does not set the tracking method. A check that fails on the existing files blocks each pull request, so a check starts as a warning when the existing files fail it.
 
-With the `label` method, Argo CD uses `app.kubernetes.io/instance` to find the Application that manages an object. Helm and operators also write that label. Thus Argo CD can find the wrong Application, and it can prune the objects of another tool. The `annotation` method has none of these problems.
+The rendered objects keep `app.kubernetes.io/managed-by: Helm`, although Argo CD applies them. Upstream charts do not always let the repository change this label. The tracking annotation of Argo CD already tells which `Application` applies an object.
 
-Since Argo CD 3.0, `annotation` is the default. I still set it explicitly: a later version can change the default, and a check cannot test a missing value. `annotation+label` brings back the conflicts of the label.
+## The `annotation` tracking method
 
-## One mapping rule for all the clouds
+With the `label` tracking method, Argo CD uses `app.kubernetes.io/instance` to find the `Application` that manages an object. Helm and operators also write this label. Argo CD can then find the wrong `Application`, and it can prune the objects of another tool. The `annotation` method uses `argocd.argoproj.io/tracking-id`, which only Argo CD writes, and it has none of these problems ([Argo CD: resource tracking](https://argo-cd.readthedocs.io/en/stable/user-guide/resource_tracking/)).
 
-Google Cloud permits no `.` and no `/` in a label key, and only lowercase letters. One mechanical rule changes each Kubernetes key to one cloud key for Google Cloud, Azure, AWS, Cloudflare and Grafana Cloud. One form needs one check, and one query covers all the clouds.
+Since Argo CD 3.0, `annotation` is the default ([Argo CD: upgrade from 2.14 to 3.0](https://argo-cd.readthedocs.io/en/stable/operator-manual/upgrading/2.14-3.0/)). K9 still asks for an explicit value. A later version can change the default, and a check reads only the files in Git, not the defaults of Argo CD. `annotation+label` brings back the conflicts of the label.
 
-I did not select these alternatives:
+## Node labels for isolation
 
-- One form for each cloud: Azure and AWS can keep more of the Kubernetes key. But each form needs its own check, and a query across the clouds needs more than one key.
-- Short aliases: they can collide with the keys of other tools in the same cloud project.
-
-The cost: the cloud keys are long, for example `instance_infra_gsuquet_com_name`, and the rule is stricter than AWS needs. Azure DNS tag names do not support "special characters", and the Azure page does not tell if `_` and `-` are special. A test before the first Azure instance answers this (#228).
+A node label for isolation uses the prefix `node-restriction.kubernetes.io/`, not the prefix of the repository. An example is a label for the nodes that can run internet-facing pods. The NodeRestriction admission plugin does not let a kubelet set a label with this prefix ([Kubernetes: admission controllers](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/)). Thus a compromised node cannot give itself the label, and it cannot attract the pods of another trust zone. K2 permits the prefix on hand-written objects.
 
 ## Conftest checks with one data file
 
-`mise run lint` already runs Conftest, so the checks run before the merge. One data file holds the reference table and the allowlists, so the table and the checks have one source.
+`mise run lint` already runs Conftest, so the checks run before the merge, on each pull request. One data file, `policy/data/labels.yaml`, holds the sub-groups, the keys, the required keys and the allowlists. The checks read the file and hold no list of their own. A change of a rule is a change of data, and the table and the checks cannot disagree.
 
-A label cannot give the origin of a rendered object. The Argo CD CRDs have no `helm.sh/chart` label, subcharts use their own name, and a hand-written template can copy the label. The only reliable marker is the `# Source:` comment of `helm template`, and Conftest drops comments. Thus the render step keeps the origin in the file name.
+A check must know the origin of each rendered object: hand-written or upstream. A label cannot give it. The Argo CD CRDs have no `helm.sh/chart` label, subcharts use their own name, and a hand-written template can copy the label. The only reliable marker is the `# Source:` comment of `helm template`, and Conftest drops comments. Thus `manifests:render` keeps the origin in the file name, with the prefix `upstream--`.
 
-The cost: a data file and its checks are more code to maintain, and the checks of the upstream objects are only warnings.
+The cost: the data file and its checks are more code to maintain, and the checks of the upstream objects are only warnings.
 
-An `apps` component can create a `Namespace` with any name and any labels. Without limits, it could select its own trust zone or run privileged pods. K14, K4, K15 and `FailOnSharedResource=true` limit it. The `sourceRepos` of the `apps` AppProject is only this repository, so the review of each PR that changes `gitops/apps/` stays the trust boundary.
+An admission policy in the cluster is another control. It sees each object that reaches the API server, also the objects that Terraform or a person creates. The Conftest checks see only the files in Git, but they stop a wrong key before the merge.
 
-A Kubernetes admission policy in the cluster can add a second control later.
+## Trust boundary of an `apps` component
+
+An `apps` component can create a `Namespace` with any name and any labels. Without limits, it could select its own trust zone, or run privileged pods. Three checks limit it:
+
+- K4 permits only the tenant and the `network` values that the data file gives to the component.
+- K14 permits only the `restricted` and `baseline` Pod Security levels.
+- K15 permits only the namespace of the component in `cluster.yaml`, and refuses the reserved namespaces.
+
+The `apps` AppProject accepts sources only from this repository. The review of each pull request that changes `gitops/apps/` or the data file is thus the trust boundary.
+
+## Related pages
+
+- [Labels and annotations (reference)](../reference/labels-and-annotations.md)
+- [Label a GitOps component](../how-to/label-a-gitops-component.md)
+- [GitOps with Argo CD](gitops-with-argocd.md)
+- [Rendered manifests pattern](rendered-manifests-pattern.md)
+- [Repository scope](repository-scope.md)
