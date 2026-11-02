@@ -17,7 +17,7 @@ The owner set three milestones on 2026-11-02:
 
 - **M1**: kagent and agentgateway, standalone. RFC 0008 covers M1.
 - **M2**: the OpenChoreo platform. This RFC covers M2.
-- **M3**: kagent and agentgateway, delivered through the constructs of OpenChoreo.
+- **M3**: "Argo installs, OC exposes" (owner, in chat, 2026-11-02). Argo CD installs kagent and agentgateway as in M1, and OpenChoreo exposes them through its component types and traits.
 
 The owner wants kagent and agentgateway installable "on their own or on top of OpenChoreo (using OpenChoreo)". The first target is `kind-local`. `olympus` (the production Raspberry Pi, arm64, limited resources) and the cloud free tiers come later.
 
@@ -131,7 +131,7 @@ The resource numbers are in [Requirements for `olympus` and the cloud](#requirem
 
 The owner has two laptops (owner, in chat, 2026-11-02): a work laptop with 8 GB of memory and a personal laptop with 16 GB. The OpenChoreo minimum for development is 8 GB for the cluster alone. The laptop also runs macOS and Docker. Thus **M2 needs the 16 GB laptop. The work laptop cannot run M2.** RFC 0008 gives the needs of M1 alone.
 
-M1 and M2 together: the author estimates that they fit in 16 GB, but this is not measured. The estimate adds the requests of the chart defaults. Argo CD asks for about 1.6 GiB. The OpenChoreo control plane and data plane ask for about 1.2 GiB. kagent asks for about 850m CPU and 1.4 GiB, as RFC 0008 gives. Cilium, cert-manager, External Secrets Operator, kgateway with its proxies, ThunderID, agentgateway and the kind nodes come on top. Requests are not peak use. General criterion 3 measures the real peak with M1 and M2 together.
+M1 and M2 together: the author estimates that they fit in 16 GB, but this is not measured. The estimate adds the requests of the chart defaults. Argo CD asks for about 1.6 GiB. The OpenChoreo control plane and data plane ask for about 1.2 GiB. M1 (kagent and agentgateway) asks for about 850m CPU and 1.4 GiB, as RFC 0008 gives. Cilium, cert-manager, External Secrets Operator, kgateway with its proxies, ThunderID and the kind nodes come on top. Requests are not peak use. General criterion 3 measures the real peak with M1 and M2 together.
 
 ### The kind quick start
 
@@ -174,6 +174,42 @@ apps:
     namespace: sandbox
     dependsOn: [openchoreo-data-plane]
 ```
+
+With M1, the combined `cluster.yaml` of `kind-local` is:
+
+```yaml
+infrastructure:
+  - name: argocd
+    namespace: argocd
+  - name: cert-manager
+    namespace: cert-manager
+  - name: external-secrets          # RFC 0006
+    namespace: external-secrets
+  - name: agentgateway              # RFC 0008
+    namespace: agentgateway-system
+    dependsOn: [external-secrets]
+  - name: kgateway
+    namespace: kgateway-system
+    dependsOn: [cert-manager]
+  - name: kagent                    # RFC 0008
+    namespace: kagent
+    dependsOn: [agentgateway]
+  - name: thunder
+    namespace: thunder
+    dependsOn: [external-secrets, kgateway]
+  - name: openchoreo-control-plane
+    namespace: openchoreo-control-plane
+    dependsOn: [cert-manager, external-secrets, kgateway, thunder]
+  - name: openchoreo-data-plane
+    namespace: openchoreo-data-plane
+    dependsOn: [openchoreo-control-plane]
+apps:
+  - name: choreo-sandbox
+    namespace: sandbox
+    dependsOn: [openchoreo-data-plane]
+```
+
+The sync waves are global across all `Application` objects. `agentgateway` and `kgateway` are in the same wave. If `agentgateway` is not `Healthy`, the health gate holds back `thunder`, both planes and `choreo-sandbox`. **M2 needs this from RFC 0008:** the `agentgateway` `Application` is `Healthy` also without the Gemini seed, so that the seed does not gate the App of Apps. If RFC 0008 keeps the gate, M2 needs `mise run secrets:apply kind-local` with M1 in place.
 
 The workflow plane and the observability plane stay out of the M2 scope (refer to [question 1](#1-the-planes-in-the-scope-of-m2)). The names `kgateway-system` and `sandbox` are proposals ([question 5](#5-the-openchoreo-namespace-of-a-tenant) and [question 10](#10-the-namespace-of-kgateway)).
 
@@ -232,7 +268,7 @@ OpenChoreo needs External Secrets Operator and a `ClusterSecretStore` ([Secret m
 
 A tenant names the key in its `SecretReference` or its `Workload`, and the agent then reads that key into the cell. A store that also reaches the platform secrets lets each tenant read the ThunderID admin credentials, the Backstage secrets or the M1 model key. A store that all tenants share lets each tenant read the keys of the others.
 
-The proposal: **the per-tenant `ClusterSecretStore` of RFC 0006**. RFC 0006 permits one named exception to its rule of namespaced stores: one `ClusterSecretStore` `oc-<tenant>` for each OpenChoreo tenant. Each store reads only `secret-seeds-oc-<tenant>`. It sets this namespace explicitly as `remoteNamespace`, and it sets `auth.serviceAccount.namespace` explicitly. Thus ESO never uses referent authentication into a cell. A `ValidatingAdmissionPolicy` of RFC 0006 on `ClusterSecretStore` objects enforces the `oc-*` rule. The OpenChoreo namespace of a tenant has the tenant name ([question 5](#5-the-openchoreo-namespace-of-a-tenant) B), thus the templates can derive the store name from the namespace. Refer to [question 3](#3-the-secret-store-of-openchoreo) and the matching question of RFC 0006.
+The proposal: **the per-tenant `ClusterSecretStore` of RFC 0006**. RFC 0006 permits one named exception to its rule of namespaced stores: one `ClusterSecretStore` `oc-<tenant>` for each OpenChoreo tenant. Each store reads only `secret-seeds-oc-<tenant>`. It sets this namespace explicitly as `remoteNamespace`, and it sets `auth.serviceAccount.namespace` explicitly. Thus ESO never uses referent authentication into a cell. SC9 of RFC 0006 checks these rules in Git, and SC9a, a `ValidatingAdmissionPolicy` on `ClusterSecretStore` objects, enforces them in the cluster. The OpenChoreo namespace of a tenant has the tenant name ([question 5](#5-the-openchoreo-namespace-of-a-tenant) B), thus the templates can derive the store name from the namespace. Refer to [question 3](#3-the-secret-store-of-openchoreo) and the matching question of RFC 0006.
 
 - **Conditions.** ESO accepts a namespace when any one of the conditions of a store matches ([ESO: ClusterSecretStore](https://external-secrets.io/latest/api/clustersecretstore/)). A label condition is thus weak: outside `dp-*`, nothing protects the `tenant` label. Each store therefore has exactly one condition, the regex `namespaceRegexes: ["^dp-<tenant>-"]`. Only the agent can create a `dp-*` namespace (tenant limit 3).
 - **The tenant naming rule.** A tenant name is a DNS label without `-`. Else the cell `dp-a-b-x-...` of tenant `a`, project `b-x`, matches the regex of a tenant `a-b`. A schema or Conftest check enforces the rule on the OpenChoreo namespaces in `gitops/apps/`.
@@ -314,6 +350,8 @@ A tenant must not change the platform. Four controls make this true.
 - The release kinds, with the glob `kind: "*Release"`: `ComponentRelease`, `ProjectRelease`, `ResourceRelease` and `RenderedRelease`. The glob does not match `ReleaseBinding`, `ProjectReleaseBinding` or `ResourceReleaseBinding`. A `RenderedRelease` holds raw manifests, and the controller applies them to the data plane. A tenant `ComponentRelease` or `ProjectRelease` embeds its own templates, and a binding of the tenant can select it. Only the controllers write releases.
 - `WorkflowRun` and `ObservabilityAlertsNotificationChannel`. They have no plane in M2.
 
+The same blacklist refuses all kinds of the groups `external-secrets.io`, `agentgateway.dev` and `kagent.dev` for `apps`. A tenant gets secrets only through `SecretReference`. RFC 0008 lists its requirements on the `apps` AppProject and points to R5. R5 makes the one change of the AppProject for both RFCs.
+
 Argo CD matches the entries as globs. The APIs are `v1alpha1`, and a new minor can add kinds. Thus a check reads the rendered CRDs of each OpenChoreo chart and fails when a namespaced `openchoreo.dev` kind is on neither the developer list nor the blacklist. The developer list: `Project`, `Component`, `Workload`, `ReleaseBinding`, `ProjectReleaseBinding`, `ResourceReleaseBinding`, `Resource`, `SecretReference`, `Environment` and `DeploymentPipeline`. Negative criterion 1 proves that Argo CD refuses a tenant `ComponentType`, `RenderedRelease` and `ComponentRelease`.
 
 **2. The platform labels win on each cell namespace.** RFC 0004 checks K5 and K15 see only the `Namespace` objects in `gitops/`. A cell namespace is not in `gitops/`. Thus the `ClusterProjectType` sets the labels:
@@ -330,9 +368,9 @@ The upstream sample writes `oc_merge(metadata.labels, environmentConfigs.namespa
 - The value of `tenant.infra.gsuquet.com/name` agrees with the name: the name starts with `dp-<tenant>-`. The template does not control the name.
 - The owner label and the Pod Security labels are present.
 
-It refuses the namespace if a rule fails. The policy goes in the `openchoreo-control-plane` component. The verify list has its CEL.
+It refuses the namespace if a rule fails. A second policy limits the writes of the cluster agent. The agent, also with the role of question 13 B, has `*` on Pods, Secrets, NetworkPolicies, HTTPRoutes and ReferenceGrants in each namespace. A `ClusterRole` cannot limit this to some namespaces. The second policy matches each namespaced request from the agent ServiceAccount. It permits only namespaces whose name matches `^dp-`, and `openchoreo-data-plane`. Thus the agent cannot change the M1 controls in `kagent` and `agentgateway-system`, or mount a seed. Both policies go in the `openchoreo-control-plane` component. The verify list has their CEL.
 
-**4. The `apps` AppProject refuses the plane and cell namespaces.** The destinations refuse `openchoreo-*`, `dp-*`, `thunder`, `kgateway-system` and the other plane namespaces. The present AppProject refuses only `kube-system` and `argocd`. Argo CD does not apply the destination check to a cluster-scoped object, and a `Namespace` is cluster-scoped. Thus a tenant can still ship a `Namespace` with the name `dp-sandbox-...` or `openchoreo-data-plane`. The `clusterResourceWhitelist` entry for `Namespace` stays without a name. A `clusterResourceBlacklist` refuses `Namespace` objects with these names: `dp-*`, `openchoreo-*`, `secret-seeds-*`, `thunder`, `kgateway-system`, `cert-manager`, `external-secrets`, `kube-*`, `argocd` and `default`. The blacklist wins over the whitelist. The repository runs Argo CD v3.5.6 (chart 10.11.6), and its rendered `AppProject` CRD has the `name` field with glob patterns.
+**4. The `apps` AppProject permits only the namespaces of the `apps` components.** The `argocd` chart renders the destinations from `apps[].namespace` in `cluster.yaml`. Thus no tenant can deploy into `agentgateway-system`, `kagent`, `secret-seeds-*`, `external-secrets`, `cert-manager`, a plane or a cell. The present AppProject refuses only `kube-system` and `argocd`. Argo CD does not apply the destination check to a cluster-scoped object, and a `Namespace` is cluster-scoped. Thus a tenant can still ship a `Namespace` with the name `dp-sandbox-...` or `openchoreo-data-plane`. The `clusterResourceWhitelist` entry for `Namespace` stays without a name. A `clusterResourceBlacklist` refuses `Namespace` objects with these names: `dp-*`, `openchoreo-*`, `secret-seeds-*`, `agentgateway-system`, `kagent`, `thunder`, `kgateway-system`, `cert-manager`, `external-secrets`, `kube-*`, `argocd` and `default`. The blacklist wins over the whitelist. The repository runs Argo CD v3.5.6 (chart 10.11.6), and its rendered `AppProject` CRD has the `name` field with glob patterns.
 
 Other RFC 0004 interactions:
 
@@ -363,7 +401,7 @@ The limits: the OpenChoreo CRDs are `v1alpha1`, and their API changes between mi
 
 ### Done criteria for M2
 
-M2 has these done criteria. Each item must be true on a `kind-local` cluster that `mise run instance:up` makes from an empty state, on the commit of the implementation PR. The machine is the 16 GB laptop.
+M2 has these done criteria. Each item must be true on a `kind-local` cluster that `mise run instance:up` makes from an empty state, on the commit of the implementation PR, after the owner runs `mise run secrets:apply kind-local`. The machine is the 16 GB laptop.
 
 Positive criteria:
 
@@ -379,13 +417,14 @@ Negative criteria:
 2. A tenant `SecretReference` to a platform key, for example the ThunderID admin credentials, gives an `ExternalSecret` that does not become ready.
 3. A login to the console with `admin@openchoreo.dev` and its documented default password fails.
 4. A `ProjectReleaseBinding` that sets `tenant.infra.gsuquet.com/name` in `namespaceLabels` does not change the label of the cell. The admission policy refuses a `dp-sandbox-test` namespace with correct labels from the admin (rule 1). It also refuses a `dp-sandbox-test` namespace with a wrong `tenant` label from `kubectl --as=system:serviceaccount:openchoreo-data-plane:<agent ServiceAccount>` (rule 2).
-5. Apply a temporary `CiliumNetworkPolicy` that denies the egress of the agent to the cluster gateway. Argo CD does not track it, thus `selfHeal` keeps it, and no sync setting changes. A change of the sync of a child `Application` fails, because the `argocd` `Application` heals it. Within 120 seconds, `.status.agentConnection.connected` is not `true`. A new `ReleaseBinding` is not ready after 300 seconds. Then delete the policy.
+5. A tenant `Pod` with the destination `agentgateway-system` makes the sync of `choreo-sandbox` fail. A `Pod` that the agent ServiceAccount writes into `kagent` (`kubectl --as=`) is refused by the second admission policy.
+6. Apply a temporary `CiliumNetworkPolicy` that denies the egress of the agent to the cluster gateway. Argo CD does not track it, thus `selfHeal` keeps it, and no sync setting changes. A change of the sync of a child `Application` fails, because the `argocd` `Application` heals it. Within 120 seconds, `.status.agentConnection.connected` is not `true`. A new `ReleaseBinding` is not ready after 300 seconds. Then delete the policy.
 
 General criteria:
 
-1. No OpenChoreo object is in the `default` namespace. `mise run lint` passes. No rendered `Secret` has `data` or `stringData`.
-2. Each chart has an exact version, and each image that the charts permit has a digest. `mise run instance:down` followed by `mise run instance:up` gives the same result.
-3. The PR records the memory limit of the Docker VM. The limit is 12 GiB or more for the test. The PR records the peak memory and CPU of the kind node containers from the start of `instance:up` to the end of negative criterion 5, also during the first sync and the image pulls. It samples `docker stats --no-stream` every 5 seconds, or reads `memory.peak` of each node cgroup. It does this once with M2 alone, and once with M1 and M2 together. The peak with M1 and M2 is below 12 GiB, so that 4 GB stay for macOS on the 16 GB laptop. No pod is `OOMKilled`, and no kind node container shows `OOMKilled` in `docker inspect`. These numbers also feed the plan for `olympus`.
+1. No OpenChoreo object is in the `default` namespace. `mise run lint` passes. No rendered `Secret` has `data` or `stringData`, except the narrow SC7 exception of RFC 0006 for `kagent-postgresql`. That exception exists only if the owner selects A in question 9 of RFC 0008.
+2. Each chart has an exact version, and each image that the charts permit has a digest. `mise run instance:down`, then `mise run instance:up` and `mise run secrets:apply kind-local`, gives the same result.
+3. The PR records the memory limit of the Docker VM. The limit is 12 GiB or more for the test. The PR records the peak memory and CPU of the kind node containers from the start of `instance:up` to the end of negative criterion 6, also during the first sync and the image pulls. It samples `docker stats --no-stream` every 5 seconds, or reads `memory.peak` of each node cgroup. It does this once with M2 alone, and once with M1 and M2 together. The peak with M1 and M2 is below 12 GiB, so that 4 GB stay for macOS on the 16 GB laptop. No pod is `OOMKilled`, and no kind node container shows `OOMKilled` in `docker inspect`. These numbers also feed the plan for `olympus`.
 4. If the owner selects B in [question 13](#13-the-cluster-agent-role): the data plane chart runs with `clusterAgent.rbac.create: false`, and the repository owns the agent `ClusterRole` and `ClusterRoleBinding`. All positive criteria pass with this role.
 
 ### Requirements for `olympus` and the cloud
@@ -424,7 +463,7 @@ This is a summary only. Each number comes from the sources:
 - **The cluster agent is equal to cluster admin.** Its `ClusterRole` ([`clusterrole.yaml`](https://github.com/openchoreo/openchoreo/blob/v1.3.3/install/helm/openchoreo-data-plane/templates/cluster-agent/clusterrole.yaml)) gives `*` on Secrets, Namespaces, ServiceAccounts, Roles, RoleBindings, ClusterRoles, ClusterRoleBindings, `clustersecretstores` and `pushsecrets` in the whole cluster. It gives `create` and `get` on `pods/exec`. A subject that can write ClusterRoleBindings can give itself `cluster-admin`. A subject that can write a `ClusterSecretStore` can point it at each backend credential that it can read. The cluster agent RBAC page says "By default, the cluster agent has permissions to manage OpenChoreo's built-in custom resources". The chart gives more than that.
 - **Who holds this power.** The control plane holds it. Each identity with write access to the OpenChoreo API, or to the OpenChoreo resources in Git, holds it too. Without the tenant limits, each tenant holds it. The [tenant limits](#tenant-limits) reduce this to the platform definitions in the `infrastructure` group.
 - **The mitigation.** The data plane chart can skip its role (`clusterAgent.rbac.create: false`). The repository then owns the agent role, without the RBAC kinds, without `clustersecretstores` and with only the namespaced kinds that the component types use. This needs tests, thus the verify list has it. Whether M2 starts with the upstream role is an owner decision ([question 13](#13-the-cluster-agent-role)). The repository role is a prerequisite before a second tenant, because the upstream role has `*` on `clustersecretstores`.
-- **Trusted readers of all Secrets (owner, in chat, 2026-11-02).** RFC 0006 names the platform controllers that read each Secret in the cluster as trusted platform components, under an allowlist check. The list has the OpenChoreo cluster agent, External Secrets Operator, and the kagent and agentgateway controllers. The repository narrows each one where its chart permits. Upstream patches are follow-ups. The owner accepts the remaining risk on `kind-local`. The cluster agent stays on the list until the repository role of question 13 B narrows it.
+- **Trusted readers of all Secrets (owner, in chat, 2026-11-02).** RFC 0006 names the platform controllers that read each Secret in the cluster as trusted platform components, under an allowlist check. SC16 of RFC 0006 refuses each other reader. The list: Argo CD (the application controller and `argocd-server`), cert-manager, External Secrets Operator, the agentgateway controller, the kagent controller if it stays cluster-wide, and the OpenChoreo cluster agent. The owner added the OpenChoreo controller manager, `openchoreo-api` and cluster gateway ("Yes, add them", in chat, 2026-11-02). The repository narrows each one where its chart permits. Upstream patches are follow-ups. The owner accepts the remaining risk on `kind-local`. The cluster agent stays a Secret reader also after question 13 B.
 - **Admission webhooks.** The controller manager has validating and mutating webhooks with `failurePolicy: Fail` for OpenChoreo kinds, on create and update. If the controller is down, no write to these kinds succeeds, also the removal of a finalizer. The webhooks select only `openchoreo.dev` resources, thus the other workloads continue. The rollback must keep this in mind.
 - **Exposed endpoints.** The portal, the API with its MCP server, ThunderID, the data plane Gateway and the cluster gateway (port 8443, TLS passthrough). The remote-connect router stays off. On `kind-local`, nothing goes out of the cluster except through `kubectl port-forward`. M2 adds no Cloudflare tunnel and no public DNS name.
 - **Default credentials.** The k3d values of ThunderID ([`values-thunder.yaml`](https://github.com/openchoreo/openchoreo/blob/v1.3.3/install/k3d/common/values-thunder.yaml)) seed four console users with fixed passwords: `admin@openchoreo.dev`, `developer@openchoreo.dev`, `platform-engineer@openchoreo.dev` and `sre@openchoreo.dev`. The OpenBao setup script seeds a fixed OpenSearch admin password. ThunderID generates its own admin password at install. M2 seeds no sample users with fixed passwords. If M2 needs test users, their passwords come from the secret store. Negative criterion 3 checks this.
@@ -439,11 +478,11 @@ The ADRs of this RFC come after its acceptance, in their own PR ([ADR 0005](../a
 
 The implementation steps. Each step is one PR, after the ADRs:
 
-1. **R1 Dependencies.** RFC 0006 delivers External Secrets Operator and the per-tenant `ClusterSecretStore` of RFC 0006 for `sandbox` on `kind-local`.
+1. **R1 Secrets.** RFC 0006 delivers External Secrets Operator. This RFC owns the rest, with the mechanism of RFC 0006: it adds the tenant `sandbox` (the store `oc-sandbox` and `secret-seeds-oc-sandbox`), the platform consumers `thunder` and `openchoreo-control-plane`, and their seeds in the SOPS file. The owner runs `mise run secrets:apply kind-local`.
 2. **R2 Terraform.** The LB pool and the CoreDNS change, from the data of the `kind` network.
 3. **R3 cert-manager, kgateway and ThunderID.** Add the three components. Check that kgateway accepts Gateway API v1.6.2.
 4. **R4 Control plane.** Add the component with the CA issuer, the cluster-scoped platform definitions and the admission policy for the cells. Add the Conftest check for the `ClusterProjectType` labels.
-5. **R5 Data plane.** Add the component with the `ClusterDataPlane` and the agent role of [question 13](#13-the-cluster-agent-role). Change the `apps` AppProject: the blacklist of the platform kinds and the new destinations.
+5. **R5 Data plane.** Add the component with the `ClusterDataPlane` and the agent role of [question 13](#13-the-cluster-agent-role). Change the `apps` AppProject once, for this RFC and RFC 0008: the blacklist of the platform kinds and of the `external-secrets.io`, `agentgateway.dev` and `kagent.dev` groups, the `Namespace` name blacklist, and the destinations from `cluster.yaml`. Add the second admission policy.
 6. **R6 Sample tenant.** Add `choreo-sandbox` with its Environments, its DeploymentPipeline and the sample. Check all done criteria.
 7. **R7 Documentation.** A how-to page for an OpenChoreo component, and a reference page for the namespaces.
 
@@ -480,6 +519,8 @@ A removal from `cluster.yaml` alone deletes nothing in the cluster, because the 
 - **`lookup`.** The template `remote-connect-signing-key.yaml` stays inactive (`remoteConnect.enabled: false`). With `helm template`, it makes a new private key at each render. List each `Secret` that a chart renders.
 - **Data plane registration.** `ClusterDataPlane.spec.clusterAgent.clientCA.secretKeyRef` refers to `cluster-agent-tls`. One CA `ClusterIssuer` signs the cluster gateway and the agent certificates, thus the agent can read the server CA from its own Secret and no copy of `cluster-gateway-ca` is necessary.
 - **Tenant limits.** A namespaced `ComponentType` can emit a `ClusterRoleBinding` through the agent with the upstream role. This shows the need of the blacklist. The CEL of the `ValidatingAdmissionPolicy`.
+- **SC16 and the gateway charts.** The roles of kgateway v2.3.11 and ThunderID against SC16 of RFC 0006. kgateway can read Secrets in all namespaces for TLS.
+- **Who creates cells.** In the single-cluster mode, the controller manager or the agent creates the `dp-*` namespaces. The controller manager also has `create` on `namespaces`. Rule 1 of the cell policy names the correct ServiceAccount.
 - **Agent role.** OpenChoreo works with `clusterAgent.rbac.create: false` and a repository role without the RBAC kinds and `clustersecretstores`. The flag turns off both the `ClusterRole` and the `ClusterRoleBinding`, thus the repository owns both. Record the name of the agent ServiceAccount for the binding.
 - **Labels.** The charts accept `global.commonLabels` for the RFC 0004 labels.
 - **Pins.** Each chart pin is the OCI chart version. The `Chart.yaml` files on the Git tag carry `0.0.0-latest-dev`, and CI writes the version at package time. Each image field accepts a digest. The Cosign signature of each pinned OpenChoreo image ([`release.yml`](https://github.com/openchoreo/openchoreo/blob/v1.3.3/.github/workflows/release.yml)).
@@ -620,7 +661,7 @@ Recommendation: A. The bootstrap layer holds only what Argo CD needs to start. N
 - A: accept the upstream role on `kind-local`, with bounds: `kind-local` only, no tenant except the test tenant `sandbox`, the tenant limits in place, and no OpenChoreo on `olympus` or in the cloud before the repository role works.
 - B: the repository role from the start (`clusterAgent.rbac.create: false`), without the RBAC kinds and `clustersecretstores`.
 
-The cluster agent is on the allowlist of trusted readers of all Secrets in RFC 0006 (owner, in chat, 2026-11-02), until B narrows it. B is a prerequisite before a second tenant.
+The cluster agent is on the RFC 0006 list of trusted readers of all Secrets (owner, in chat, 2026-11-02). It stays a Secret reader also after B. B removes the RBAC kinds and `clustersecretstores`, thus the escalation to cluster admin and the creation of stores. B is a prerequisite before a second tenant.
 
 Recommendation: A for the first sync of M2, and B before the end of M2 if the tests of the verify list pass. B can block the first sync if the role misses a kind, and A gives the reference behavior to compare with. With B, the repository owns both the `ClusterRole` and the `ClusterRoleBinding`, because the flag turns off both. General criterion 4 checks B.
 
