@@ -17,7 +17,7 @@ These rules apply to all types:
 
 - A page has one type. Content of a different type goes to a page of that type, and the page links to it.
 - A page links to the matching pages of the other types, when they exist. The link list is the last section of the page: "Next steps" in a tutorial, "Related pages" in the other types.
-- A new subject starts with its pages: an explanation page, a reference page and a how-to guide. Refer to [How we work](how-we-work.md#workflow-steps).
+- A new subject starts from a plan, outside the repository. The pages then describe the system as it is once built, and the code follows. Refer to [How we work](how-we-work.md#workflow-steps).
 
 ### Tutorials
 
@@ -86,7 +86,7 @@ The title is the subject or the question: "Why the platform runs on a local clus
 
 ## Voice and tense
 
-A page describes the system as built, in the present tense. When the code differs from a page, the next change corrects the page.
+A page describes the system as built, in the present tense, also before the code exists. When the code differs from a page, the next change corrects the page.
 
 | Rule | Not permitted | Vale check |
 | --- | --- | --- |
