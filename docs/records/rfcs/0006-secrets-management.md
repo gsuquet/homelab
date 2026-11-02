@@ -226,7 +226,7 @@ The rules:
 - **The instance root module never reads the SOPS file.** Thus an agent, a new clone, or a later agent sandbox without the age key runs `mise run instance:up kind-local` as before. That apply does not touch the seeds, because they are in a different state.
 - **The seed namespaces come before the seeds.** The `external-secrets` component creates them from its consumer list, with the `Role` and `RoleBinding` of each store. Thus Argo CD syncs the same objects with and without the seeds. Without the seeds, each `ExternalSecret` waits, and its consumer has no key.
 - **The preconditions of `secrets:apply`.** The cluster is up, its kubeconfig passes the checks above, and the seed namespace of each consumer in the seed map exists. Else the task stops with a clear message.
-- **After `instance:down` and `instance:up`.** The new cluster has no seeds, but the secrets state still lists them. The owner runs `secrets:apply`. The refresh finds no Secret, and the plan creates each seed again with `data_wo`. When an agent re-creates `kind-local`, the signal is the `Ready` condition of each `ExternalSecret`. The agent tells the owner. The owner also merges the new JWKS of the cluster into the federation of RFC 0008 (`mise run vertex:jwks kind-local`).
+- **After `instance:down` and `instance:up`.** The new cluster has no seeds, but the secrets state still lists them. The owner runs `secrets:apply`. The refresh finds no Secret, and the plan creates each seed again with `data_wo`. When an agent re-creates `kind-local`, the signal is the `Ready` condition of each `ExternalSecret`. The agent tells the owner. The new JWKS of the cluster also goes into the key set in Git of RFC 0008 (`mise run vertex:jwks`, a PR), and the owner applies `accounts/gcp/`.
 - **Drift.** Terraform cannot see a change of a write-only value. Thus it does not detect a hand edit of a seed. `secrets:apply` replaces each seed on each run, so each run corrects a hand edit.
 
 ### Bootstrap
@@ -349,7 +349,7 @@ Source: [Google Cloud: migrate from the Gemini API](https://docs.cloud.google.co
 Nothing secret. RFC 0008 owns the design ("The Google Cloud side" in RFC 0008). In short:
 
 - agentgateway uses `policies.auth.gcp` with ambient credentials. A projected `serviceAccountToken` and a credential configuration in a `ConfigMap` give the proxy its Google identity. "Unlike a service account key, a credential configuration file doesn't contain a private key and doesn't need to be kept confidential" ([Google Cloud: federation with Kubernetes](https://docs.cloud.google.com/iam/docs/workload-identity-federation-with-kubernetes)).
-- The pool, the provider, the service account, its custom role and the binding go into `accounts/gcp/` of RFC 0005. They hold no secret, thus local state is permitted. The owner applies them, and uploads the JWKS after each re-create of `kind-local`, with a short sign-in for each apply session (question 4 a).
+- The pool, the provider, the service account, its custom role and the binding go into `accounts/gcp/` of RFC 0005. They hold no secret, thus local state is permitted. The JWKS of each laptop is in the key set in Git (`accounts/gcp/jwks/`), and changes through a PR after each re-create of `kind-local`. The owner applies them, with a short sign-in for each apply session (question 4 a).
 - No seed, no store, no `ExternalSecret` and no consumer entry for `agentgateway-system`. No Gemini key exists, and no `google_apikeys_key`.
 - **The fallback.** If the federation does not work in agentgateway, RFC 0008 question 14 holds the options. Its recommendation is a service account key in SOPS. Then `agentgateway-system` becomes a consumer of this RFC, the owner creates the key with `gcloud` (not Terraform: SC11), and question 3 (c) comes first. RFC 0008 question 14 is open.
 
@@ -508,7 +508,7 @@ To go back: delete the `ExternalSecret`, and ESO deletes the consumer Secret. `t
 ## Drawbacks
 
 - Each secret change needs the owner at the keyboard: `sops edit` and `secrets:apply`.
-- A test that needs a seed waits for the owner. A re-created `kind-local` has no seeds until the owner applies again, and no uploaded JWKS for the federation of RFC 0008 until the owner uploads it.
+- A test that needs a seed waits for the owner. A re-created `kind-local` has no seeds until the owner applies again, and the federation of RFC 0008 refuses its tokens until its keys are in the key set in Git and the owner applies.
 - ESO adds parts that one `kubectl create secret` does not need. They pay back when a cloud backend comes.
 - One seed namespace and one store for each consumer add objects. Two copies of each value are in etcd.
 - The trusted platform components read each Secret. The design accepts this; only upstream changes remove it.
@@ -590,7 +590,7 @@ Not selected:
 
 ### 4. Provider account tokens in SOPS (decided)
 
-Decided by the owner on 2026-11-02: option (a). No provider tokens in SOPS, as in RFC 0005: short-lived tokens for each apply session, until the agent identity RFC. This also covers the `accounts/gcp/` resources and the JWKS upload of RFC 0008.
+Decided by the owner on 2026-11-02: option (a). No provider tokens in SOPS, as in RFC 0005: short-lived tokens for each apply session, until the agent identity RFC. This also covers the `accounts/gcp/` resources and the key set of RFC 0008.
 
 Not selected: (b) yes, with one scope key for each account. The key on the machine then gives the agents an edit token.
 
