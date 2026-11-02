@@ -177,6 +177,50 @@ deny contains msg if {
 	msg := "policy/data/labels.yaml is not loaded: run conftest with --data policy/data"
 }
 
+# Each key of data.labels that a check reads: [path, type, must not be empty].
+# A missing or empty key would make a check pass in silence. The allowlists
+# that only permit more can be empty.
+labels_data_keys := [
+	[["prefix"], "string", true],
+	[["platform_tenant"], "string", true],
+	[["subgroups"], "object", true],
+	[["components"], "object", false],
+	[["unstable_keys"], "array", true],
+	[["forbidden_sync_options"], "array", true],
+	[["apps_pod_security_levels"], "array", true],
+	[["required", "namespace", "labels"], "array", true],
+	[["required", "pod_template", "labels"], "array", true],
+	[["required", "object", "labels"], "array", true],
+	[["required", "cloud", "labels"], "array", true],
+	[["required", "cloud", "ephemeral_labels"], "array", false],
+	[["allowlists", "reserved_prefixes", "keys"], "array", false],
+	[["allowlists", "reserved_prefixes", "prefixes"], "array", false],
+	[["allowlists", "no_prefix"], "array", false],
+	[["allowlists", "custom_keys_upstream"], "array", false],
+	[["allowlists", "sync_options_upstream"], "array", false],
+	[["allowlists", "pod_security_apps"], "array", false],
+	# K15 refuses these namespaces: an empty list refuses none.
+	[["allowlists", "reserved_namespaces"], "array", true],
+	[["allowlists", "upstream_namespaces"], "array", false],
+]
+
+deny contains msg if {
+	is_object(data.labels)
+	some [path, type, _] in labels_data_keys
+	value := object.get(data.labels, path, null)
+	type_name(value) != type
+	msg := sprintf("policy/data/labels.yaml: labels.%s must have the type %s, not %s", [concat(".", path), type, type_name(value)])
+}
+
+deny contains msg if {
+	is_object(data.labels)
+	some [path, type, true] in labels_data_keys
+	value := object.get(data.labels, path, null)
+	type_name(value) == type
+	count(value) == 0
+	msg := sprintf("policy/data/labels.yaml: labels.%s must not be empty", [concat(".", path)])
+}
+
 as_object(x) := x if is_object(x)
 
 else := {}

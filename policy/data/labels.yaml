@@ -188,15 +188,13 @@ labels:
     # level other than restricted or baseline.
     pod_security_apps: []
     # K15: the namespaces that an apps component cannot use. Glob patterns.
-    # cert-manager and agent-sandbox-system: the defaults of the Terraform
-    # modules bootstrap-cert-manager and bootstrap-agent-sandbox, which create
-    # them. bootstrap-cilium uses kube-system.
+    # cert-manager: the default of the Terraform module bootstrap-cert-manager,
+    # which creates it. bootstrap-cilium uses kube-system.
     reserved_namespaces:
       - default
       - kube-*
       - argocd
       - cert-manager
-      - agent-sandbox-system
     # K15: a Namespace of an upstream chart that has another name than the
     # namespace of its component. Each entry: {component, namespace}.
     upstream_namespaces: []

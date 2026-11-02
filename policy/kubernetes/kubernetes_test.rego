@@ -444,6 +444,31 @@ test_missing_data_is_denied if {
 	"policy/data/labels.yaml is not loaded: run conftest with --data policy/data" in kubernetes.deny with input as [] with data.labels as null
 }
 
+test_data_without_forbidden_sync_options_is_denied if {
+	labels := object.remove(data.labels, ["forbidden_sync_options"])
+	"policy/data/labels.yaml: labels.forbidden_sync_options must have the type array, not null" in kubernetes.deny with input as [] with data.labels as labels
+}
+
+test_data_without_required_object_labels_is_denied if {
+	labels := json.remove(data.labels, ["required/object"])
+	"policy/data/labels.yaml: labels.required.object.labels must have the type array, not null" in kubernetes.deny with input as [] with data.labels as labels
+}
+
+test_data_with_empty_unstable_keys_is_denied if {
+	labels := object.union(data.labels, {"unstable_keys": []})
+	kubernetes.deny == {"policy/data/labels.yaml: labels.unstable_keys must not be empty"} with input as [] with data.labels as labels
+}
+
+test_data_with_wrong_type_is_denied if {
+	labels := object.union(data.labels, {"prefix": ["infra.gsuquet.com"]})
+	"policy/data/labels.yaml: labels.prefix must have the type string, not array" in kubernetes.deny with input as [] with data.labels as labels
+}
+
+test_data_with_empty_allowlist_is_allowed if {
+	labels := object.union(data.labels, {"components": {}, "allowlists": {"no_prefix": []}})
+	count(kubernetes.deny) == 0 with input as [] with data.labels as labels
+}
+
 test_loaded_data_is_allowed if {
 	count(kubernetes.deny) == 0 with input as []
 }
