@@ -9,7 +9,9 @@ source "$MISE_PROJECT_ROOT/.mise/tasks/_base/log.sh"
 cd "$MISE_PROJECT_ROOT"
 
 log_info "Testing policies..."
-conftest verify --policy policy
+# policy/data/ holds the data files of the policies, for example labels.yaml.
+# The policies read them as data.<top-level key>.
+conftest verify --policy policy --data policy/data
 
 # conftest_files <namespace> <conftest args...> -- <git pathspec...>
 conftest_files() {
@@ -34,7 +36,7 @@ conftest_files() {
     fi
 
     log_info "Checking ${#files[@]} file(s) against policy namespace '$namespace'..."
-    conftest test --no-color --policy policy --namespace "$namespace" ${args[@]+"${args[@]}"} "${files[@]}"
+    conftest test --no-color --policy policy --data policy/data --namespace "$namespace" ${args[@]+"${args[@]}"} "${files[@]}"
 }
 
 conftest_files terraform --combine --parser hcl2 -- '*.tf'

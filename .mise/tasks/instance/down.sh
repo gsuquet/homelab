@@ -10,7 +10,7 @@ source "$MISE_PROJECT_ROOT/.mise/tasks/_base/log.sh"
 source "$MISE_PROJECT_ROOT/.mise/tasks/_base/instance.sh"
 
 instance_load "${usage_instance:?}"
-instance_preflight
+instance_preflight --no-resources
 instance_init
 
 # Read the cluster name before the destroy removes it from the state.
