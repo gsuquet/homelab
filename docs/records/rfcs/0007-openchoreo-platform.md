@@ -208,7 +208,7 @@ apps:
     dependsOn: [openchoreo-data-plane]
 ```
 
-The sync waves are global across all `Application` objects. `agentgateway` has no `dependsOn`, thus it is in the first wave with `argocd`, `cert-manager` and `external-secrets` (RFC 0003: `dependsOn` gives each Application its wave). If it is not `Healthy`, the health gate holds back each later wave: `kgateway`, `kagent`, `thunder`, both planes and `choreo-sandbox`. M1 has no seed: agentgateway calls Vertex AI through Workload Identity Federation, with no secret (RFC 0008 question 4, RFC 0006 question 2). Thus no `secrets:apply` gates the `agentgateway` `Application`. A missing upload of the cluster keys to Google fails only the model calls, not the health of the `Application`.
+The sync waves are global across all `Application` objects. `agentgateway` has no `dependsOn`, thus it is in the first wave with `argocd`, `cert-manager` and `external-secrets` (RFC 0003: `dependsOn` gives each Application its wave). If it is not `Healthy`, the health gate holds back each later wave: `kgateway`, `kagent`, `thunder`, both planes and `choreo-sandbox`. M1 has no seed: agentgateway calls Vertex AI through Workload Identity Federation, with no secret (RFC 0008 question 4, RFC 0006 question 2). Thus no `secrets:apply` gates the `agentgateway` `Application`. Cluster keys that are not yet in the RFC 0008 key set fail only the model calls, not the health of the `Application`.
 
 The workflow plane and the observability plane stay out of the M2 scope (refer to [question 1](#1-the-planes-in-the-scope-of-m2-decided)). The owner selected the names `kgateway-system` and `sandbox` ([question 5](#5-the-openchoreo-namespace-of-a-tenant-decided) B and [question 10](#10-the-namespace-of-kgateway-decided) B).
 
