@@ -226,7 +226,7 @@ The rules:
 - **The instance root module never reads the SOPS file.** Thus an agent, a new clone, or a later agent sandbox without the age key runs `mise run instance:up kind-local` as before. That apply does not touch the seeds, because they are in a different state.
 - **The seed namespaces come before the seeds.** The `external-secrets` component creates them from its consumer list, with the `Role` and `RoleBinding` of each store. Thus Argo CD syncs the same objects with and without the seeds. Without the seeds, each `ExternalSecret` waits, and its consumer has no key.
 - **The preconditions of `secrets:apply`.** The cluster is up, its kubeconfig passes the checks above, and the seed namespace of each consumer in the seed map exists. Else the task stops with a clear message.
-- **After `instance:down` and `instance:up`.** The new cluster has no seeds, but the secrets state still lists them. The owner runs `secrets:apply`. The refresh finds no Secret, and the plan creates each seed again with `data_wo`. When an agent re-creates `kind-local`, the signal is the `Ready` condition of each `ExternalSecret`. The agent tells the owner. The owner also uploads the new JWKS of the cluster for the federation of RFC 0008 (`mise run vertex:jwks kind-local`).
+- **After `instance:down` and `instance:up`.** The new cluster has no seeds, but the secrets state still lists them. The owner runs `secrets:apply`. The refresh finds no Secret, and the plan creates each seed again with `data_wo`. When an agent re-creates `kind-local`, the signal is the `Ready` condition of each `ExternalSecret`. The agent tells the owner. The owner also merges the new JWKS of the cluster into the federation of RFC 0008 (`mise run vertex:jwks kind-local`).
 - **Drift.** Terraform cannot see a change of a write-only value. Thus it does not detect a hand edit of a seed. `secrets:apply` replaces each seed on each run, so each run corrects a hand edit.
 
 ### Bootstrap
@@ -235,7 +235,7 @@ The rules:
 
 **The first ESO credential.** On `kind-local`, each store uses the ESO `kubernetes` provider with a ServiceAccount that the store names. The provider does not accept the ServiceAccount of the operator itself ([ESO: Kubernetes provider](https://external-secrets.io/latest/provider/kubernetes/)). No secret credential exists to bootstrap: Kubernetes RBAC is the control.
 
-A later cloud backend uses GKE Workload Identity or Workload Identity Federation ([ESO: Google Cloud Secret Manager](https://external-secrets.io/latest/provider/google-secrets-manager/)). The federation file "doesn't contain a private key" ([Google Cloud: federation with Kubernetes](https://docs.cloud.google.com/iam/docs/workload-identity-federation-with-kubernetes)). Never a service account key.
+A later cloud backend uses GKE Workload Identity or Workload Identity Federation ([ESO: Google Cloud Secret Manager](https://external-secrets.io/latest/provider/google-secrets-manager/)). The federation file "doesn't contain a private key" ([Google Cloud: federation with Kubernetes](https://docs.cloud.google.com/iam/docs/workload-identity-federation-with-kubernetes)). A service account key is not used. RFC 0008 question 14 holds the fallback, and the owner has not decided it.
 
 ```mermaid
 sequenceDiagram
@@ -261,11 +261,11 @@ In text: the owner or an agent runs `instance:up`. Argo CD syncs ESO with the se
 
 | Option | Cost and free tier | Argo CD fit | Offline and `kind-local` | Blast radius |
 | --- | --- | --- | --- | --- |
-| **A1. GCP Secret Manager** | Free each month: 6 active versions, 10,000 accesses, 3 rotation notifications, for each billing account. Then about USD 0.06 a month for each version and USD 0.03 for each 10,000 accesses ([pricing](https://cloud.google.com/secret-manager/pricing)). Needs billing. | Good: provider `stable` ([ESO: stability](https://external-secrets.io/latest/introduction/stability-support/)) | No offline. On Kind: federation with a JWKS that changes with each new cluster, or a service account key (refused) | A GCP identity with `roles/secretmanager.secretAccessor` |
+| **A1. GCP Secret Manager** | Free each month: 6 active versions, 10,000 accesses, 3 rotation notifications, for each billing account. Then about USD 0.06 a month for each version and USD 0.03 for each 10,000 accesses ([pricing](https://cloud.google.com/secret-manager/pricing)). Needs billing. | Good: provider `stable` ([ESO: stability](https://external-secrets.io/latest/introduction/stability-support/)) | No offline. On Kind: federation with a JWKS that changes with each new cluster, or a service account key (not used. RFC 0008 question 14 holds the fallback, and the owner has not decided it) | A GCP identity with `roles/secretmanager.secretAccessor` |
 | **A2. AWS Secrets Manager, SSM Parameter Store, Azure Key Vault** | SSM standard: no extra charge, 10,000 parameters ([AWS: parameter tiers](https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-store-advanced-parameters.html)). Secrets Manager: paid for each secret ([AWS](https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html)). Key Vault: refer to the verify list. | Good: `stable` | No offline. On Kind: a static key or federation | The IAM or RBAC of the identity |
 | **B1. SOPS in Argo CD: KSOPS or helm-secrets** | Free | Bad. Argo CD "strongly caution[s] against" secret injection at manifest generation, and keeps generated manifests "in plaintext in its Redis cache" ([Argo CD: secret management](https://argo-cd.readthedocs.io/en/stable/operator-manual/secret-management/)). Here `rendered/` goes into Git. | Yes | The age key in the repo server |
 | **B2. ESO webhook to a SOPS service** | Free | Medium: webhook provider `alpha` | Yes | The age key in the cluster |
-| **C. Seed namespaces with the ESO `kubernetes` provider (recommended)** | Free | Good: Argo CD syncs only objects with no secret. Provider `beta`. | Yes, offline | One consumer for each store. The trusted platform components read all. |
+| **C. Seed namespaces with the ESO `kubernetes` provider (selected)** | Free | Good: Argo CD syncs only objects with no secret. Provider `beta`. | Yes, offline | One consumer for each store. The trusted platform components read all. |
 | **D. Vault or OpenBao** | Free software, new stateful service | Good | Yes | A new unseal key and backups |
 | **E. Bitwarden, Infisical, 1Password** | Refer to the verify list | Medium: providers `alpha` | No offline | A machine token, a new vendor |
 | **F. No ESO: Terraform writes each consumer Secret** | Free | Medium | Yes | Smaller, but against the decision of 2026-10-30 |
@@ -338,7 +338,7 @@ The chart values, after the ESO security guide ([ESO: security best practices](h
 | Credential | An API key | A Google Cloud identity |
 | Billing | Not necessary | Necessary |
 | Data use | Free tier: "Your prompts and responses may be used to improve Google products." Paid tier: never. | Never |
-| On `kind-local` | One string in a Secret | A service account key (refused), federation, or the login file of the owner (refused) |
+| On `kind-local` | One string in a Secret | A service account key (not used. RFC 0008 question 14 holds the fallback, and the owner has not decided it), federation (selected), or the login file of the owner (refused) |
 
 Source: [Google Cloud: migrate from the Gemini API](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/migrate/migrate-google-ai).
 
@@ -351,7 +351,7 @@ Nothing secret. RFC 0008 owns the design ("The Google Cloud side" in RFC 0008). 
 - agentgateway uses `policies.auth.gcp` with ambient credentials. A projected `serviceAccountToken` and a credential configuration in a `ConfigMap` give the proxy its Google identity. "Unlike a service account key, a credential configuration file doesn't contain a private key and doesn't need to be kept confidential" ([Google Cloud: federation with Kubernetes](https://docs.cloud.google.com/iam/docs/workload-identity-federation-with-kubernetes)).
 - The pool, the provider, the service account, its custom role and the binding go into `accounts/gcp/` of RFC 0005. They hold no secret, thus local state is permitted. The owner applies them, and uploads the JWKS after each re-create of `kind-local`, with a short sign-in for each apply session (question 4 a).
 - No seed, no store, no `ExternalSecret` and no consumer entry for `agentgateway-system`. No Gemini key exists, and no `google_apikeys_key`.
-- **The fallback.** If the federation does not work in agentgateway, RFC 0008 question 14 holds the options. Its recommendation is a service account key in SOPS. Then `agentgateway-system` becomes a consumer of this RFC, the owner creates the key with `gcloud` (not Terraform: SC11), and question 3 (c) comes first. That question is open.
+- **The fallback.** If the federation does not work in agentgateway, RFC 0008 question 14 holds the options. Its recommendation is a service account key in SOPS. Then `agentgateway-system` becomes a consumer of this RFC, the owner creates the key with `gcloud` (not Terraform: SC11), and question 3 (c) comes first. RFC 0008 question 14 is open.
 
 #### Requirements on kagent for RFC 0008
 
@@ -406,7 +406,7 @@ SC16 reads each `Role`, `ClusterRole`, `RoleBinding` and `ClusterRoleBinding`, a
 - Only a trusted platform component of `policy/data/secrets.yaml`, at its chart version and instance, has read access to Secrets in all namespaces.
 - No role of the kagent tool server has `*`, `secrets` or `nonResourceURLs`.
 - The kagent getter and writer `Role` with `""/*` are permitted in `kagent` only, by name.
-- Outside the allowlist, no ServiceAccount gets `create`, `update` or `patch` on pods or workload kinds (`deployments`, `statefulsets`, `daemonsets`, `replicasets`, `jobs`, `cronjobs`), `create` on `serviceaccounts/token`, `pods/exec`, the RBAC kinds, or `impersonate`, in a namespace that holds a seed or a consumer Secret, or a `ServiceAccount` with a federated Google identity. For M1 that is `agentgateway-system` (RFC 0008). `policy/data/secrets.yaml` lists these namespaces.
+- Outside the allowlist, no ServiceAccount gets `create`, `update` or `patch` on pods or workload kinds (`deployments`, `statefulsets`, `daemonsets`, `replicasets`, `jobs`, `cronjobs`), `create` on `serviceaccounts/token`, `pods/exec`, the RBAC kinds, or `impersonate`, in a namespace that holds a seed or a consumer Secret, or a `ServiceAccount` with a federated Google identity. For M1 that is `agentgateway-system` (RFC 0008). `policy/data/secrets.yaml` lists these namespaces. For this rule, the allowlist is the same file: each trusted platform component with its chart version and instance, by its role and binding. For `agentgateway-system`, that is the deployer `RoleBinding` of the agentgateway controller and the roles of Argo CD. Each other subject with these rights there fails SC16.
 
 SC7 changes the current rule: a SOPS-encrypted `Secret` no longer passes in `gitops/`, because no SOPS file goes there.
 
@@ -527,7 +527,7 @@ To go back: delete the `ExternalSecret`, and ESO deletes the consumer Secret. `t
 - **A cloud secret manager now (A1, A2).** A credential or a fragile federation on a test cluster, billing and network. Later, for U5.
 - **A cloud KMS instead of age.** Better only while the owner signs out. Question 3 did not select it.
 - **`CODEOWNERS` for the secret paths.** RFC 0003 removed it, and GitHub does not enforce it while the agents use the account of the owner.
-- **One shared `ClusterSecretStore` for all OpenChoreo tenants.** Each cell then reads every tenant key. Not recommended (question 7).
+- **One shared `ClusterSecretStore` for all OpenChoreo tenants.** Each cell then reads every tenant key. Not selected (question 7).
 - **A label condition on the `oc-*` stores.** Nothing protects the label on a namespace outside `dp-*`, and ESO accepts a namespace if any condition matches.
 - **ESO 2.13 on Kubernetes 1.36.** It has no support and no security fixes after 2026-10-23. The owner selected Kubernetes 1.37 instead.
 - **Vertex AI through federation for M1 (question 2).** M1 needs no secret, and no key exists to leak. The draft recommended a Gemini API key, which needs the full path of this RFC.
@@ -612,8 +612,8 @@ OpenChoreo 1.3.3 refers to an ESO `ClusterSecretStore` by name only, and creates
 
 Decided by the owner on 2026-11-02: option (A), the `oc-<tenant>` `ClusterSecretStore`, with SC9a. It answers RFC 0007 question 3, together with RFC 0007 question 5 B and, before a second tenant, RFC 0007 question 13 B.
 
-- **(A) One `ClusterSecretStore` for each tenant, `oc-<tenant>`.** Each reads only `secret-seeds-oc-<tenant>`, with a pinned ServiceAccount there, and its one condition is `namespaceRegexes: ["^dp-<tenant>-"]`. With the tenant naming rule that RFC 0007 question 5 proposes, tenants do not read the keys of other tenants. SC9 checks it in Git, and the admission policy SC9a in the cluster. RFC 0007 question 13 B comes before a second tenant.
-- **(B) One shared `ClusterSecretStore` for all tenants.** Simple, but each cell reads every tenant key. Not recommended.
+- **(A) One `ClusterSecretStore` for each tenant, `oc-<tenant>`.** Each reads only `secret-seeds-oc-<tenant>`, with a pinned ServiceAccount there, and its one condition is `namespaceRegexes: ["^dp-<tenant>-"]`. With the tenant naming rule that RFC 0007 question 5 decides (B), tenants do not read the keys of other tenants. SC9 checks it in Git, and the admission policy SC9a in the cluster. RFC 0007 question 13 B comes before a second tenant.
+- **(B) One shared `ClusterSecretStore` for all tenants.** Simple, but each cell reads every tenant key. Not selected.
 - **(C) A namespaced store in each `dp-*` namespace.** Something must create the store and its RBAC when OpenChoreo creates the namespace, for example the cluster agent or a policy engine. The OpenChoreo API documents no namespaced store.
 - **(D) Defer.** No cluster store until RFC 0007 decides. M2 then has no secrets.
 
@@ -625,6 +625,7 @@ Decided by the owner on 2026-11-02: option (A), the `oc-<tenant>` `ClusterSecret
 - **[RFC 0005](0005-repository-scope-and-naming.md)**: the state rules, decision 5, and the short-lived tokens for each apply session (question 4 a), also for the `accounts/gcp/` resources of RFC 0008.
 - **RFC 0007 (OpenChoreo)**, in draft: the `oc-<tenant>` stores of question 7 answer its question 3. Its question 13 B is a prerequisite before a second tenant. Its platform components are consumers with namespaced stores. Its R6 adds the tenant `sandbox`, and its R3 and R4 add the consumers `thunder` and `openchoreo-control-plane`, each in the PR of its component. Question 7 of this RFC owns the options for the OpenChoreo stores; its question 3 refers to it.
 - **RFC 0008 (kagent and agentgateway)**, in draft: Vertex AI through federation, with no secret in M1 (question 2), the requirements on kagent, SC16 and its rule for `agentgateway-system`, its question 5 on the scope of the kagent controller, its question 9 on the PostgreSQL Secret (SC7), its open question 14 (the fallback: a service account key in SOPS), its open question 16 (a dummy `ModelConfig` key and SC7), and the auth mode of the controller.
+- **The tenants RFC** ([issue #182](https://github.com/gsuquet/homelab/issues/182), not yet written): it takes the `oc-<tenant>` stores of question 7 from its tenant list, and thus amends this RFC.
 - **The tooling RFC**: the remote backend.
 - **The agent identity RFC**: closes the agent gap.
 
