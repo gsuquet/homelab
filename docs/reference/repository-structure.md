@@ -1,45 +1,34 @@
-# Reference: Repository Structure
+# Repository structure
 
-This page shows the target tree of the repository and the legacy folders. The reasons are in [Repository structure (explanation)](../explanation/repository-structure.md).
+This page lists the folders and the root files of the repository. It also lists the files of a module and of an instance, the naming rules and the legacy folders.
 
-## Status of the tree
-
-The target tree is not complete yet. This page marks each part that does not exist in the repository. The mark is [not yet]. Later pull requests (PRs) add these parts.
-
-The folder `accounts/<account>/` holds one Terraform root module for each provider account. Its files and rules are in [Provider accounts](provider-accounts.md).
-
-## Target tree
+## Tree
 
 ```text
 (the root of the repository)
-├── accounts/<account>/               # [not yet] One Terraform root module for each provider account
 ├── modules/                          # Terraform child modules. A module never runs alone.
 │   ├── _template/                    # Template for a new module
 │   └── <layer>-<component>/          # Layer: substrate, cluster or bootstrap
 ├── instances/
 │   └── <instance>/                   # One Terraform root module for each instance
 ├── gitops/                           # GitOps sources
-│   ├── infrastructure/
-│   │   └── <component>/sources/      # Components that can change cluster-scoped resources
-│   ├── apps/
-│   │   └── <app>/sources/            # Applications
-│   └── clusters/
-│       └── <cluster>/                # Same name as the instance
-│           ├── cluster.yaml
-│           ├── values/<component>.yaml
-│           └── rendered/<component>/
+│   ├── infrastructure/<component>/sources/
+│   ├── apps/<app>/sources/
+│   └── clusters/<cluster>/           # Same name as the instance
 ├── policy/
-│   └── <input>/                      # Conftest policies and their tests
+│   ├── <input>/                      # Conftest policies and their tests
+│   └── data/                         # Data files of the policies
 ├── schemas/
 │   ├── <kind>.schema.json            # JSON Schemas
 │   └── tests/                        # Fixtures
 ├── docs/
 │   ├── tutorials/, how-to/, reference/, explanation/
+│   ├── templates/                    # A template for each page type
 │   └── archive/
 ├── .github/
 │   ├── workflows/
 │   ├── labeler.yml
-│   ├── ISSUE_TEMPLATE/               # [not yet] Issue forms and config.yml
+│   ├── labels.yml
 │   └── pull_request_template.md
 ├── .mise/
 │   ├── config.toml
@@ -50,40 +39,44 @@ The folder `accounts/<account>/` holds one Terraform root module for each provid
 ├── .editorconfig, .gitignore, .pre-commit-config.yaml, .shellcheckrc,
 │   .terraform-docs.yml, .tflint.hcl, .typos.toml, .vale.ini, .yamllint.yaml
 ├── renovate.json
-├── README.md, LICENSE, CONTRIBUTING.md, CHANGELOG.md
+├── README.md, LICENSE, CONTRIBUTING.md, CHANGELOG.md,
+│   CODE_OF_CONDUCT.md, SECURITY.md
 │
-├── ansible/, kubernetes/, scripts/   # Legacy. Not part of the target tree.
-└── AGENTS.md, CLAUDE.md, GEMINI.md,  # Agent files. Out of scope.
+├── ansible/, kubernetes/             # Legacy folders
+└── AGENTS.md, CLAUDE.md, GEMINI.md,  # Agent files
     .claude/, .gemini/, .entire/
 ```
 
-Notes on the tree:
+| Folder or file | Content |
+| --- | --- |
+| `modules/` | Terraform child modules. Refer to [Files of a module](#files-of-a-module). |
+| `instances/` | Terraform root modules, one for each instance. Refer to [Files of an instance](#files-of-an-instance). |
+| `gitops/` | The GitOps sources and the rendered manifests of each cluster. Refer to [GitOps layout](gitops-layout.md). |
+| `policy/` | The Conftest policies. Refer to [Policies](policies.md). |
+| `schemas/` | The JSON Schemas of the metadata files, and their fixtures. Refer to [Schemas](schemas.md). |
+| `docs/` | The documentation. Refer to [Writing rules](writing-rules.md). |
+| `.github/` | The workflows, the labeler rules, the label list and the pull request template. |
+| `.mise/` | The tools, their lock file and the tasks. Refer to [Mise tasks](mise-tasks.md) and [Tools](tools.md). |
+| `ansible/`, `kubernetes/` | The legacy folders. Refer to [Legacy folders](#legacy-folders). |
+| `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.claude/`, `.gemini/`, `.entire/` | The instruction files and the settings of the agents. A module can also have an `AGENTS.md` file. |
 
-- `ansible/`, `kubernetes/` and `scripts/` are legacy folders. Refer to [Legacy folders](#legacy-folders).
-- The agent files are outside the target tree. The place for them is not decided yet.
-- The choice of tools, their versions and their pins is outside the target tree.
-- A script that is not a mise task has no place in the target tree. A shared shell function goes in `.mise/tasks/_base/`.
-- Each tool reads its configuration from the default location of the tool. The repository does not use a flag to change that location.
-- Modules have no `examples/` folder. The instances are the examples.
-- There is no `FUNDING.yml`, here or in `gsuquet/.github`.
+- A shell script is a mise task, in `.mise/tasks/`. A shared shell function is in `.mise/tasks/_base/`.
+- Each tool reads its configuration from the default location of the tool. No task uses a flag to change that location.
+- Modules have no `examples/` folder.
+- The repository has no `.github/CODEOWNERS` file.
 
-### Open work
+## Root files
 
-| Item | Status | Issue |
-| --- | --- | --- |
-| Issue forms and `config.yml` in `.github/` | Not done. The generic forms can go to `gsuquet/.github` instead. | #200 |
-| `README.md` and `CONTRIBUTING.md` in the Good Docs Project form | Not done. | #220 |
-| Move of `CODE_OF_CONDUCT.md` and `SECURITY.md` out of the root, and a new `SUPPORT.md` | Not done. The files go to `gsuquet/.github`, and this repository keeps no copy. | #220, after #214 |
-| Check for the folders at the root | No check exists. The reviewer checks the tree. | #221 |
-| Check for the Terraform file names and the other names with "None yet" in the naming table | Not done. | #221 |
-| The deprecation `README.md` files, `lint:legacy` and its allowlist | Not done. | #219 |
-| The repository description, the topics and the docs link of the community profile | Not done. These are manual settings. | #222 |
-| The removal of the legacy folders, after the migration of the Raspberry Pi | Blocked by the migration. | #223 |
-| The folder `accounts/` | Not done. | #231 |
+| File | Content |
+| --- | --- |
+| `README.md` | The entry page of the repository. |
+| `LICENSE` | The MIT license. It applies to all the repository, `docs/` too. |
+| `CONTRIBUTING.md` | The tasks, the checks and the review flow for a change. |
+| `CHANGELOG.md` | The list of changes. `mise run changelog:generate` writes it from the commit messages with git-cliff. |
+| `CODE_OF_CONDUCT.md` | The Contributor Covenant, version 2.0. |
+| `SECURITY.md` | How to report a vulnerability. |
 
-## Terraform modules and instances
-
-### Files of a module
+## Files of a module
 
 | File or folder | Necessary | Content |
 | --- | --- | --- |
@@ -93,17 +86,17 @@ Notes on the tree:
 | `main.tf` | Yes | The primary resources. |
 | `variables.tf` | Yes | The input variables. |
 | `outputs.tf` | Yes | The outputs. |
-| `.terraform.lock.hcl` | Yes | The provider checksums. `mise run tf:lock` writes it. |
+| `.terraform.lock.hcl` | Yes, but not in `_template/` | The provider checksums. `mise run tf:lock` writes it. |
+| `AGENTS.md` | No | Instructions for the agents that change the module. |
 | `locals.tf` | No | Local values that more than one file uses. |
 | `<topic>.tf` | No | A group of related resources, for example `namespace.tf`. |
 | `templates/` | No | Files for `templatefile()`, with the extension `.tftpl`. |
-| `manifests/` | No | Copies of upstream manifests, without change. |
-| `charts/<chart>/` | No | A copy of an upstream chart, without change. |
+| `manifests/` | No | Copies of upstream manifests, with no change. |
 
 - A module has no `providers.tf` and no `backend.tf`. The instance configures the providers and the state.
-- A copy of upstream content keeps the license of its source. The folder of the copy holds the license file of the source. `README.md` of the module names the source, the version and the license.
+- `docs/reference/terraform-modules/<module>/index.md` is a generated copy of the `README.md` of the module. `mise run doc:check` makes sure that the copy is equal to its source.
 
-### Files of an instance
+## Files of an instance
 
 | File | Necessary | Content |
 | --- | --- | --- |
@@ -116,32 +109,8 @@ Notes on the tree:
 | `backend.tf` | If the state is remote | The `backend` or `cloud` block. |
 | `.terraform.lock.hcl` | Yes | The provider checksums. |
 
-- The repository does not commit `*.tfvars`. `.gitignore` blocks them.
-
-### Documentation of the modules
-
-`docs/reference/terraform-modules/<module>/index.md` is a generated copy of the `README.md` of the module. `mise run doc:check` makes sure that the copy is equal to its source.
-
-## GitOps layout
-
-```text
-gitops/
-├── infrastructure/<component>/sources/   # Components that can change cluster-scoped resources
-│   ├── Chart.yaml                        # Umbrella chart. The upstream chart has an exact version.
-│   ├── values.yaml                       # Values for all clusters
-│   └── templates/                        # namespace.yaml, and more manifests
-├── apps/<app>/sources/                   # The same layout
-└── clusters/<cluster>/
-    ├── cluster.yaml                      # Entry point: the components of the cluster
-    ├── values/<component>.yaml           # Optional. Values for this cluster only
-    └── rendered/<component>/             # Generated manifests. The render task writes them.
-```
-
-- A cluster selects its components in `cluster.yaml`. It can override values in `values/`.
-- `mise run manifests:render` writes `rendered/<component>/`.
-- The `argocd` chart renders one Application for each item of `cluster.yaml`. `dependsOn` gives each Application a sync wave.
-- The `argocd` Application syncs `gitops/clusters/<cluster>/rendered/argocd/`. This folder holds the Applications and the AppProjects.
-- An instance that runs Argo CD has a cluster folder with the same name. The `bootstrap-argocd` module applies the rendered Argo CD manifests of that cluster.
+- `.gitignore` blocks `*.tfvars`, `*.tfvars.json`, `*.tfstate` and `*.tfstate.*`.
+- An instance that runs Argo CD has a folder with the same name in `gitops/clusters/`.
 
 ## Naming rules
 
@@ -154,14 +123,14 @@ The general rule: the base of a folder or file name uses lowercase letters, digi
 | GitOps cluster folder | Equal to the instance name. Maximum 40 characters. | `gitops/clusters/kind-local/` | `gitops-cluster.schema.json`, `instance-checks.sh` |
 | GitOps component folder | DNS-1123 label. Equal to the Application name. Unique in a cluster. Maximum 53 characters, the limit of a Helm release name. | `cert-manager` | `gitops-cluster.schema.json`, `instance-checks.sh` |
 | Namespace of a component | DNS-1123 label. Maximum 63 characters. | `cert-manager` | `gitops-cluster.schema.json` |
-| Rendered manifest file | `<kind>-<name>.yaml`, lowercase | `configmap-argocd-cm.yaml` | `manifests:render` writes it |
+| Rendered manifest file | `<kind>-<name>.yaml`, lowercase | `configmap-argocd-cm.yaml` | `manifests:render` writes it. |
 | Terraform identifiers | Snake case. No resource type in the name. `this` for a single resource. | `api_server_address` | TFLint |
-| Terraform files | `terraform.tf`, `providers.tf`, `main.tf`, `variables.tf`, `outputs.tf`, `locals.tf`, `backend.tf`, `<topic>.tf` | `cluster-issuers.tf` | None yet |
-| Template files | `<name>.<extension>.tftpl` | `cilium-values.yaml.tftpl` | None yet |
-| Helm values | Camel case | `targetRevision` | None yet |
-| Rego files | `<input>.rego` and `<input>_test.rego`. The package is `<input>`. The package of the test is `<input>_test`. | `kubernetes_test.rego` | None yet |
-| Schemas | `<kind>.schema.json`. `kind` is the kebab-case form of the `kind` field. | `gitops-cluster.schema.json` | None yet |
-| Documentation pages | DNS-1123 label, with `.md` | `add-gitops-component.md` | None yet |
+| Terraform files | `terraform.tf`, `providers.tf`, `main.tf`, `variables.tf`, `outputs.tf`, `locals.tf`, `backend.tf`, `<topic>.tf` | `cluster-issuers.tf` | The review |
+| Template files | `<name>.<extension>.tftpl` | `cilium-values.yaml.tftpl` | The review |
+| Helm values | Camel case | `targetRevision` | The review |
+| Rego files | `<input>.rego` and `<input>_test.rego`. The package is `<input>`. The package of the test is `<input>_test`. | `kubernetes_test.rego` | The review |
+| Schemas | `<kind>.schema.json`. `kind` is the kebab-case form of the `kind` field. | `gitops-cluster.schema.json` | The review |
+| Documentation pages | DNS-1123 label, with `.md` | `add-gitops-component.md` | The review |
 
 Exceptions:
 
@@ -172,31 +141,24 @@ Exceptions:
 - A rendered manifest file can have dots, for example `customresourcedefinition-applications.argoproj.io.yaml`.
 - `schemas/tests/gitops-tree/` and `schemas/tests/instance-terraform/` name a tree, not a `kind`.
 
-## Community health files and the license
-
-- The root keeps `README.md`, `LICENSE`, `CONTRIBUTING.md` and `CHANGELOG.md`.
-- `CODE_OF_CONDUCT.md` (Contributor Covenant 2.0, contact `contact@gsuquet.com`), `SECURITY.md`, `SUPPORT.md` and a generic `CONTRIBUTING.md` go to `gsuquet/.github` (#220). No `FUNDING.yml`.
-- The shared `SECURITY.md` names GitHub private vulnerability reporting first, "in the Security tab of the repository, if it is on", and email to `contact@gsuquet.com` second. It does not promise private reporting for each repository.
-- Private vulnerability reporting stays on in the settings of this repository, because a default `SECURITY.md` is not in the clones, the forks or the downloads.
-- The MIT license applies to all the repository, also to `docs/`. Each copy of upstream content keeps its upstream license.
-
 ## Legacy folders
 
-The production cluster `olympus` still runs from `ansible/`, `kubernetes/` and `scripts/`. These folders are not part of the target tree. They stay in place, in the "deprecated" state, until the migration of the Raspberry Pi.
+The production cluster `olympus` runs from `ansible/` and `kubernetes/`.
 
-| Folder | Content now | Rule |
+| Folder | Content | Rule |
 | --- | --- | --- |
-| `ansible/` | `ansible.cfg`, `inventory/`, `playbooks/`, `roles/` | Deprecated. The rule: no new files. |
-| `kubernetes/` | `applications/`, `bootstrap/`, `projects/`, `system/` | Deprecated. The rule: no new files. A move, a rename or a deletion of a folder deletes the production workloads, because the production Argo CD reads these paths. |
+| `ansible/` | `ansible.cfg`, `inventory/`, `playbooks/`, `roles/` | No new files. |
+| `kubernetes/` | `applications/`, `bootstrap/`, `projects/`, `system/` | No new files. No move, rename or deletion of a folder. |
 
-The rules of the "deprecated" state:
+- The Argo CD of `olympus` reads `kubernetes/` at `HEAD`. Its Applications and ApplicationSets in `kubernetes/bootstrap/argo-cd/` have `prune: true` and the finalizer `resources-finalizer.argocd.argoproj.io`.
+- The ApplicationSets make one Application for each folder in `kubernetes/applications/` and `kubernetes/system/`. A deletion of one of these folders deletes that production Application and its resources.
+- A PR can change an existing file in a legacy folder. The review checks that no PR adds a file in a legacy folder.
+- The Vale, Renovate, pre-commit and render rules for these folders stay in force.
 
-- Each legacy folder has a `README.md`. Its first heading contains "Deprecated". It gives the reason. [not yet]
-- The mise task `lint:legacy` fails when a change adds a file in a legacy folder. A move into a legacy folder counts as an added file. A change to an existing file stays possible. [not yet]
-- The task ignores only `kubernetes/bootstrap/argo-cd/manifests/*.yaml`. [not yet]
-- The file `.mise/tasks/lint/legacy-allowlist.txt` lists the paths that a migration fix can add. [not yet]
-- The Vale, Renovate, pre-commit and render rules for these folders stay.
+## Related pages
 
-Removal: after `olympus` runs from `instances/` and `gitops/clusters/`, one PR removes the legacy folders, their rules, `lint:legacy`, its allowlist and this section.
-
-Until `lint:legacy` exists, the reviewer checks that no PR adds a file in a legacy folder. Each deletion in `kubernetes/` needs a careful review, because it deletes a production Application.
+- [Repository structure (explanation)](../explanation/repository-structure.md): why the tree, the file layouts and the naming rules have their form.
+- [Repository scope](../explanation/repository-scope.md): what the repository holds, and why.
+- [GitOps layout](gitops-layout.md): the files in `gitops/`.
+- [Schemas](schemas.md): the rules of the metadata files.
+- [Add a GitOps component](../how-to/add-gitops-component.md)
