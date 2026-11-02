@@ -49,7 +49,7 @@ When you add a rule, add a check for it in the same PR.
 
 ## Review
 
-A different agent or the owner reviews each PR. The owner approves each change to the homelab, the modules, CI and the standards. `.github/CODEOWNERS` lists these paths. Refer to "Review policy" in [AGENTS.md](AGENTS.md).
+A different agent or the owner reviews each PR. The owner approves each change to the homelab, the modules, CI and the standards. Refer to "Review policy" in [AGENTS.md](AGENTS.md).
 
 ## Code of conduct
 
