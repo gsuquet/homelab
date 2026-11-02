@@ -1,6 +1,6 @@
 ---
 rfc: "0005"
-status: review
+status: accepted
 start-date: 2026-11-01
 pr: 171
 ---
