@@ -137,7 +137,7 @@ check_gitops_tree() {
 
     # Each component uses the rendered manifests pattern: an umbrella chart in
     # sources/, rendered by manifests:render. There is no hand-written folder.
-    local component required
+    local component required repository
     for component in "$root"/gitops/infrastructure/*/ "$root"/gitops/apps/*/; do
         [ -d "$component" ] || continue
         for required in sources/Chart.yaml sources/templates/namespace.yaml; do
@@ -146,7 +146,38 @@ check_gitops_tree() {
                 failures=$((failures + 1))
             fi
         done
+
+        # manifests:render tells an upstream object from the "charts" segment
+        # of its source path. A chart copied into sources/charts/ would pass as
+        # upstream, so each dependency comes from a chart repository (RFC 0004).
+        [ -f "${component}sources/Chart.yaml" ] || continue
+        while IFS= read -r repository; do
+            case "$repository" in
+                https://* | oci://*) ;;
+                *)
+                    log_error "${component}sources/Chart.yaml: the dependency repository '$repository' must start with https:// or oci://"
+                    failures=$((failures + 1))
+                    ;;
+            esac
+        done < <(yq '.dependencies[] | .repository // ""' "${component}sources/Chart.yaml")
     done
+
+    # Git tracks no file in gitops/*/*/sources/charts/: helm dependency update
+    # writes the archives of the dependencies there, and .gitignore ignores
+    # them. A test case is not a Git repository, so its files count as tracked.
+    # The test looks for .git, not for git rev-parse: a pre-commit hook sets
+    # GIT_DIR, and git then sees each folder as a part of the repository.
+    local tracked
+    if [ -e "$root/.git" ]; then
+        tracked="$(git -C "$root" ls-files -- 'gitops/*/*/sources/charts/*')"
+    else
+        tracked="$(cd "$root" && find gitops/*/*/sources/charts -type f 2> /dev/null || true)"
+    fi
+    while IFS= read -r file; do
+        [ -n "$file" ] || continue
+        log_error "$file: Git must not track files in sources/charts/. Add the chart to dependencies in sources/Chart.yaml."
+        failures=$((failures + 1))
+    done <<< "$tracked"
 
     # A Terraform instance and its GitOps cluster have the same name.
     local tf_file instance
