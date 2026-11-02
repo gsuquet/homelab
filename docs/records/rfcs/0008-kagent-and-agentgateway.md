@@ -21,6 +21,12 @@ The owner set three milestones on 2026-11-02:
 
 The owner also selected Google Gemini as the model provider, and `kind-local` as the first target. The owner has two laptops: 8 GB of memory on the work laptop, and 16 GB on the personal laptop. RFC 0007 tells that OpenChoreo alone needs about 8 GB.
 
+Three more decisions of the owner, in chat on 2026-11-02, apply to this RFC:
+
+- **The model path goes through agentgateway.** The done-when of M1 says "answers through agentgateway". Thus question 2 is decided.
+- **Cluster-wide Secret readers go on a trusted list.** RFC 0006 holds the list and its allowlist check. The agentgateway controller is on it, with `rbac.gatewayNamespaces` set and an upstream issue. The owner accepts the residual risk on `kind-local`. Thus question 12 is decided. The kagent controller goes on the list only if it is not scoped (question 5).
+- **`kind-local` moves to a Kubernetes 1.37 node image**, so that ESO 2.14 runs on a supported version.
+
 The milestone M1 on GitHub has two acceptance criteria, and their checks are "to be defined". This RFC defines them.
 
 Use cases:
@@ -395,7 +401,7 @@ spec:
           name: gemini
 ```
 
-The `ExternalSecret` that writes `google-secret` (sketch). RFC 0006 gives one seed namespace and one `SecretStore` with the fixed name `secrets` for each consumer. For this consumer, the store `agentgateway-system/secrets` reads only the seed namespace `secret-seeds-agentgateway-system`, and the seed has the remote key `gemini-api-key`:
+The `ExternalSecret` that writes `google-secret` (sketch). RFC 0006 gives one seed namespace and one `SecretStore` with the fixed name `secrets` for each consumer. For this consumer, the store `agentgateway-system/secrets` reads only the seed namespace `secret-seeds-agentgateway-system`, and the seed has the remote key `gemini-api-key`. Each seed is a Secret with the name of its remote key and one data key `value` (RFC 0006). The `ExternalSecret` must set `property: value`. For the ESO `kubernetes` provider, `property` is "the key of the remote secret. If you leave it empty it will json encode all key/value pairs" ([ESO: Kubernetes provider](https://external-secrets.io/latest/provider/kubernetes/)). Without it, `Authorization` holds JSON, and the Gemini call fails:
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -414,7 +420,8 @@ spec:
   data:
     - secretKey: Authorization     # agentgateway reads this key by default
       remoteRef:
-        key: gemini-api-key        # in secret-seeds-agentgateway-system; RFC 0006 gives the property
+        key: gemini-api-key        # the seed Secret in secret-seeds-agentgateway-system
+        property: value            # the one data key of each seed (RFC 0006). Without it, ESO writes JSON.
 ```
 
 The `kagent` values (sketch). Each key is from the v0.10.4 values. The name of the default `ModelConfig` is not a value: the template `kagent.defaultModelConfigName` returns the fixed string `default-model-config` ([`_helpers.tpl`](https://github.com/kagent-dev/kagent/blob/v0.10.4/helm/kagent/templates/_helpers.tpl)), and it feeds `DEFAULT_MODEL_CONFIG_NAME`. Thus the `ModelConfig` of this RFC has that name:
@@ -502,7 +509,7 @@ The kagent translator gives the agent pod the model key as an environment variab
 
 ### The traffic path
 
-The model calls go **from kagent to agentgateway, then to Gemini**. The milestone criterion is "answers through agentgateway", and this path is the only one that meets it ([question 2](#2-the-path-of-the-model-calls)).
+The model calls go **from kagent to agentgateway, then to Gemini**. The milestone criterion is "answers through agentgateway", and this path is the only one that meets it ([question 2](#2-the-path-of-the-model-calls-decided)).
 
 ```mermaid
 sequenceDiagram
@@ -542,7 +549,7 @@ The App of Apps gives each `Application` a wave from `dependsOn`. Inside each co
 | `-1` | `agentgateway.dev` CRDs | `kagent.dev` CRDs |
 | `0` | Controller, RBAC, Services. The controller makes the `GatewayClass` at run time. | Controller, UI, tools, PostgreSQL, RBAC, `RemoteMCPServer` from the chart |
 | `1` | `AgentgatewayParameters`, `Gateway`, `AgentgatewayBackend`, `HTTPRoute`, `AgentgatewayPolicy`, `NetworkPolicy` | `ModelConfig`, `Agent`, `NetworkPolicy` |
-| `2` | `ExternalSecret` `google-secret` | — |
+| `2` | `ExternalSecret` `google-secret`, with `argocd.argoproj.io/ignore-healthcheck: "true"` | — |
 
 Rules:
 
@@ -550,7 +557,7 @@ Rules:
 - Argo CD waits for a wave to be healthy before the next wave. Thus the custom resources of wave `1` go in after the controller is ready.
 - The author found no admission webhook in the release notes of either tool. The implementation PR lists each `ValidatingWebhookConfiguration` and `MutatingWebhookConfiguration` in `rendered/`. If one exists, the objects that it checks stay in wave `1` or later.
 - The `ExternalSecret` needs the ESO CRDs. The `agentgateway` Application depends on `external-secrets`, thus the CRDs exist before its sync.
-- **The seed is a manual step.** RFC 0006 says that a new cluster has no seeds until the owner runs `mise run secrets:apply kind-local`. The `ExternalSecret` is in the last wave, so that the Gateway, the backend and the route sync before it. Until the seed exists, the `ExternalSecret` is not synced. If Argo CD reports it as not `Healthy`, the `agentgateway` Application is not `Healthy`, and the App of Apps holds `kagent` back. This block is on purpose: an agent without the key cannot answer. The owner runs `secrets:apply` after `instance:up`, and the sync then continues.
+- **The seed is a manual step, and it does not block the sync.** RFC 0006 says that a new cluster has no seeds until the owner runs `mise run secrets:apply kind-local`. RFC 0006 U7 also lets agents test `kind-local` without the age key. The App of Apps waves are global: an `agentgateway` Application that is not `Healthy` holds back `kagent`, each later M1 change and the M2 components. Thus the `ExternalSecret` has the annotation `argocd.argoproj.io/ignore-healthcheck: "true"`. With it, the health of the resource no longer affects the health of its Application ([Argo CD: resource health](https://argo-cd.readthedocs.io/en/stable/operator-manual/health/)). Without the seed, all of M1 and M2 syncs and becomes `Healthy`, and only the Gemini answer waits. Done criteria 3 and 5 prove the key. The other options were not selected. A separate Application for the `ExternalSecret` needs a second component in `agentgateway-system`, and check K15 gives each namespace one component. A repository-wide health override for `ExternalSecret` removes the signal for each consumer of RFC 0006.
 - `kagent` renders a `RemoteMCPServer` from the chart. It is a custom resource in the same Application as its CRD. Argo CD applies the CRD in the earlier wave. The implementation PR verifies that the dry run does not fail on the first sync. If it fails, the object gets `SkipDryRunOnMissingResource=true`.
 
 ### Packaging for M3
@@ -630,7 +637,7 @@ For comparison, the default kagent install, with ten agents, grafana-mcp and kmc
 | Scenario | Memory | Fit |
 | --- | --- | --- |
 | M1 alone | About 1.4 GiB of requests, on top of the `kind-local` base | Fits on the 8 GB laptop, if Docker has enough memory for the base. Not measured. |
-| M1 with M2 | About 1.4 GiB plus the 8 GB development minimum of OpenChoreo (RFC 0007) | Does not fit on the 8 GB laptop. Expected to fit on the 16 GB laptop. Not measured: done criterion 11 measures it. |
+| M1 with M2 | About 1.4 GiB plus the 8 GB development minimum of OpenChoreo (RFC 0007) | Does not fit on the 8 GB laptop. Expected to fit on the 16 GB laptop. Not measured: RFC 0007 general criterion 3 measures M1 with M2. |
 
 Done criterion 11 records the real peak with `docker stats`.
 
@@ -647,7 +654,7 @@ Thus the controller can read the Gemini key in `agentgateway-system`, and each S
 
 **The chart supports a namespace limit.** With `rbac.namespaces` set, the getter and writer templates make one `Role` and one `RoleBinding` for each listed namespace, and no `ClusterRole`. The controller then watches only these namespaces, unless `controller.watchNamespaces` is set. The chart fails if the list does not include the install namespace (`kagent.rbac.validate` in [`_helpers.tpl`](https://github.com/kagent-dev/kagent/blob/v0.10.4/helm/kagent/templates/_helpers.tpl)). The metrics `ClusterRole` stays. It has only `create` on `tokenreviews` and `subjectaccessreviews`, and only with secure metrics on.
 
-The proposal: `rbac.namespaces: [kagent]` ([question 5](#5-the-scope-of-the-kagent-controller)). The controller can then read and write the core objects of `kagent` only. No Gemini key is there. The rendered rules in `kagent` are two `Role` objects: the getter with `""/*` `get`, `list` and `watch`, and the writer with `""/*`, `apps/*` and `batch/*` `create`, `update`, `patch` and `delete`. `resources: ["*"]` includes Secrets, thus a check that looks only for the word `secrets` does not see it. RFC 0006 SC16 permits Secrets for the controller only in a `Role` in `kagent`. This RFC asks RFC 0006 to name both halves in SC16, the read `Role` and the write `Role`, and to put the kagent controller on its list of trusted platform components (owner decision of 2026-11-02).
+The proposal: `rbac.namespaces: [kagent]` ([question 5](#5-the-scope-of-the-kagent-controller)). The controller can then read and write the core objects of `kagent` only. No Gemini key is there. The rendered rules in `kagent` are two `Role` objects: the getter with `""/*` `get`, `list` and `watch`, and the writer with `""/*`, `apps/*` and `batch/*` `create`, `update`, `patch` and `delete`. `resources: ["*"]` includes Secrets, thus a check that looks only for the word `secrets` does not see it. With question 5 A, the controller is not on the trusted list of RFC 0006. Only an unscoped controller goes there. SC16 permits the getter and the writer `Role` in `kagent` by name.
 
 **The invariant of the namespace `kagent`.** The writer rule `""/*` also covers the subresources `pods/exec` and `serviceaccounts/token`, and the `secrets` of `kagent`. Thus the controller, or each subject that controls it, can act as each `ServiceAccount` in `kagent`. That includes the tool server, which reads pods, logs and ConfigMaps in all namespaces. The rule: no `ServiceAccount` in `kagent` has more rights than the read role of the tool server, and no ESO store is in `kagent`. A Conftest check on `rendered/kagent/`, next to SC16, refuses each `RoleBinding` or `ClusterRoleBinding` that binds a `kagent` `ServiceAccount` to a role with more rights.
 
@@ -667,7 +674,7 @@ The chart comment tells why the read is cluster-wide: "we cannot do a scoped wat
 
 **What a value narrows.** `rbac.gatewayNamespaces` changes the deployer binding into one `RoleBinding` for each listed namespace. The values say: "Restrict namespaced write permissions to these namespaces. The namespaces must already exist. ... Cluster-wide read permissions and writes to cluster-scoped resources are unaffected." and "Restricting this list means only Gateways in these namespaces can be used" ([`values.yaml`](https://github.com/agentgateway/agentgateway/blob/v1.7.0/controller/install/helm/agentgateway/values.yaml)). The proposal: `rbac.gatewayNamespaces: [agentgateway-system]`. M1 and M3 use only the shared Gateway in that namespace, thus the list does not change in M3. The namespace exists before the binding, because it is in wave `-2`.
 
-**What stays.** No value narrows the read. The controller can read each Secret of the cluster, also each seed namespace `secret-seeds-*` of RFC 0006. That breaks the RFC 0006 rule that only ESO reads the seeds. The owner decided on 2026-11-02: a cluster-wide Secret reader is a trusted platform component on a list in RFC 0006, under an allowlist check. Each one is narrowed where the chart permits it, an upstream patch is a follow-up, and the owner accepts the residual risk on `kind-local`. This RFC asks RFC 0006 to put the agentgateway controller on that list, and to name it in its table of who can read the key ([question 12](#12-the-cluster-wide-secret-read-of-the-agentgateway-controller)).
+**What stays.** No value narrows the read. The controller can read each Secret of the cluster, also each seed namespace `secret-seeds-*` of RFC 0006. That breaks the RFC 0006 rule that only ESO reads the seeds. The owner decided on 2026-11-02: a cluster-wide Secret reader is a trusted platform component on a list in RFC 0006, under an allowlist check. Each one is narrowed where the chart permits it, an upstream patch is a follow-up, and the owner accepts the residual risk on `kind-local`. This RFC asks RFC 0006 to put the agentgateway controller on that list, and to name it in its table of who can read the key ([question 12](#12-the-cluster-wide-secret-read-of-the-agentgateway-controller-decided)).
 
 The same invariant as for `kagent` applies to `agentgateway-system`: no `ServiceAccount` there has more rights than the controller. The deployer can make a Deployment with each `ServiceAccount` of `agentgateway-system`, thus a stronger account there gives a path to more rights.
 
@@ -703,26 +710,26 @@ The ten bundled agents are off. `k8s-agent` lists `k8s_delete_resource`, `k8s_ap
 - **An `Agent` can run any image as any `ServiceAccount` of `kagent`.** The v0.10.4 `Agent` has `type: BYO` with a free `image`, and a deployment spec with `serviceAccountName`, `env` and `envFrom`, for both `declarative` and `byo` ([`agent_types.go`](https://github.com/kagent-dev/kagent/blob/v0.10.4/go/api/v1alpha2/agent_types.go)). The translator uses the agent value first: "Precedence: agent-level serviceAccountName > global default > auto-created SA" ([`deployments.go`](https://github.com/kagent-dev/kagent/blob/v0.10.4/go/core/internal/controller/translator/agent/deployments.go)). Thus a caller of the API can run its own code as the tool server (cluster-wide read) or as the controller (writes in `kagent`), with the Gemini route. A BYO agent needs no tool server, thus the read-only tools do not limit it.
 - **The controls for the kagent API:**
   1. A `NetworkPolicy` in `kagent` selects all pods. It permits ingress only from pods in `kagent`. The proxy does not call kagent, thus no other source is necessary. A `kubectl port-forward` goes into the network namespace of the pod, thus the policy does not stop it (to verify). Cilium admits the traffic of the local host, thus the kubelet probes pass (to verify).
-  2. Only Git makes agents. The `apps` AppProject refuses the group `kagent.dev` in `namespaceResourceBlacklist`, so that only the `kagent` component of `infrastructure` holds `Agent` and `ModelConfig` objects.
+  2. Only Git makes agents. RFC 0007 R5 owns the change of the `apps` AppProject: its destinations and its blacklists. This RFC adds these requirements to that change. The `namespaceResourceBlacklist` refuses the groups `kagent.dev` and `agentgateway.dev`. The destinations refuse `kagent` and `agentgateway-system`. Then only the `infrastructure` components hold `Agent`, `ModelConfig` and agentgateway objects, and an `apps` component cannot put a pod into `kagent` to reach the API. This RFC makes no edit of its own to the AppProject.
   3. A Conftest check on `rendered/` refuses an `Agent` with `type: BYO`, with a `serviceAccountName` in `spec.declarative.deployment` or `spec.byo.deployment`, or with `env` or `envFrom` that refers to a Secret. The same check refuses `controller.agentDeployment.serviceAccountName` in the kagent values.
   4. The residual risk: a process in `kagent`, or the owner through a port-forward, can still make an agent through the API, because the API has no authentication. Before an exposure outside the laptop, the owner must turn on `trusted-proxy` with oauth2-proxy, or use the principals of kagent v1.0 ([question 13](#13-access-to-the-kagent-api)).
-- **The agentgateway listener has no authentication.** Each pod that reaches the proxy can use the Gemini key. The proposal: a `NetworkPolicy` in `agentgateway-system` that permits ingress to the proxy only from the namespace `kagent`. Cilium enforces standard network policies. A rate limit policy on the route limits the cost of a loop. The zero-trust RFC gives the general model ([question 10](#10-access-to-the-agentgateway-listener)).
+- **The agentgateway listener has no authentication.** Each pod that reaches the proxy can use the Gemini key. The controller sends the key to the proxies over xDS, on port 9978 (`controller.service.ports.agwGrpc` in [`values.yaml`](https://github.com/agentgateway/agentgateway/blob/v1.7.0/controller/install/helm/agentgateway/values.yaml)). The proposal: one `NetworkPolicy` in `agentgateway-system` that selects all pods of the namespace. It permits ingress to the proxy port 80 only from the namespace `kagent`, and to the controller port 9978 only from `agentgateway-system`. It permits no other ingress, except the kubelet probes. Cilium enforces standard network policies. A rate limit policy on the route limits the cost of a loop. The zero-trust RFC gives the general model ([question 10](#10-access-to-the-agentgateway-listener)).
 
 ### Key handling
 
 The key follows RFC 0006: SOPS in Git, Terraform writes the seed with a write-only argument, and ESO copies it into the consumer namespace. This RFC changes only the consumer:
 
-| Item | Earlier RFC 0006 draft (kagent holds the key) | This RFC (agentgateway holds the key) |
-| --- | --- | --- |
-| Consumer namespace | `kagent` | `agentgateway-system` |
-| Seed namespace | `secret-seeds-kagent` | `secret-seeds-agentgateway-system` |
-| Store | `SecretStore` `secrets` in `kagent` | `SecretStore` `secrets` in `agentgateway-system` |
-| Remote key | `gemini-api-key` | `gemini-api-key` |
-| Secret | `kagent-gemini` | `google-secret` |
-| Key | `GOOGLE_API_KEY` | `Authorization` |
-| Reader | kagent agent pods, through `apiKeySecret` | The agentgateway controller and proxy, through `policies.auth.secretRef` |
+| Item | Value |
+| --- | --- |
+| Consumer namespace | `agentgateway-system` |
+| Seed namespace | `secret-seeds-agentgateway-system` |
+| Store | `SecretStore` `secrets` in `agentgateway-system` |
+| Remote key and property | `gemini-api-key`, `value` |
+| Secret | `google-secret` |
+| Key | `Authorization` |
+| Reader | The agentgateway controller and proxy, through `policies.auth.secretRef` |
 
-RFC 0006 describes this variant ("If agentgateway holds the key"), and its author moves the main path to `agentgateway-system`. `kagent` is not an ESO consumer in M1. The rules:
+`kagent` is not an ESO consumer in M1. The rules:
 
 - No `ModelConfig` has `apiKeySecret` for a model provider. No agent pod has a Gemini key.
 - Never set `providers.*.apiKey` in the kagent values. The chart then renders a Secret with the key into `rendered/`, thus into Git ([`modelconfig-secret.yaml`](https://github.com/kagent-dev/kagent/blob/v0.10.4/helm/kagent/templates/modelconfig-secret.yaml)). The install guide of kagent uses `--set providers.gemini.apiKey`, and gives no warning. `providers: null` turns off the chart Secret.
@@ -767,7 +774,7 @@ The implementation steps. Each step is one PR, after the ADRs:
 
 1. **R1 Secrets.** Wait for the ESO component of RFC 0006 on `kind-local`, with the store `secrets` in `agentgateway-system`, the seed namespace `secret-seeds-agentgateway-system` and the seed `gemini-api-key`. Wait also for the kind node image v1.37.
 2. **R2 agentgateway.** Add the component with the `Gateway`, the backend, the route, the `ExternalSecret`, the `NetworkPolicy`, `rbac.gatewayNamespaces` and the `ClusterIP` parameters. After `instance:up`, the owner runs `mise run secrets:apply kind-local`. Checks 2, 3, 9, 14 and the agentgateway part of 8.
-3. **R3 kagent.** Add the component with the values of this RFC, the `ModelConfig`, the agent `cluster-reader`, the `NetworkPolicy`, the AppProject rule and the Conftest check for `Agent` objects. Checks 1, 4 to 8, 10 to 13, 15 and 16.
+3. **R3 kagent.** Add the component with the values of this RFC, the `ModelConfig`, the agent `cluster-reader`, the `NetworkPolicy` and the Conftest check for `Agent` objects. It depends on the SC7 exception of RFC 0006 for `kagent-postgresql` (question 9 A). The AppProject requirements go into RFC 0007 R5. Checks 1, 4 to 8, 10 to 13, 15 and 16.
 4. **R4 Documentation.** A how-to page "Ask an agent on kind-local", and a reference page for the agent tools and their rights.
 5. **R5 Milestone.** Write the checks of the done criteria into the M1 milestone description.
 
@@ -786,14 +793,14 @@ Each item must be true on a `kind-local` cluster that `mise run instance:up` mak
    - As the tool `ServiceAccount`: `get secrets -A`, `delete pods -A` and `create clusterrolebindings` are `no`. The rendered tool `ClusterRole` has no `*` and no `nonResourceURLs`.
    - As the kagent controller `ServiceAccount`: `get secrets -n agentgateway-system` is `no`. `rendered/kagent/` has no getter or writer `ClusterRole`.
    - As `system:serviceaccount:agentgateway-system:agentgateway`: `create deployments -n default` and `create serviceaccounts -n default` are `no`. `rendered/agentgateway/` has no `ClusterRoleBinding` to the deployer role. `get secrets -n default` is `yes`: this is the accepted residual risk of question 12.
-9. **No plaintext key.** `mise run lint` passes, with the gitleaks check of RFC 0006. No file in `rendered/` has a `Secret` with `data` or `stringData`, except the exception of question 9 if the owner selects it. The Terraform state has no part of the key (RFC 0006 check).
+9. **No plaintext key.** `mise run lint` passes, with the gitleaks check of RFC 0006. No file in `rendered/` has a `Secret` with `data` or `stringData`, except the Secret `kagent-postgresql` that the SC7 exception of RFC 0006 permits (question 9 A). The Terraform state has no part of the key (RFC 0006 check).
 10. **Pins.** Each chart has an exact version. Each image that the chart permits has a digest. The images that the controllers make at run time, the agent runtime and the proxy, also run by digest. Check: the implementation PR lists them, `kubectl get pods -n kagent -n agentgateway-system -o jsonpath` shows the digests, and `mise run lint` passes.
 11. **Footprint.** The PR records the peak memory and CPU of the kind node containers with `docker stats`, during check 5.
 12. **Exposure.** No `LoadBalancer` or `NodePort` Service in `rendered/agentgateway/` or `rendered/kagent/`.
-13. **Repeatable.** `mise run instance:down`, then `mise run instance:up`, then the owner runs `mise run secrets:apply kind-local`. The result is the same.
+13. **Repeatable.** `mise run instance:down`, then `mise run instance:up`. Before `secrets:apply`, the Applications `agentgateway` and `kagent` are `Synced` and `Healthy`, and the `ExternalSecret` is not synced. Then the owner runs `mise run secrets:apply kind-local`, and criteria 1 to 16 give the same result as before.
 14. **Gateway network policy.** A pod in `default` cannot reach the proxy. Check: `kubectl run -n default --rm -it probe --image=<pinned curl image> -- curl -m 5 http://agentgateway-proxy.agentgateway-system/v1/chat/completions` times out. The same request from a pod in `kagent` gets an answer.
 15. **kagent network policy.** A pod in `default` cannot reach the kagent API. Check: the same probe to `http://kagent-controller.kagent:8083/` times out.
-16. **No BYO agent.** The Conftest tests of the `Agent` check have a failing case for `type: BYO`, for a `serviceAccountName`, and for `envFrom` with a Secret. The `apps` AppProject has `kagent.dev` in `namespaceResourceBlacklist`.
+16. **No BYO agent.** The Conftest tests of the `Agent` check have a failing case for `type: BYO`, for a `serviceAccountName`, and for `envFrom` with a Secret. After RFC 0007 R5, the `apps` AppProject refuses the groups `kagent.dev` and `agentgateway.dev`, and the destinations `kagent` and `agentgateway-system`. Until R5 merges, this part of the check waits.
 
 The two criteria of the M1 milestone map to these checks:
 
@@ -834,6 +841,9 @@ The two criteria of the M1 milestone map to these checks:
 - agentgateway: a tag with a digest for the controller image. `spec.image.digest` for the proxy.
 - agentgateway: the `NetworkPolicy` lets the kubelet probes through with Cilium 1.20.0. If it selects all pods of the namespace, it also admits the xDS traffic from the proxy to the controller on port 9978 (`controller.service.ports.agwGrpc` in `values.yaml`).
 - agentgateway: `rbac.gatewayNamespaces: [agentgateway-system]` gives the rendered `RoleBinding`, and the controller still programs the Gateway.
+- Both, after M2: `kubectl get gatewayclass` shows `agentgateway` only with `controllerName: agentgateway.dev/agentgateway`. A kgateway values comment names a class `agentgateway`, thus kgateway must not make a second one (RFC 0007 R3). If it does, turn off the kgateway class by value. The kgateway source is not on a permitted domain.
+- agentgateway: the xDS client authentication of v1.7.0 (`tokenreviews`), and that the `NetworkPolicy` admits the proxy to the controller on 9978.
+- Argo CD: an `ExternalSecret` with `ignore-healthcheck` that is not synced leaves the `agentgateway` Application `Healthy`.
 - Both: the CRD charts accept a sync-wave annotation by value. Else the render step adds it.
 - Both: the list of admission webhooks in `rendered/`.
 - Both: no `gateway.networking.k8s.io` CRD in `rendered/`.
@@ -841,7 +851,7 @@ The two criteria of the M1 milestone map to these checks:
 - Both: the published images have `linux/arm64`, for the later `olympus` plan.
 - Both: the images that the controllers make at run time are pinned. The Conftest image rule does not see them.
 - Labels: K5 accepts the two `Namespace` objects without the `instance` keys.
-- Footprint: M1 with M2 fits on the 16 GB laptop (done criterion 11, with M2 in place).
+- Footprint: M1 with M2 fits on the 16 GB laptop (RFC 0007 general criterion 3). Done criterion 11 measures M1 alone.
 - Gemini: the model name `gemini-2.5-flash` and the free tier limits on `ai.google.dev`, which this RFC did not read.
 
 ## Drawbacks
@@ -881,7 +891,7 @@ The author did not read these sources: kgateway.dev, `ai.google.dev`, Docker Hub
 
 ## Unresolved questions
 
-These decisions belong to the owner. Each one has options and a recommendation.
+These decisions belong to the owner. Each open one has options and a recommendation. Questions 2 and 12 are decided, and they keep their numbers for the links.
 
 ### 1. The kagent version
 
@@ -891,13 +901,9 @@ These decisions belong to the owner. Each one has options and a recommendation.
 
 Recommendation: A. M1 needs a stable release now. The migration must come before M3, because M3 renders `Agent` objects.
 
-### 2. The path of the model calls
+### 2. The path of the model calls (decided)
 
-- A: kagent to agentgateway to Gemini. Only agentgateway has the key.
-- B: kagent to Gemini, direct, as in the kagent Gemini guide.
-- C: both.
-
-Recommendation: A. Only A meets the milestone criterion. B stays a rollback step.
+Decided by the milestone: the done-when of M1 says "answers through agentgateway" (owner, 2026-11-02). The path is kagent to agentgateway to Gemini. The direct path stays a rollback step only.
 
 ### 3. The agentgateway object for the model route
 
@@ -950,7 +956,7 @@ Recommendation: A. No M1 use case needs it. A later RFC turns it on with its own
 
 The bundled PostgreSQL always renders the Secret `kagent-postgresql` with `data` (the constant `kagent`). SC7 and done criterion 9 refuse it. The chart has no value for an existing Secret. v0.10.4 has no SQLite mode for the controller: the chart fails with "No database connection configured. Set database.postgres.url, database.postgres.urlFile, or enable database.postgres.bundled." ([`controller-deployment.yaml`](https://github.com/kagent-dev/kagent/blob/v0.10.4/helm/kagent/templates/controller-deployment.yaml)).
 
-- A: the bundled PostgreSQL, with a named SC7 exception for `kind-local`. The exception matches only the Secret `kagent-postgresql` in `rendered/kagent/`, with the key `POSTGRES_PASSWORD` and the value of the chart constant. A real password then fails the check. RFC 0006 records the exception.
+- A: the bundled PostgreSQL, with the narrow SC7 exception that RFC 0006 adds for `kind-local`. The exception matches only the Secret `kagent-postgresql` in `rendered/kagent/`, with the one key `POSTGRES_PASSWORD` and the value `base64("kagent")`, from `policy/data/secrets.yaml`. A real password then fails the check. Step R3 depends on that exception.
 - B: the bundled PostgreSQL, and a post-render step that removes the Secret. An `ExternalSecret` with the same name delivers a password from an RFC 0006 seed. It adds a render feature, a seed and a store in `kagent`, which the invariant of `kagent` forbids.
 - C: `bundled.enabled: false`, and a PostgreSQL outside the chart, in its own component. The password comes from an RFC 0006 seed. The controller reads the URL from `database.postgres.urlFile`, with the file from a Secret through `controller.volumes`.
 
@@ -971,21 +977,15 @@ Recommendation: A. Without it, each pod of the cluster can use the Gemini key. B
 
 Recommendation: A for M1, with the rate limit. `kind-local` holds only test data. B comes with the first real data, after a review of the guard schema.
 
-### 12. The cluster-wide Secret read of the agentgateway controller
+### 12. The cluster-wide Secret read of the agentgateway controller (decided)
 
-The v1.7.0 controller reads each Secret of the cluster, also the seed namespaces of RFC 0006. No value narrows the read. `rbac.gatewayNamespaces` narrows only the writes. Refer to [agentgateway RBAC](#agentgateway-rbac).
-
-- A: `rbac.gatewayNamespaces: [agentgateway-system]`, and the controller on the trusted list of RFC 0006, under its allowlist check. The owner accepts the residual read on `kind-local`. An upstream issue asks for a namespaced read.
-- B: A, and a patch of the rendered `ClusterRole`: the read of `secrets` moves to a `Role` in `agentgateway-system`. The controller then cannot read a Secret in another namespace, for example the TLS Secret of a Gateway in another namespace. M1 has none. The author did not verify that the controller works with a namespaced watch of Secrets.
-- C: no agentgateway on a cluster with seeds of other consumers, until upstream changes.
-
-Recommendation: A. It follows the owner decision of 2026-11-02 on trusted cluster-wide readers. B is the follow-up if the upstream issue gets no answer before an instance with real data.
+Decided by the owner on 2026-11-02: option A. `rbac.gatewayNamespaces: [agentgateway-system]`, the controller on the trusted list of RFC 0006 under its allowlist check, and an upstream issue that asks for a namespaced read. The owner accepts the residual read on `kind-local`. Refer to [agentgateway RBAC](#agentgateway-rbac). The patch of the rendered `ClusterRole` is a follow-up in [Future possibilities](#future-possibilities).
 
 ### 13. Access to the kagent API
 
 The API has no authentication, and an `Agent` can run any image as any `ServiceAccount` of `kagent`. Refer to [Exposure](#exposure).
 
-- A: a `NetworkPolicy` in `kagent` that permits ingress only from `kagent`, the AppProject rule, and the Conftest check that refuses `type: BYO`, custom `serviceAccountName` values and Secret references in `env` or `envFrom`. Access from the laptop only through a port-forward.
+- A: a `NetworkPolicy` in `kagent` that permits ingress only from `kagent`, the AppProject requirements in RFC 0007 R5, and the Conftest check that refuses `type: BYO`, custom `serviceAccountName` values and Secret references in `env` or `envFrom`. Access from the laptop only through a port-forward.
 - B: A, and `controller.auth.mode: trusted-proxy` with oauth2-proxy and an OIDC provider.
 - C: A, and kagent v1.0 with its principals and owned-resource RBAC.
 
@@ -996,13 +996,14 @@ Recommendation: A for M1. B needs an OIDC provider that M1 does not have. C come
 - **[RFC 0003](0003-repository-structure.md)** (accepted): the layout, the App of Apps and the waves.
 - **[RFC 0004](0004-labels-and-annotations.md)** (accepted): the labels of the two namespaces, and the checks K5, K14 and K15.
 - **[RFC 0005](0005-repository-scope-and-naming.md)** (accepted): no secret resource in local state. The owner creates the Gemini key in the console.
-- **RFC 0006** (draft): the store `secrets` in `agentgateway-system`, the seed namespace `secret-seeds-agentgateway-system` and the seed `gemini-api-key`, the manual step `secrets:apply`, SC7 and SC16, the trusted list of cluster-wide Secret readers (the agentgateway controller, and the kagent controller if it is not scoped), and question 2 on the Gemini tier.
+- **RFC 0006** (draft): the store `secrets` in `agentgateway-system`, the seed namespace `secret-seeds-agentgateway-system` and the seed `gemini-api-key`, the manual step `secrets:apply`, SC7 and SC16, the trusted list of cluster-wide Secret readers of RFC 0006 (for this RFC: the agentgateway controller, and the kagent controller only if it is not scoped), and question 2 on the Gemini tier.
 - **RFC 0007** (draft): the Gateway API version (question 8), kgateway as the OpenChoreo gateway, the cluster agent RBAC and the M3 groundwork.
 - **The zero-trust RFC**: the network policies and the egress of the agent pods.
 - **The agent identity RFC**: the identity of each agent and the authentication of the kagent API.
 
 ## Future possibilities
 
+- A patch of the agentgateway `ClusterRole` that moves the read of `secrets` to a `Role` in `agentgateway-system`, if the upstream issue gets no answer before an instance with real data. The controller then cannot read a Secret in another namespace, for example the TLS Secret of a Gateway there. M1 has none. The author did not verify that the controller works with a namespaced watch of Secrets.
 - M3: the OpenChoreo component types and traits on top of the M1 components.
 - kagent v1.0 with `api.kagent.dev/v1alpha3`, owned-resource RBAC and principals.
 - MCP routes through the `mcp` listener, with MCP authentication of agentgateway.
