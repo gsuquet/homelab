@@ -1,67 +1,49 @@
-# Explanation: Automated Updates
+# Automated updates
 
-This document tells how Renovate keeps dependencies up to date, and which updates merge without my review.
+Each dependency of the repository has an exact version. This includes the tools, the pre-commit hooks, the GitHub Actions, the Terraform providers, the Helm charts and the container images. An exact version makes each run repeatable, but it does not change by itself. [Renovate](https://docs.renovatebot.com/) opens the PRs that keep these versions current. This page tells why the updates have their shape. It also tells why only a small set of them merges without a person. The exact settings are in [Renovate settings](../reference/renovate-settings.md).
 
----
+## Why each version is pinned
 
-## What Renovate updates
+A range, for example `^1.2`, lets a new release enter the repository with no change in Git. A run today and a run next week can then use different code. When a run fails, nothing in Git shows the cause.
 
-[Renovate](https://docs.renovatebot.com/) scans the repository and opens pull requests (PRs) to update dependencies. The configuration is in `renovate.json`. Renovate updates:
+Thus each version is exact. The GitHub Actions and the pre-commit hooks use a commit SHA, because a tag can move to a different commit. A comment next to the SHA keeps the readable version. The images use a digest for the same reason. The lock files hold the checksums of the tools and the providers. Each change of a version is then a commit, and a revert of that commit restores the earlier version.
 
-| Dependency | Location | Manager |
-| --- | --- | --- |
-| Tools | `.mise/config.toml` | `mise` |
-| Pre-commit hooks (commit SHAs) | `.pre-commit-config.yaml` | `pre-commit` |
-| GitHub Actions (commit SHAs) | `.github/workflows/*.yml` | `github-actions` |
-| Terraform providers and lock files | `modules/**`, `instances/**` | `terraform` |
-| Helm chart dependencies | `kubernetes/**/sources/Chart.yaml` | `helmv3` |
-| Container images (tag and digest) | `kubernetes/applications/**`, `kubernetes/system/**` | custom regex |
-| Versions with a `# renovate:` comment | any YAML, TOML, Terraform or shell file | custom regex |
+The cost is many update PRs. Renovate makes them, so that a person does not have to watch each release.
 
-Renovate does not update `ansible/`. Ansible will be removed.
+## Why a release waits three days
 
----
+A new release can be broken, or it can contain malicious code. Such a release is often withdrawn or reported in the first days. Thus Renovate proposes a release only when it is three days old.
 
-## Pinning
+For a security fix, the known weakness is a larger risk than a new release. Thus `renovate.json` lets a vulnerability PR skip the wait and the schedule. Renovate finds these fixes through the Dependabot alerts of GitHub. The Dependabot alerts of this repository are off, so a security fix comes with the normal updates, after the wait. Refer to [Renovate settings](../reference/renovate-settings.md#vulnerability-alerts).
 
-All dependencies are pinned:
+## Why the PRs come once a week
 
-- Exact versions (`rangeStrategy: pin`).
-- Container images with a digest.
-- GitHub Actions and pre-commit hooks with a commit SHA. A comment keeps the readable version.
-- Terraform lock files for all platforms. Run `mise run tf:lock` to refresh them.
-- Tool checksums in `.mise/mise.lock`.
+Renovate opens its PRs on Monday morning, in groups. The dev tools come in one PR, and the Terraform providers in one PR. A weekly batch is easier to review than a flow of single PRs during the week. The limits on the number of open PRs and of new PRs each hour keep a large batch small enough to review.
 
-A new release must be 3 days old before Renovate proposes it (`minimumReleaseAge`). Security fixes do not wait.
+## Why only the dev tools merge by themselves
 
----
+A person merges each PR. Refer to [How we work](how-we-work.md). The `dev tools` group is the only exception. It holds the minor, patch and digest updates of the tools, the pre-commit hooks and the GitHub Actions.
 
-## Schedule
+These updates are frequent and low in risk. The tools run on a laptop and in CI. They do not reach an instance. When a tool update breaks something, the checks of the PR fail, and the PR does not merge. A manual merge of each such PR gives little more safety, and it costs time each week.
 
-Renovate opens PRs on Monday before 07:00. Security fixes open at any time. Lock file maintenance runs on the same schedule.
+Renovate merges these PRs itself, after the checks of the branch pass. It does not use the auto-merge of GitHub. The auto-merge of GitHub waits only for the required status checks of `main`, and the ruleset on `main` has none. Thus it could merge a PR while a check fails.
 
----
+A compromised tool can still reach `main` after the checks pass. The three-day wait makes this risk smaller.
 
-## Automatic merge
+## Why the other updates merge by hand
 
-| Updates | Automatic merge | Condition |
-| --- | --- | --- |
-| Dev tools: mise, pre-commit, GitHub Actions (minor, patch, digest) | Yes, one grouped PR | All checks pass |
-| Lock file maintenance | Yes | All checks pass |
-| Terraform providers | No | My review |
-| Helm charts and container images | No | My review |
-| Major updates | No | Approval on the Dependency Dashboard, then my review |
+The Terraform providers, the Helm charts and the container images reach the instances. A bad update there can break the homelab or a cloud instance, and the checks of a PR do not run the instances. Thus a person reviews and merges them.
 
-Helm charts and images reach the homelab. They will merge automatically after the Kind tests exist (Phase 4 of the plan). After that, a minor or patch update merges when all checks and Kind tests pass.
+The lock file maintenance also merges by hand. One setting covers all the lock files, and some of them reach the instances, for example the Terraform lock files and the `Chart.lock` of Argo CD.
 
----
+A major update can change the behavior of a dependency. Renovate opens its PR only after an approval on the Dependency Dashboard, so that a person decides first.
 
-## Rendered manifests on update PRs
+## Why chart PRs need a render
 
-Renovate cannot run commands after an update on the hosted app. When Renovate changes a `sources/Chart.yaml`, the rendered manifests are not updated in the same PR. The `Validate Kubernetes Manifests` workflow then fails. Until Phase 4 adds an automatic render step, run this on the PR branch:
+The repository commits the rendered manifests of each Helm chart. Refer to [Render the manifests](../how-to/render-manifests.md). `renovate.json` has no task that runs after an update, so Renovate does not run `mise run manifests:render`. Thus a Renovate PR that changes a `Chart.yaml` does not contain the new rendered manifests, and the `Validate Kubernetes Manifests` check fails. A person or an agent runs the render on the PR branch.
 
-```bash
-mise run manifests:render
-```
+## Related pages
 
-Commit and push the result.
+- [Renovate settings](../reference/renovate-settings.md)
+- [Render the manifests](../how-to/render-manifests.md)
+- [How we work](how-we-work.md)
