@@ -1,17 +1,18 @@
 # Reference: Repository Structure
 
-This page shows the target tree of the repository and the legacy folders.
+This page shows the target tree of the repository and the legacy folders. The reasons are in [Repository structure (explanation)](../explanation/repository-structure.md).
 
 ## Status of the tree
 
 The target tree is not complete yet. This page marks each part that does not exist in the repository. The mark is [not yet]. Later pull requests (PRs) add these parts.
 
-A later change adds a folder `accounts/<account>/` for the provider accounts. This page does not show the folder yet.
+The folder `accounts/<account>/` holds one Terraform root module for each provider account. Its files and rules are in [Provider accounts](provider-accounts.md).
 
 ## Target tree
 
 ```text
 (the root of the repository)
+├── accounts/<account>/               # [not yet] One Terraform root module for each provider account
 ├── modules/                          # Terraform child modules. A module never runs alone.
 │   ├── _template/                    # Template for a new module
 │   └── <layer>-<component>/          # Layer: substrate, cluster or bootstrap
@@ -68,13 +69,17 @@ Notes on the tree:
 
 ### Open work
 
-| Item | Status |
-| --- | --- |
-| Issue forms and `config.yml` in `.github/` | Not done. The generic forms can go to `gsuquet/.github` instead. |
-| `README.md` and `CONTRIBUTING.md` in the Good Docs Project form | Not done. |
-| Move of `CODE_OF_CONDUCT.md` and `SECURITY.md` out of the root, and a new `SUPPORT.md` | Not done. The files go to `gsuquet/.github`, and this repository keeps no copy. |
-| Check for the folders at the root | No check exists. The reviewer checks the tree. |
-| Check for the Terraform file names and the other names with "None yet" in the naming table | Not done. |
+| Item | Status | Issue |
+| --- | --- | --- |
+| Issue forms and `config.yml` in `.github/` | Not done. The generic forms can go to `gsuquet/.github` instead. | #200 |
+| `README.md` and `CONTRIBUTING.md` in the Good Docs Project form | Not done. | #220 |
+| Move of `CODE_OF_CONDUCT.md` and `SECURITY.md` out of the root, and a new `SUPPORT.md` | Not done. The files go to `gsuquet/.github`, and this repository keeps no copy. | #220, after #214 |
+| Check for the folders at the root | No check exists. The reviewer checks the tree. | #221 |
+| Check for the Terraform file names and the other names with "None yet" in the naming table | Not done. | #221 |
+| The deprecation `README.md` files, `lint:legacy` and its allowlist | Not done. | #219 |
+| The repository description, the topics and the docs link of the community profile | Not done. These are manual settings. | #222 |
+| The removal of the legacy folders, after the migration of the Raspberry Pi | Blocked by the migration. | #223 |
+| The folder `accounts/` | Not done. | #231 |
 
 ## Terraform modules and instances
 
@@ -166,6 +171,14 @@ Exceptions:
 - A file extension can have more than one part, for example `.schema.json`.
 - A rendered manifest file can have dots, for example `customresourcedefinition-applications.argoproj.io.yaml`.
 - `schemas/tests/gitops-tree/` and `schemas/tests/instance-terraform/` name a tree, not a `kind`.
+
+## Community health files and the license
+
+- The root keeps `README.md`, `LICENSE`, `CONTRIBUTING.md` and `CHANGELOG.md`.
+- `CODE_OF_CONDUCT.md` (Contributor Covenant 2.0, contact `contact@gsuquet.com`), `SECURITY.md`, `SUPPORT.md` and a generic `CONTRIBUTING.md` go to `gsuquet/.github` (#220). No `FUNDING.yml`.
+- The shared `SECURITY.md` names GitHub private vulnerability reporting first, "in the Security tab of the repository, if it is on", and email to `contact@gsuquet.com` second. It does not promise private reporting for each repository.
+- Private vulnerability reporting stays on in the settings of this repository, because a default `SECURITY.md` is not in the clones, the forks or the downloads.
+- The MIT license applies to all the repository, also to `docs/`. Each copy of upstream content keeps its upstream license.
 
 ## Legacy folders
 

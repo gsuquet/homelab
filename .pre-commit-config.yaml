@@ -116,3 +116,10 @@ repos:
         language: system
         files: '(\.md$|^\.vale)'
         pass_filenames: false
+
+      - id: lint-records
+        name: Refuse references to the old proposal and decision records
+        entry: mise run lint:records
+        language: system
+        always_run: true
+        pass_filenames: false
