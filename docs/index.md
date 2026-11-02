@@ -23,6 +23,7 @@ Learning-oriented guides that walk you through end-to-end tasks. Start here if y
 | ----- | ----------- |
 | [Getting Started](tutorials/01-getting-started.md) | Provision `olympus.local` from scratch — Ansible, K3S, ArgoCD |
 | [Add Your First Application](tutorials/02-add-first-application.md) | Deploy a new self-hosted app to the cluster via GitOps |
+| [Run Your First Local Cluster](tutorials/run-your-first-local-cluster.md) | Start `kind-local`, watch Argo CD sync it from Git, and remove it |
 
 ---
 
@@ -42,7 +43,7 @@ Task-oriented recipes that solve a specific problem. Assumes familiarity with th
 | [Open the Argo CD UI](how-to/open-argocd-ui.md) | Log in to Argo CD on an instance with a port-forward |
 | [Configure Cloudflare](how-to/configure-cloudflare.md) | Set up the Cloudflare tunnel for external access |
 | [Use Kind behind a TLS-inspecting proxy](how-to/use-kind-behind-a-tls-proxy.md) | Make the Colima VM and the Kind nodes trust a company proxy CA |
-| [Resize the Colima VM](how-to/resize-the-colima-vm.md) | Fix a `TLS handshake timeout` during the apply of a Kind instance |
+| [Resize the Colima VM](how-to/resize-the-colima-vm.md) | Give the Colima VM more CPUs or memory for a Kind instance |
 | [Rename the Repository](how-to/rename-the-repository.md) | Rename `gsuquet/homelab` to `gsuquet/infra` without a loss on `olympus` |
 | [Import Provider Resources](how-to/import-provider-resources.md) | Bring the resources of a provider account under Terraform |
 
@@ -59,6 +60,7 @@ Information-oriented documentation for looking up technical details.
 | [Terraform Modules](reference/terraform-modules/index.md) | Infrastructure modules for cluster & local dev |
 | [Applications](reference/applications.md) | Deployed apps with versions, ports, and storage |
 | [Mise Tasks](reference/mise-tasks.md) | All `mise run` tasks with descriptions and usage |
+| [Instance Tasks](reference/instance-tasks.md) | `instance:plan`, `instance:up` and `instance:down`: steps, variables and exit status |
 | [Tools](reference/tools.md) | All project tools with versions and install methods |
 | [Writing Rules](reference/writing-rules.md) | The Diátaxis sections, ASD-STE100 and the Vale checks |
 | [Policies](reference/policies.md) | The Conftest policies and what each one checks |
@@ -85,6 +87,7 @@ Understanding-oriented documents that explain how the system works, and why. Eac
 | [Repository Structure](explanation/repository-structure.md) | Why the tree, the layouts and the naming rules have their form |
 | [Labels and Annotations](explanation/labels-and-annotations.md) | Why the key prefix, the sub-groups and the checks have their form |
 | [Repository Scope](explanation/repository-scope.md) | What belongs in the repository, the provider accounts and the name `infra` |
+| [Why a Local Cluster First](explanation/why-a-local-cluster-first.md) | Why the platform gets its first test on `kind-local`, and what Kind does not show |
 
 ---
 
