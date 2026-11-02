@@ -17,7 +17,7 @@ This RFC tells where each secret of the repository lives, how it gets to its con
 
 - **2026-10-30 (owner, in chat):** secrets use SOPS and ESO. The repository drops Sealed Secrets. The legacy tree `kubernetes/` on `olympus`, the production Raspberry Pi, keeps Sealed Secrets until the migration of the Pi.
 - **2026-11-02 (owner, in chat):** milestone M1 installs kagent and agentgateway on `kind-local`, with Google Gemini as the model provider. [RFC 0008](https://github.com/gsuquet/homelab/pull/181) puts the key in agentgateway, and the agent pods hold no key.
-- **2026-11-02 (owner, in chat):** a trusted list of platform controllers that read each Secret, with a check that refuses each other reader. The residual risk is accepted on `kind-local`. Upstream patches are follow-ups.
+- **2026-11-02 (owner, in chat):** a trusted list of platform controllers that read each Secret, with a check that refuses each other reader. The residual risk is accepted on `kind-local`. Upstream patches are follow-ups. The owner also added Argo CD and the cert-manager controller to the list ("Yes, add both").
 - **2026-11-02 (owner, in chat):** `kind-local` moves to a Kubernetes 1.37 node image, so that ESO 2.14 runs on a version that it lists.
 - **[RFC 0002](0002-how-we-work.md)** gives the four controls that enforce a rule: rulesets, Git hooks, CI checks and Conftest policies. Its review policy (ADR 0010 in PR #177) makes the owner the reviewer of a module and of CI.
 - **[RFC 0003](0003-repository-structure.md)** gives the tree, and says: "The secrets RFC tells where the values come from." It removes `CODEOWNERS` (ADR 0022 in PR #177). Thus this RFC uses no `CODEOWNERS` rule.
@@ -292,7 +292,7 @@ The consumers now: `agentgateway-system` (the Gemini key) and `cert-manager` (th
 
 #### Trusted platform components
 
-ESO copies Secrets, so it must read them. Some other platform controllers also read each Secret of the cluster, and their charts cannot narrow that. The trusted list in `policy/data/secrets.yaml`, with chart version and instance:
+ESO copies Secrets, so it must read them. Some other platform controllers also read each Secret of the cluster, and their charts cannot narrow that. The trusted list in `policy/data/secrets.yaml`, with chart version and instance. The owner added Argo CD and the cert-manager controller to it ("Yes, add both", owner, in chat, 2026-11-02):
 
 | Component | Access | Narrowing |
 | --- | --- | --- |
@@ -300,8 +300,8 @@ ESO copies Secrets, so it must read them. Some other platform controllers also r
 | agentgateway controller (v1.7.0) | Reads Secrets in all namespaces | `rbac.gatewayNamespaces` limits only its writes |
 | OpenChoreo cluster agent | `*` on `secrets`, `clustersecretstores` and RBAC kinds (upstream) | RFC 0007 question 13 B |
 | kagent controller | Reads all core resources in all namespaces (chart 0.10.4) | Only if it stays cluster-wide: question 8 recommends `rbac.namespaces: [kagent]`, which removes it from the list |
-| Argo CD application controller | Its default cluster-wide role | Its chart |
-| cert-manager controller, when an instance installs it | Reads and writes the Secrets of certificates in the namespaces that it serves | Its chart. This RFC adds it to the list of the owner, because SC16 must pass for the DNS-01 path. |
+| Argo CD application controller | Its default cluster-wide role | Narrow it where its chart permits |
+| cert-manager controller, when an instance installs it | Reads and writes the Secrets of certificates in the namespaces that it serves | Narrow it where its chart permits |
 
 SC16 refuses each other cluster-wide Secret reader. **The stores isolate the consumers from each other, not from these controllers.** A compromised trusted component reads each seed and each consumer Secret. The owner accepts this risk on `kind-local`. Upstream patches that narrow these roles are follow-ups.
 
