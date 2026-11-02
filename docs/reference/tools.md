@@ -1,104 +1,71 @@
-# Reference: Tools
+# Tools
 
-All project tools and their versions are pinned in `.mise/config.toml`. Run `mise install` from the repository root to install them all.
+`.mise/config.toml` pins the command-line tools of the repository. `mise install` installs the versions of the `[tools]` section. `.mise/mise.lock` holds the lock data of each tool, because `[settings]` sets `lockfile = true`.
 
----
+The `mise` policy makes sure that each version is exact and that the lock file stays on. Refer to [Policies](policies.md#mise). Renovate updates the versions. Refer to [Renovate settings](renovate-settings.md).
 
-## Tool Versions
+## Pinned tools
 
-| Tool | Version | Purpose |
-| ---- | ------- | ------- |
-| `cilium-cli` | 0.19.5 | Cilium CNI CLI tool |
-| `cilium-hubble` | 1.19.4 | Hubble observability CLI for Cilium |
-| `git-cliff` | 2.8.0 | Conventional commit changelog generator |
-| `github-cli` | 2.96.0 | GitHub CLI (`gh`) for PRs and repo management |
-| `gitleaks` | 8.30.1 | SAST secret scanner |
-| `helm` | 4.2.3 | Render Kubernetes Helm charts to plain YAML |
-| `kind` | 0.33.0 | Kind CLI: `instance:up` uses it to add the kubeconfig context of a Kind cluster |
-| `kyverno` | 1.18.1 | Kubernetes policy engine CLI |
-| `pre-commit` | 4.6.0 | Run Git hooks for linting, secret scanning, and manifest rendering |
-| `python` | 3.14.6 | Runtime for Ansible and python utilities |
-| `terraform` | 1.15.8 | Infrastructure provisioning CLI |
-| `terraform-docs` | 0.24.0 | Auto-generate documentation for Terraform modules |
-| `tflint` | 0.63.1 | Linter for Terraform code |
-| `trivy` | 0.72.0 | Security vulnerability scanner for containers and K8s |
-| `typos` | 1.48.0 | Source code spell checker |
-| `yq` | 4.53.3 | YAML processor (used in render/split/check scripts) |
-| `Ansible` | 11.4.0 | Provision servers via playbooks (pip managed) |
+| Tool | Version | Purpose | Used by |
+| --- | --- | --- | --- |
+| `actionlint` | 1.7.12 | Linter for GitHub Actions workflows. | `lint:actions` |
+| `cilium-cli` | 0.19.5 | The `cilium` command: status and tests of Cilium in a cluster. | No task |
+| `cilium-hubble` | 1.19.4 | The `hubble` command: the network flows that Hubble records. | No task |
+| `conftest` | 0.71.1 | Tests files against the Rego policies in `policy/`. | `lint:policy` |
+| `git-cliff` | 2.8.0 | Changelog generator for Conventional Commits. | `changelog:generate` |
+| `github-cli` | 2.103.0 | The `gh` command: issues, PRs, labels and projects on GitHub. | `labels:sync` |
+| `gitleaks` | 8.30.1 | Scanner for secrets in Git. | No task. The `gitleaks` pre-commit hook uses its hook repository at `v8.30.1`. |
+| `helm` | 4.3.1 | Renders the Helm charts in the `sources/` folders. | `manifests:render` |
+| `kind` | 0.33.0 | Kubernetes clusters in Docker containers. | `instance:up`, to export the kubeconfig |
+| `kubeconform` | 0.8.0 | Validates Kubernetes manifests against the Kubernetes schemas. | `manifests:validate` |
+| `kyverno` | 1.18.1 | The Kyverno CLI: applies and tests Kyverno policies. | No task |
+| `pipx:check-jsonschema` | 0.38.2 | Validates YAML and JSON files against a JSON schema. mise installs it with uv, from PyPI. | `schemas:check`, `schemas:test` |
+| `pre-commit` | 4.7.0 | Runs the hooks of `.pre-commit-config.yaml`. | The Git hooks |
+| `python` | 3.15.1 | Python runtime. The workflows install it before `pipx:check-jsonschema`. | No task |
+| `shellcheck` | 0.11.0 | Linter for shell scripts. | `lint:shell` |
+| `shfmt` | 3.14.1 | Formatter for shell scripts. | `lint:shell` |
+| `terraform` | 1.17.0 | Applies the Terraform code of `instances/` and `modules/`. | The instance tasks, `lint:terraform`, `tf:lock` |
+| `terraform-docs` | 0.24.0 | Writes the input and output tables of a Terraform module. | `tf:docs`, `doc:generate` |
+| `tflint` | 0.65.0 | Linter for Terraform code. | `lint:terraform` |
+| `trivy` | 0.76.1 | Scanner for vulnerabilities and configuration errors. | No task |
+| `typos` | 1.51.1 | Spell checker for source code. | No task. The `typos` pre-commit hook uses its hook repository at `v1.51.1`. |
+| `uv` | 0.13.3 | Python package installer. mise uses it to install the `pipx:` tools ([mise: pypi backend](https://mise.jdx.dev/dev-tools/backends/pypi.html)). | `pipx:check-jsonschema` |
+| `vale` | 3.25.1 | Prose linter. It checks the Markdown files against the styles in `.vale/styles/`. | `lint:docs` |
+| `yq` | 4.54.1 | YAML processor. | `manifests:render`, `schemas:check`, `schemas:test`, `labels:sync` |
+| `zizmor` | 1.31.1 | Security linter for GitHub Actions workflows. | `lint:actions` |
 
-Ansible is installed as a Python package (via pip, managed by mise). The version is set in `.mise/config.toml` as an environment variable:
+## Tools in CI
 
-```toml
-[env]
-ANSIBLE_VERSION = "11.4.0"
-ANSIBLE_CREATOR_VERSION = "25.3.1"
-```
+The workflows install only the tools that their tasks use, with `jdx/mise-action`:
 
----
+| Workflow | Tools |
+| --- | --- |
+| `Lint` | `python`, `uv`, `pipx:check-jsonschema`, `yq`, `terraform`, `tflint`, `conftest`, `actionlint`, `zizmor`, `shellcheck`, `shfmt`, `vale` |
+| `Validate Schemas` | `python`, `uv`, `pipx:check-jsonschema`, `yq` |
+| `Validate Kubernetes Manifests` | `helm`, `kubeconform`, `yq` |
 
-## Tool Descriptions
+## Environment variables
 
-### mise
+The `[env]` section sets these variables for each command that mise runs:
 
-**Purpose**: Manages all tool versions. Replaces `asdf`, `nvm`, `pyenv`, etc. with a single tool.
+| Variable | Value |
+| --- | --- |
+| `ANSIBLE_VERSION` | `11.4.0` |
+| `ANSIBLE_CREATOR_VERSION` | `25.3.1` |
 
-**Install**:
+No task reads these variables.
 
-```bash
-curl https://mise.run | sh
-```
+## Tools that mise does not install
 
-**Usage**:
+| Tool | Used by |
+| --- | --- |
+| `git` | All the tasks that read the files that Git tracks. |
+| `docker` | The instance tasks of a Kind instance. Refer to [Instance tasks](instance-tasks.md#docker-runtime). |
+| `kubectl` | `instance:down`, to remove the kubeconfig context of a Kind cluster. |
 
-```bash
-mise install          # Install all tools pinned in .mise/config.toml
-mise run <task>       # Run a task defined in .mise/tasks/
-```
+## Related pages
 
-**Config file**: `.mise/config.toml`
-
----
-
-### Helm
-
-**Version**: 4.2.3
-**Purpose**: Renders Helm charts from `kubernetes/bootstrap/argo-cd/sources/` to plain YAML manifests.
-
-Used by `mise run manifests:render` to produce the committed manifests. Not used at cluster sync time — ArgoCD reads the pre-rendered YAML directly.
-
----
-
-### Ansible
-
-**Version**: 11.4.0
-**Purpose**: Provisions the server — installs K3s, hardens the OS, and bootstraps ArgoCD.
-
-**Config file**: `ansible/ansible.cfg`
-**Inventory**: `ansible/inventory/hosts.yml`
-
----
-
-### pre-commit
-
-**Version**: 4.6.0
-**Purpose**: Runs Git hooks defined in `.pre-commit-config.yaml` before each commit.
-
-**Install hooks**:
-
-```bash
-pre-commit install
-```
-
----
-
-### terraform-docs
-
-**Version**: 0.24.0
-**Purpose**: Auto-generates Terraform module documentation. Used by `mise run doc:generate`.
-
----
-
-### git-cliff
-
-**Version**: 2.8.0
-**Purpose**: Generates `CHANGELOG.md` from conventional git commits. Used by `mise run changelog:generate`.
+- [Mise tasks](mise-tasks.md): the tasks that use the tools.
+- [Install the tools](../how-to/install-the-tools.md)
+- [Run your first local cluster](../tutorials/run-your-first-local-cluster.md)
+- [Automated updates](../explanation/automated-updates.md)

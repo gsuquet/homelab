@@ -1,84 +1,129 @@
 # Schemas
 
-This page lists the JSON Schemas in `schemas/` and the tasks that use them.
+The JSON schemas are in `schemas/`. They use JSON Schema draft 2020-12. `mise run schemas:check` validates the files of the repository against them, and `mise run schemas:test` tests them against fixtures in `schemas/tests/`. Both tasks use `check-jsonschema`.
 
-## Files
-
-| Schema | Validates | Location of validated files |
+| Schema | `kind` | Validated files |
 | --- | --- | --- |
-| `schemas/module.schema.json` | Module metadata | `modules/<layer>-<component>/module.yaml` |
-| `schemas/instance.schema.json` | Instance definition | `instances/<name>/instance.yaml` |
-| `schemas/gitops-cluster.schema.json` | GitOps entry point of a cluster | `gitops/clusters/<name>/cluster.yaml` |
+| `schemas/module.schema.json` | `Module` | `modules/<module>/module.yaml` |
+| `schemas/instance.schema.json` | `Instance` | `instances/<instance>/instance.yaml` |
+| `schemas/gitops-cluster.schema.json` | `GitOpsCluster` | `gitops/clusters/<cluster>/cluster.yaml` |
 
-## Rules in the module schema
+Each validated file has `apiVersion: infra.gsuquet.com/v1alpha1`. No schema permits a field that it does not list.
 
-- `name` starts with the layer: `substrate-`, `cluster-` or `bootstrap-`.
-- `name` uses lowercase letters, digits and hyphens. Maximum 63 characters.
-- `layer` is `substrate`, `cluster` or `bootstrap`. It must agree with the `name` prefix.
-- `tool` is `terraform` or `pulumi`.
-- `maturity` is `experimental`, `stable` or `deprecated`.
-- `contract.requires` and `contract.provides` contain `snake_case` keys.
-- Other fields are not permitted.
+## Module schema
 
-## Rules in the instance schema
+| Field | Required | Value |
+| --- | --- | --- |
+| `name` | Yes | The layer, a hyphen, then lowercase letters, digits and hyphens. A maximum of 63 characters. For example `cluster-kind`. |
+| `layer` | Yes | `substrate`, `cluster` or `bootstrap`. The `name` starts with the layer. |
+| `tool` | Yes | `terraform` or `pulumi`. |
+| `description` | Yes | 10 to 200 characters. |
+| `maturity` | Yes | `experimental`, `stable` or `deprecated`. |
+| `contract.requires` | No | A list of `snake_case` keys, each one time only. |
+| `contract.provides` | No | A list of `snake_case` keys, each one time only. |
 
-- `purpose` is `production`, `test` or `demo`.
-- `lifecycle.type` is `long-lived` or `ephemeral`.
-- An `ephemeral` instance must have a `ttl`, in hours (`8h`) or days (`2d`). A `long-lived` instance must not have a `ttl`.
-- A `production` instance must be `long-lived`.
-- Only a `test` instance can use `local` state. A `production` or `demo` instance must use remote state, because more than one machine or a CI job can run it.
-- `state.backend` is `r2`, `hcp-terraform` or `local`.
-- `layers.cluster` and `layers.bootstrap` are mandatory. `layers.substrate` is optional.
-- Each layer has a `modules` list, in the order of installation. The list has one or more modules, and no module two times.
-- The name of each module must start with the layer name.
-- Other fields are not permitted.
+## Instance schema
 
-## Rules in the GitOps cluster schema
+| Field | Required | Value |
+| --- | --- | --- |
+| `name` | Yes | Lowercase letters, digits and hyphens. A maximum of 40 characters. |
+| `description` | Yes | 10 to 200 characters. |
+| `purpose` | Yes | `production`, `test` or `demo`. |
+| `lifecycle.type` | Yes | `long-lived` or `ephemeral`. |
+| `lifecycle.ttl` | For `ephemeral` only | A number of hours or days, for example `8h` or `2d`. A `long-lived` instance has no `ttl`. |
+| `state.backend` | Yes | `r2`, `hcp-terraform` or `local`. |
+| `layers.substrate.modules` | No | A list of modules that start with `substrate-`. |
+| `layers.cluster.modules` | Yes | A list of modules that start with `cluster-`. |
+| `layers.bootstrap.modules` | Yes | A list of modules that start with `bootstrap-`. |
 
-- `name`, `infrastructure` and `apps` are mandatory. A list can be empty.
-- Each item has a `name` and a `namespace`. Both use lowercase letters, digits and hyphens.
-- `dependsOn` is optional. It is a list of component names.
-- A list has no item two times.
-- Other fields are not permitted.
+Each `modules` list has one or more names, in the order of installation, and no name two times.
 
-## Rules that the schemas cannot check
+| `purpose` | Permitted `lifecycle.type` | Permitted `state.backend` |
+| --- | --- | --- |
+| `production` | `long-lived` | `r2`, `hcp-terraform` |
+| `demo` | `long-lived`, `ephemeral` | `r2`, `hcp-terraform` |
+| `test` | `long-lived`, `ephemeral` | `r2`, `hcp-terraform`, `local` |
 
-The `schemas:check` task also checks these rules:
+## GitOps cluster schema
 
-- `name` is equal to the folder name. `modules/_template/` is not checked for this rule.
-- Each module in the `layers` of an `instance.yaml` has a folder in `modules/`, and its `module.yaml` has the same `layer`.
-- The Terraform files of an instance use each module of its `layers` with `source = "../../modules/<module>"`, and they use no other module.
-- If an instance uses `cluster-kind`, its Terraform files have an `output "cluster_name"` block. `instance:up` reads it.
-- The Terraform files of an instance have a `backend` block if `state.backend` is not `local`. They have no `backend` block if `state.backend` is `local`.
-- Each folder in `gitops/clusters/` has a `cluster.yaml`, and its `name` is equal to the folder name.
-- Each `cluster.yaml` lists `argocd` in `infrastructure`. Argo CD manages itself through this item.
-- Two components of one cluster do not have the same name, because the name is also the name of the Argo CD Application.
-- Each name in `dependsOn` is a component of the same cluster.
-- Each component in `cluster.yaml` has `gitops/<group>/<component>/sources/Chart.yaml`, and `gitops/clusters/<name>/rendered/<component>/` contains a `Namespace` with the name of the `namespace` field.
-- Each file in `gitops/clusters/<name>/values/` has the name of a component of the cluster. Else `manifests:render` ignores the file.
-- Each folder in `gitops/infrastructure/` and `gitops/apps/` has `sources/Chart.yaml` and `sources/templates/namespace.yaml`. All components use the rendered manifests pattern and ship their own `Namespace`.
-- An instance that bootstraps Argo CD from `gitops/clusters/<cluster>/rendered/argocd` has the name of the cluster.
+| Field | Required | Value |
+| --- | --- | --- |
+| `name` | Yes | Lowercase letters, digits and hyphens. A maximum of 40 characters. |
+| `infrastructure` | Yes | A list of components in `gitops/infrastructure/`. The list can be empty. |
+| `apps` | Yes | A list of components in `gitops/apps/`. The list can be empty. |
 
-## Tasks
+Each component of a list has these fields. A list has no item two times.
 
-| Task | Action |
+| Field | Required | Value |
+| --- | --- | --- |
+| `name` | Yes | The folder name of the component, and the name of its Argo CD Application. Lowercase letters, digits and hyphens. A maximum of 53 characters. |
+| `namespace` | Yes | The destination namespace. Lowercase letters, digits and hyphens. A maximum of 63 characters. |
+| `dependsOn` | No | A list of component names, each one time only. |
+
+The use of each field is in [GitOps layout](gitops-layout.md#clusteryaml).
+
+## `schemas:check`
+
+The task checks these rules. The functions of the `gitops/` and Terraform checks are in `.mise/tasks/_base/instance-checks.sh`.
+
+| Input | Rule |
 | --- | --- |
-| `mise run schemas:test` | Validates the fixtures in `schemas/tests/`. Each file in `valid/` must pass. Each file in `invalid/` must fail. The `gitops-tree/` cases test the `gitops/` checks: each folder is a small repository root. |
-| `mise run schemas:check` | Validates each `module.yaml`, `instance.yaml` and the `gitops/` tree in the repository. |
+| Each folder in `modules/` and `instances/` | The folder has a `module.yaml` or an `instance.yaml` that complies with its schema. Its `name` is equal to the folder name, except in `modules/_template/`. |
+| Each module in the `layers` of an `instance.yaml` | The folder `modules/<module>/` exists, and its `module.yaml` has the same `layer`. |
+| The `.tf` files of an instance | Each `module` block with `source = "../../modules/<module>"` uses a module of the `layers`, and each module of the `layers` has such a block. Comment lines do not count. |
+| The `.tf` files of an instance that uses `cluster-kind` | The files have an `output "cluster_name"` block. `instance:up` reads it. |
+| The `.tf` files of an instance | The files have a `backend` or `cloud` block when `state.backend` is not `local`, and none when it is `local`. |
+| Each folder in `gitops/clusters/` | The folder has a `cluster.yaml` that complies with its schema. Its `name` is equal to the folder name. |
+| Each `cluster.yaml` | `infrastructure` lists `argocd`. Argo CD manages itself through this item. |
+| Each `cluster.yaml` | No two components have the same `name`, also across `infrastructure` and `apps`. |
+| Each `dependsOn` | The name is a component of the same cluster. |
+| Each component of a `cluster.yaml` | `gitops/<group>/<component>/sources/Chart.yaml` exists, and `gitops/clusters/<cluster>/rendered/<component>/` has a `Namespace` with the name of the `namespace` field. |
+| Each file in `gitops/clusters/<cluster>/values/` | The file name is `<component>.yaml`, for a component of the cluster. `manifests:render` ignores the other files. |
+| Each folder in `gitops/infrastructure/` and `gitops/apps/` | The folder has `sources/Chart.yaml` and `sources/templates/namespace.yaml`. |
+| Each dependency in a `sources/Chart.yaml` | The `repository` starts with `https://` or `oci://`. |
+| `gitops/*/*/sources/charts/` | Git tracks no file in it. `helm dependency update` writes the chart archives there. |
+| Each `.tf` file of `instances/<instance>/` that names `gitops/clusters/<cluster>/rendered/argocd` | `<cluster>` is equal to `<instance>`. |
 
-The pre-commit hooks and the `Validate Schemas` workflow run the same tasks.
+The task prints each error, then fails with `<n> file(s) do not comply with their schema.` It exits with `0` after `✓ All module.yaml, instance.yaml and GitOps cluster files comply with their schema.`
 
-## Change a schema
+## `schemas:test`
 
-1. Change the schema file.
-2. Add a fixture in `valid/` for each new permitted case.
-3. Add a fixture in `invalid/` for each new rule. Use the file name to tell which rule it breaks.
-4. Run `mise run schemas:test`.
+The fixtures are in `schemas/tests/`. Each `.tf` fixture has the extension `.tf.txt`, so that the Terraform linters do not read it. The task copies each case folder to a temporary folder and renames each `.tf.txt` file to `.tf` before the check.
+
+| Folder | Check | Pass condition |
+| --- | --- | --- |
+| `<schema>/valid/*.yaml` | `check-jsonschema` with `schemas/<schema>.schema.json` | The file passes. |
+| `<schema>/invalid/*.yaml` | The same | The file fails. |
+| `instance-terraform/valid/<case>/` | The Terraform checks of an instance, on `instance.yaml` and `main.tf.txt` | No error. |
+| `instance-terraform/invalid/<case>/` | The same | Exactly one error. |
+| `gitops-tree/valid/<case>/` | The `gitops/` checks, with `<case>/` as the root of the repository | No error. |
+| `gitops-tree/invalid/<case>/` | The same | Exactly one error. |
+
+`<schema>` is the file name of a schema without `.schema.json`, for example `module`. Each schema must have a `valid/` and an `invalid/` folder, else the task fails. The name of an invalid fixture tells the rule that it breaks, for example `production-local-state.yaml`.
+
+## Hooks and workflows
+
+| Runner | Tasks | Trigger |
+| --- | --- | --- |
+| `schemas-test` pre-commit hook | `schemas:test` | A change in `schemas/`, in `.mise/tasks/schemas/`, or to `.mise/tasks/_base/instance-checks.sh`. |
+| `schemas-check` pre-commit hook | `schemas:check` | A change to a schema, a `module.yaml`, an `instance.yaml`, a `.tf` file of an instance, a file in `gitops/`, or `.mise/tasks/_base/instance-checks.sh`. |
+| `Validate Schemas` workflow | `schemas:test`, then `schemas:check` | A pull request or a push to `main` that changes these files. A pull request that changes `.mise/config.toml` or the workflow also runs it. |
+| `Lint` workflow | Both, through `mise run lint` | Each pull request and each push to `main`. |
 
 ## Editor support
 
-Add this line at the top of a YAML file to get validation and completion in editors that use `yaml-language-server`:
+The first line of each validated file and of each schema fixture names its schema for `yaml-language-server`, with a relative path:
 
 ```yaml
-# yaml-language-server: $schema=<relative path>/schemas/module.schema.json
+# yaml-language-server: $schema=../../schemas/module.schema.json
 ```
+
+`.vscode/extensions.json` recommends the `redhat.vscode-yaml` extension, which uses `yaml-language-server`.
+
+## Related pages
+
+- [GitOps layout](gitops-layout.md): the use of each field of `cluster.yaml`.
+- [Instance tasks](instance-tasks.md): the tasks that read `instance.yaml`.
+- [Mise tasks](mise-tasks.md): all the tasks.
+- [Change a schema](../how-to/change-a-schema.md)
+- [Add a GitOps component](../how-to/add-gitops-component.md)

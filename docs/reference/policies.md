@@ -1,37 +1,95 @@
 # Policies
 
-This page lists the Conftest policies in `policy/`. The policies are written in Rego. The `lint:policy` task runs them.
+The policies are Conftest rules in Rego, in `policy/`. Each folder is one policy namespace. `mise run lint:policy` runs them.
 
-## Rules
+| Folder | Namespace | Files | Tests |
+| --- | --- | --- | --- |
+| `policy/terraform/` | `terraform` | `terraform.rego` | `terraform_test.rego` |
+| `policy/kubernetes/` | `kubernetes` | `kubernetes.rego` | `kubernetes_test.rego` |
+| `policy/precommit/` | `precommit` | `precommit.rego` | `precommit_test.rego` |
+| `policy/mise/` | `mise` | `mise.rego` | `mise_test.rego` |
+| `policy/data/` | None | `labels.yaml`: the data of the label checks. The policies read it as `data.labels`. | None |
 
-| Namespace | Files | Rule |
+## Levels
+
+Each rule has one of two levels ([Conftest: options](https://www.conftest.dev/options/)):
+
+| Level | Rego rule | Effect |
 | --- | --- | --- |
-| `terraform` | `*.tf` | A module in a `modules/` folder must not configure a `provider` block. Configure providers in the root module only. |
-| `terraform` | `*.tf` | Each entry in `required_providers` must declare a `source`. |
-| `terraform` | `*.tf` | Each entry in `required_providers` must use an exact version (`x.y.z`). |
-| `kubernetes` | `kubernetes/**/*.yaml`, `gitops/**/*.yaml` | Each container image must have an explicit tag. The tag must not be `latest`. |
-| `kubernetes` | Files that are not in a `manifests/` or `rendered/` folder | Each container image must also have a `sha256` digest. Rendered manifests come from upstream charts, so this rule does not apply to them. |
-| `kubernetes` | Applications in `gitops/` | The Application syncs `main`. A branch can sync itself to test on Kind, but it cannot merge. |
-| `kubernetes` | Applications in `gitops/` | The Application does not use `CreateNamespace=true`. Each component ships its own `Namespace`. |
-| `kubernetes` | Applications in `gitops/` | The Application has no `resources-finalizer.argocd.argoproj.io` finalizer. When a component leaves `cluster.yaml`, its resources stay in the cluster. |
-| `kubernetes` | Namespaces in `gitops/` | The labels `pod-security.kubernetes.io/enforce`, `audit` and `warn` are `privileged`, `baseline` or `restricted`. The annotation `argocd.argoproj.io/sync-wave` is `"-2"`. |
-| `kubernetes` | CRDs in `gitops/` | The annotation `argocd.argoproj.io/sync-wave` is `"-1"`. |
-| `kubernetes` | `kubernetes/**/*.yaml`, `gitops/**/*.yaml` | A `Secret` has no values in `data` or `stringData` (`data: {}` is allowed), or it is encrypted with SOPS. This rule is a guard against accidents, not a security control. |
-| `kubernetes` | `kubernetes/**/*.yaml`, `gitops/**/*.yaml` | A SOPS-encrypted `Secret` has a `sops` object with a `version`, and each value starts with `ENC[AES256_GCM,`. The rule also checks multi-document files and the `items` of a `List`. |
-| `precommit` | `.pre-commit-config.yaml` | Each hook repository must use a 40-character commit SHA as `rev`. `local` and `meta` repositories are not affected. |
-| `precommit` | `.pre-commit-config.yaml` | Each `additional_dependencies` entry must use an exact version (`@x.y.z` or `==x.y.z`). |
-| `mise` | `.mise/config.toml` | Each tool must use an exact version. |
-| `mise` | `.mise/config.toml` | `settings.lockfile` must be `true`. |
+| Error | `deny` | Conftest prints the message, and `lint:policy` fails. |
+| Warning | `warn` | Conftest prints the message. `lint:policy` does not fail, because the task does not use `--fail-on-warn`. |
 
-## Tasks
+## `lint:policy`
 
-| Task | Action |
+The task runs these commands from the root of the repository:
+
+1. `conftest verify --policy policy --data policy/data`: the unit tests of all the namespaces.
+2. `conftest test --no-color --policy policy --data policy/data --namespace <namespace>`, one time for each namespace, on the files that Git tracks:
+
+| Namespace | Options | Input files |
+| --- | --- | --- |
+| `terraform` | `--combine --parser hcl2` | `*.tf` |
+| `kubernetes` | `--combine` | `kubernetes/*.yaml` and `gitops/*.yaml`, except `gitops/*/sources/templates/*` |
+| `precommit` | None | `.pre-commit-config.yaml` |
+| `mise` | None | `.mise/config.toml` |
+
+The patterns are Git pathspecs, so `*` also matches `/`. A Helm template in `sources/templates/` is not YAML before the render, so the `kubernetes` namespace reads the rendered files. When a namespace has no input file, the task prints a warning and continues.
+
+The `lint-policy` pre-commit hook and the `lint` task run `lint:policy`.
+
+## `terraform`
+
+All the rules are `deny`.
+
+| Input | Rule |
 | --- | --- |
-| `mise run lint:policy` | Runs the unit tests (`conftest verify`), then checks the repository files. |
+| A file with `modules/` at the start of its path, or with `/modules/` in its path | The file has no `provider` block. The root module configures the providers. |
+| Each entry of `required_providers` | The entry has a `source`. |
+| Each entry of `required_providers` | The `version` is one exact version: `x.y.z`. |
 
-## Add or change a rule
+## `kubernetes`
 
-1. Change the policy file in `policy/<namespace>/`.
-2. Add a test in `policy/<namespace>/<namespace>_test.rego` for each case that must pass and each case that must fail.
-3. Run `mise run lint:policy`.
-4. Update the table on this page.
+All the rules in this section are `deny`. A rendered file is a file with `/manifests/` or `/rendered/` in its path.
+
+| Input | Rule |
+| --- | --- |
+| Each container and init container of a `Pod`, `Deployment`, `StatefulSet`, `DaemonSet`, `Job`, `ReplicaSet` or `CronJob` | The image has an explicit tag, and the tag is not `latest`. |
+| The same images, in a file that is not rendered | The image ends with a `sha256` digest: `@sha256:<64 hex digits>`. |
+| Each `Application` in `gitops/` | `spec.source.targetRevision` is `main`. |
+| Each `Application` in `gitops/` | `spec.syncPolicy.syncOptions` has no `CreateNamespace=true`. |
+| Each `Application` in `gitops/` | No finalizer starts with `resources-finalizer.argocd.argoproj.io`. |
+| Each `Namespace` in `gitops/` | The labels `pod-security.kubernetes.io/enforce`, `audit` and `warn` are `privileged`, `baseline` or `restricted`. |
+| Each `Namespace` and `CustomResourceDefinition` in `gitops/` | The annotation `argocd.argoproj.io/sync-wave` is `"-2"` on a `Namespace` and `"-1"` on a CRD. |
+| Each `Secret`, also in a multi-document file and in the `items` of a `List` | `data` and `stringData` have no values, or SOPS encrypts the `Secret`: a `sops` object with a `version`, and each value starts with `ENC[AES256_GCM,`. |
+
+The `Secret` rule is a guard against accidents, not a security control.
+
+### Label and annotation checks
+
+The `kubernetes` namespace also has the checks K1 to K10, K14 and K15, and the checks of `policy/data/labels.yaml`. Some are `deny`, and some are `warn`. Each message has the ID of its check. The inputs, the rules, the levels and the allowlists are in [Labels and annotations](labels-and-annotations.md#checks).
+
+## `precommit`
+
+All the rules are `deny`.
+
+| Input | Rule |
+| --- | --- |
+| Each item of `repos`, except `local` and `meta` | `rev` is a commit SHA of 40 hex digits. |
+| Each `additional_dependencies` entry of a hook | The entry ends with an exact version: `@x.y.z` or `==x.y.z`. |
+
+## `mise`
+
+All the rules are `deny`.
+
+| Input | Rule |
+| --- | --- |
+| Each tool in `[tools]` | The version is exact: three numbers, with an optional `v` before them and an optional suffix, for example `-rc.1`. A tool with an object value uses its `version` field. |
+| `[settings]` | `lockfile` is `true`. |
+
+## Related pages
+
+- [Labels and annotations](labels-and-annotations.md): the label checks of the `kubernetes` namespace.
+- [Mise tasks](mise-tasks.md): the `lint` and `lint:policy` tasks.
+- [GitOps layout](gitops-layout.md#checks): the checks of the `gitops/` tree.
+- [Add or change a policy rule](../how-to/add-or-change-a-policy-rule.md)
+- [Label a GitOps component](../how-to/label-a-gitops-component.md)
