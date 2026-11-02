@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Generate reference documentation for Terraform modules and Ansible roles"
+#MISE description="Generate reference documentation for Terraform modules"
 
 set -euo pipefail
 
@@ -20,8 +20,5 @@ for module_dir in "$MISE_PROJECT_ROOT/modules"/*; do
         fi
     fi
 done
-
-log_info "Generating Ansible role documentation..."
-"$MISE_PROJECT_ROOT/scripts/generate-ansible-docs.sh"
 
 log_info "All documentation generation complete."

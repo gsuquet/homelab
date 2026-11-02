@@ -187,6 +187,8 @@ The templates in `docs/templates/` have the structure of each page type. A new p
 - [How-to guide](../templates/how-to.md)
 - [Reference](../templates/reference.md)
 - [Explanation](../templates/explanation.md)
+- `CHANGELOG.md`, because git-cliff generates it from the commit messages.
+- Files in `charts/` folders, because Helm charts can come from upstream projects.
 
 ## Related pages
 
