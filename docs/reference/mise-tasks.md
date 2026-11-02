@@ -220,15 +220,15 @@ For an instance that uses `cluster-kind`, the tasks read these environment varia
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `COLIMA_CPU` | `4` | Number of CPUs of the Colima VM, when the task starts Colima (`colima start --cpus`). |
-| `COLIMA_MEMORY` | `8` | Memory of the Colima VM in GiB (`colima start --memory`). If the host memory minus 4 GiB is less than this value, the task uses that difference and prints a warning that names `COLIMA_MEMORY`. The task still starts. |
+| `COLIMA_CPU` | `4` | Number of CPUs of the Colima VM, when the task starts Colima (`colima start --cpus`). If you do not set the variable, the task never makes a saved VM smaller: it uses the larger of the saved size and the default. A value that you set always wins. |
+| `COLIMA_MEMORY` | `8` | Memory of the Colima VM in GiB (`colima start --memory`). If the host memory minus 4 GiB is less than this value, the task uses that difference and prints a warning that names `COLIMA_MEMORY`. The task still starts. The rule about the saved size is the same as for `COLIMA_CPU`. |
 | `COLIMA_DISK` | not set | Disk of the Colima VM in GiB (`colima start --disk`). If not set, Colima keeps its own disk size. Colima cannot make a disk smaller. |
 | `COLIMA_STRICT` | `0` | Set to `1` to stop, instead of only warn, when the running Colima VM is smaller than `COLIMA_CPU` or `COLIMA_MEMORY`. |
 | `KIND_MIN_MEMORY` | `4` | Minimum memory of the Docker VM in GiB. The check accepts 90% of the value, because the kernel keeps some memory. |
 
 Before Terraform runs, `instance:plan` and `instance:up` do these checks. `instance:down` does not, because a destroy must work on a small VM:
 
-- If Colima already runs with fewer CPUs or less memory than `COLIMA_CPU` and `COLIMA_MEMORY`, the task prints a warning and the command that resizes the VM, `colima stop && colima start --cpus <n> --memory <GiB>`. The task never restarts Colima, because a restart stops the running cluster. It continues, unless `COLIMA_STRICT=1`. The task reads the size of the default Colima profile from `colima list --json`.
+- If Colima already runs with fewer CPUs or less memory than `COLIMA_CPU` and `COLIMA_MEMORY`, the task prints a warning and the command that resizes the VM, `colima stop && colima start --cpus <n> --memory <GiB>`. The task never restarts Colima, because a restart stops the running cluster. It continues, unless `COLIMA_STRICT=1`. The task reads the size of the default Colima profile from `colima list --json`. It does this check only if Colima is the active runtime: `DOCKER_RUNTIME=colima`, or, if `DOCKER_RUNTIME` is not set, a Docker context that is named `colima`. The hint for the resize command in the memory check follows the same rule. For another runtime, the hint tells you to give the Docker VM more memory.
 - If the Docker VM has less memory than `KIND_MIN_MEMORY` (`docker info --format '{{.MemTotal}}'`), the task stops with an error. Without this check, the apply fails later with `TLS handshake timeout`. Refer to [Resize the Colima VM](../how-to/resize-the-colima-vm.md).
 
 Also, for an instance that uses `cluster-kind`:

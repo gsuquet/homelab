@@ -34,6 +34,10 @@ instance_load() {
 colima_size() {
     local host_bytes host_kib host_gib="" var
 
+    # Remember, at the first call, which values the environment sets.
+    COLIMA_CPU_SET="${COLIMA_CPU_SET:-$([ -n "${COLIMA_CPU:-}" ] && echo 1 || echo 0)}"
+    COLIMA_MEMORY_SET="${COLIMA_MEMORY_SET:-$([ -n "${COLIMA_MEMORY:-}" ] && echo 1 || echo 0)}"
+
     COLIMA_CPU="${COLIMA_CPU:-4}"
     COLIMA_MEMORY="${COLIMA_MEMORY:-8}"
 
@@ -70,11 +74,72 @@ colima_resize_command() {
     echo "$cmd"
 }
 
+# colima_active
+# Returns 0 when the active runtime is Colima: DOCKER_RUNTIME=colima, or, without
+# DOCKER_RUNTIME, the active Docker context is colima (or colima-<profile>).
+colima_active() {
+    command -v colima > /dev/null 2>&1 || return 1
+    case "${DOCKER_RUNTIME:-}" in
+        colima) return 0 ;;
+        "") ;;
+        *) return 1 ;;
+    esac
+    case "$(docker context show 2> /dev/null || true)" in
+        colima | colima-*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+# colima_saved_size
+# Prints "<cpus> <GiB>" of the default Colima VM, or nothing. The source is
+# colima list --json (any status), else colima.yaml of the default profile.
+# A value that is not a whole number is printed as 0.
+colima_saved_size() {
+    local info cpus mem file
+
+    info="$(colima list --json 2> /dev/null | yq -p=json 'select(.name == "default") | [.cpus, .memory] | join(" ")' 2> /dev/null | head -n 1 || true)"
+    if [ -n "$info" ]; then
+        cpus="${info% *}"
+        mem="${info#* }"
+        case "$mem" in
+            "" | *[!0-9]*) mem=0 ;;
+            *) mem=$((mem / 1024 / 1024 / 1024)) ;;
+        esac
+    else
+        for file in "${COLIMA_HOME:-$HOME/.colima}/default/colima.yaml" "${XDG_CONFIG_HOME:-$HOME/.config}/colima/default/colima.yaml"; do
+            [ -f "$file" ] || continue
+            cpus="$(yq '.cpu' "$file" 2> /dev/null || true)"
+            mem="$(yq '.memory' "$file" 2> /dev/null || true)"
+            mem="${mem%%.*}"
+            break
+        done
+    fi
+    [ -n "${cpus:-}" ] || return 0
+    case "$cpus" in "" | *[!0-9]*) cpus=0 ;; esac
+    case "${mem:-}" in "" | *[!0-9]*) mem=0 ;; esac
+    echo "$cpus $mem"
+}
+
 # colima_start
-# Starts Colima with the size of colima_size.
+# Starts Colima with the size of colima_size. It never makes a saved VM smaller:
+# for each resource that COLIMA_CPU or COLIMA_MEMORY does not set, it uses the
+# larger of the saved size and the default. A value set in the environment wins.
 colima_start() {
-    local args=()
+    local args=() saved saved_cpu saved_mem
+
     colima_size
+
+    saved="$(colima_saved_size)"
+    if [ -n "$saved" ]; then
+        saved_cpu="${saved% *}"
+        saved_mem="${saved#* }"
+        if [ "$COLIMA_CPU_SET" != "1" ] && [ "$saved_cpu" -gt "$COLIMA_CPU" ]; then
+            COLIMA_CPU="$saved_cpu"
+        fi
+        if [ "$COLIMA_MEMORY_SET" != "1" ] && [ "$saved_mem" -gt "$COLIMA_MEMORY" ]; then
+            COLIMA_MEMORY="$saved_mem"
+        fi
+    fi
     args=(--cpus "$COLIMA_CPU" --memory "$COLIMA_MEMORY")
     if [ -n "${COLIMA_DISK:-}" ]; then
         args+=(--disk "$COLIMA_DISK")
@@ -91,14 +156,19 @@ colima_start() {
 colima_check_size() {
     local info cpus memory
 
-    [ -z "${DOCKER_RUNTIME:-}" ] || [ "$DOCKER_RUNTIME" = "colima" ] || return 0
-    command -v colima > /dev/null 2>&1 || return 0
+    colima_active || return 0
 
     # colima list prints one JSON object per line. Its warnings go to stderr.
     info="$(colima list --json 2> /dev/null | yq -p=json 'select(.name == "default" and .status == "Running") | [.cpus, .memory] | join(" ")' 2> /dev/null || true)"
     [ -n "$info" ] || return 0
     cpus="${info% *}"
     memory="${info#* }"
+    case "$cpus$memory" in
+        "" | *[!0-9]*)
+            [ -z "${DEBUG:-}" ] || echo "colima_check_size: cannot read the size of the Colima VM ('$info'), check skipped." >&2
+            return 0
+            ;;
+    esac
 
     colima_size
     if [ "$cpus" -ge "$COLIMA_CPU" ] && [ "$memory" -ge $((COLIMA_MEMORY * 1024 * 1024 * 1024)) ]; then
@@ -138,10 +208,10 @@ docker_check_memory() {
 
     if [ "$total" -lt $((min * 1024 * 1024 * 1024 * 9 / 10)) ]; then
         log_error "The Docker VM has $((total / 1024 / 1024)) MiB of memory. A Kind cluster needs at least $min GiB (KIND_MIN_MEMORY), else the apply fails with 'TLS handshake timeout'."
-        if command -v colima > /dev/null 2>&1 && { [ -z "${DOCKER_RUNTIME:-}" ] || [ "$DOCKER_RUNTIME" = "colima" ]; }; then
+        if colima_active; then
             log_error "To resize the Colima VM: $(colima_resize_command)"
         else
-            log_error "Increase the memory of the Docker VM in the settings of your Docker runtime."
+            log_error "Give the Docker VM more memory in the settings of your Docker runtime."
         fi
         exit 1
     fi
