@@ -1,42 +1,56 @@
 # Resize the Colima VM
 
-Use this guide when `mise run instance:up kind-local` fails with `net/http: TLS handshake timeout`, or when the Kind control plane restarts again and again.
+This guide shows how to give the Colima VM more CPUs or memory for a Kind instance.
 
-## Symptom
+Resize the VM when one of these occurs:
 
-- The apply fails with `TLS handshake timeout` on many `kubectl_manifest` resources, for example in the `bootstrap-gateway-api` module.
-- The pods `etcd` and `kube-controller-manager` restart. The liveness probes of etcd fail.
-- The load average of the control plane node is high, and its free memory is almost zero.
+- `mise run instance:up kind-local` fails with `net/http: TLS handshake timeout`, often on `kubectl_manifest` resources.
+- `instance:up` stops with `The Docker VM has <n> MiB of memory. A Kind cluster needs at least 4 GiB`.
+- `instance:up` or `instance:plan` prints the warning `The Colima VM has <n> CPUs and <n> GiB of memory`.
+- The `etcd` and `kube-controller-manager` pods of the control plane restart again and again.
 
-## Cause
+## Resize the VM
 
-A TLS handshake timeout during the apply means that the VM is out of memory. The API server of the Kind cluster runs in the Docker VM. Colima starts a VM with 2 CPUs and 2 GiB of memory if you do not give a size. This size is too small for `kind-local`.
-
-## Procedure
-
-1. Check the memory of the VM:
+1. Check the size of the VM:
 
    ```bash
-   docker info --format '{{.MemTotal}}'
    colima list
+   docker info --format '{{.MemTotal}}'
    ```
 
-   `instance:up` stops before the apply if the VM has less than 4 GiB of memory.
-
-2. Resize the VM. The stop also stops the Kind cluster, so do this step when no work is running:
+2. Stop all work on the cluster. The stop of Colima also stops the Kind nodes.
+3. Restart Colima with the new size:
 
    ```bash
    colima stop && colima start --cpus 4 --memory 8
    ```
 
-   Colima keeps the disk size. Do not use `--disk` to make the disk smaller. Colima cannot shrink a disk.
+   If the task printed a warning, use the command in the warning. It contains the size that the task asks for.
 
-3. Run the task again:
+4. Run the task again:
 
    ```bash
    mise run instance:up kind-local
    ```
 
-   Docker containers start again with the VM. If the cluster does not recover, run `mise run instance:down kind-local`, and then `instance:up`.
+5. If the cluster does not recover, recreate it:
 
-To make the task start Colima with another size, set `COLIMA_CPU`, `COLIMA_MEMORY` and `COLIMA_DISK`. Refer to [Mise tasks](../reference/mise-tasks.md).
+   ```bash
+   mise run instance:down kind-local
+   mise run instance:up kind-local
+   ```
+
+Do not use `--disk` to make the disk smaller. Colima cannot shrink a disk.
+
+## Let the task set the size
+
+If Colima does not run, `instance:up` starts it. To start it with a different size, set the size in the environment:
+
+```bash
+colima stop
+COLIMA_CPU=6 COLIMA_MEMORY=12 mise run instance:up kind-local
+```
+
+To make the task fail, instead of only warn, when the running VM is too small, set `COLIMA_STRICT=1`.
+
+For the defaults and the limits of these variables, refer to [Instance tasks](../reference/instance-tasks.md#environment-variables).
