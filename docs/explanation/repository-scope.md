@@ -43,11 +43,13 @@ The rule gives these answers for the items that exist:
 | The reusable workflows | `gsuquet/workflows` | They have their own versions and tags, and other repositories call them. |
 | The source code of an app | The repository of the app | The [Argo CD best practices](https://argo-cd.readthedocs.io/en/stable/user-guide/best_practices/) keep the configuration separate from the application source code. |
 
-## What the scope does not hold
+## Provider accounts
 
 The provider accounts are not code in this repository. The Cloudflare account holds the zone `gsuquet.com`, its DNS records and the tunnel of `olympus`. Changes to them occur in the Cloudflare dashboard, with no PR and no review. [Configure Cloudflare](../how-to/configure-cloudflare.md) gives the manual steps for the tunnel.
 
-The scope also has a cost. One repository holds more risk than many: a wrong merge can change a cluster, also the production cluster. The review is the control. Agents use the same GitHub account as the review and the merge, so this control depends on a careful human review of each PR.
+## The cost
+
+One repository holds more risk than many: a wrong merge can change a cluster, also the production cluster. The review is the control. Agents use the same GitHub account as the review and the merge, so this control depends on a careful human review of each PR.
 
 ## The name `infra`
 

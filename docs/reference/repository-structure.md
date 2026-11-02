@@ -61,7 +61,7 @@ This page lists the folders and the root files of the repository. It also lists 
 | `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.claude/`, `.gemini/`, `.entire/` | The instruction files and the settings of the agents. A module can also have an `AGENTS.md` file. |
 
 - A shell script is a mise task, in `.mise/tasks/`. A shared shell function is in `.mise/tasks/_base/`.
-- Each tool reads its configuration from the default location of the tool. No task uses a flag to change that location.
+- Each tool reads its configuration file from the root. `lint:terraform` passes `--config`, because `--chdir` moves TFLint into each module.
 - Modules have no `examples/` folder.
 - The repository has no `.github/CODEOWNERS` file.
 
@@ -70,11 +70,11 @@ This page lists the folders and the root files of the repository. It also lists 
 | File | Content |
 | --- | --- |
 | `README.md` | The entry page of the repository. |
-| `LICENSE` | The MIT license. It applies to all the repository, `docs/` too. |
+| `LICENSE` | The MIT license. It applies to all the repository, `docs/` too, except upstream copies, which keep their own license. |
 | `CONTRIBUTING.md` | The tasks, the checks and the review flow for a change. |
 | `CHANGELOG.md` | The list of changes. `mise run changelog:generate` writes it from the commit messages with git-cliff. |
 | `CODE_OF_CONDUCT.md` | The Contributor Covenant, version 2.0. |
-| `SECURITY.md` | How to report a vulnerability. |
+| `SECURITY.md` | How to report a vulnerability. Private vulnerability reporting is on in the settings of the repository. |
 
 ## Files of a module
 
@@ -94,6 +94,7 @@ This page lists the folders and the root files of the repository. It also lists 
 | `manifests/` | No | Copies of upstream manifests, with no change. |
 
 - A module has no `providers.tf` and no `backend.tf`. The instance configures the providers and the state.
+- A copy of upstream content keeps its license. The folder of the copy holds the license file of the source. The `README.md` of the module names the source, the version and the license.
 - `docs/reference/terraform-modules/<module>/index.md` is a generated copy of the `README.md` of the module. `mise run doc:check` makes sure that the copy is equal to its source.
 
 ## Files of an instance
@@ -123,8 +124,8 @@ The general rule: the base of a folder or file name uses lowercase letters, digi
 | GitOps cluster folder | Equal to the instance name. Maximum 40 characters. | `gitops/clusters/kind-local/` | `gitops-cluster.schema.json`, `instance-checks.sh` |
 | GitOps component folder | DNS-1123 label. Equal to the Application name. Unique in a cluster. Maximum 53 characters, the limit of a Helm release name. | `cert-manager` | `gitops-cluster.schema.json`, `instance-checks.sh` |
 | Namespace of a component | DNS-1123 label. Maximum 63 characters. | `cert-manager` | `gitops-cluster.schema.json` |
-| Rendered manifest file | `<kind>-<name>.yaml`, lowercase | `configmap-argocd-cm.yaml` | `manifests:render` writes it. |
-| Terraform identifiers | Snake case. No resource type in the name. `this` for a single resource. | `api_server_address` | TFLint |
+| Rendered manifest file | `[upstream--]<kind>-<name>.yaml`, lowercase. The prefix `upstream--` marks a resource from an upstream chart. | `namespace-argocd.yaml`, `upstream--configmap-argocd-cm.yaml` | `manifests:render` writes it. |
+| Terraform identifiers | Snake case. No resource type in the name. `this` for a single resource. | `api_server_address` | TFLint checks the snake case. The review checks the rest. |
 | Terraform files | `terraform.tf`, `providers.tf`, `main.tf`, `variables.tf`, `outputs.tf`, `locals.tf`, `backend.tf`, `<topic>.tf` | `cluster-issuers.tf` | The review |
 | Template files | `<name>.<extension>.tftpl` | `cilium-values.yaml.tftpl` | The review |
 | Helm values | Camel case | `targetRevision` | The review |
@@ -138,7 +139,8 @@ Exceptions:
 - Names that start with `_` are not items. Examples: `modules/_template/` and `.mise/tasks/_base/`.
 - Rego file names use underscores, because a Rego package name cannot have a hyphen.
 - A file extension can have more than one part, for example `.schema.json`.
-- A rendered manifest file can have dots, for example `customresourcedefinition-applications.argoproj.io.yaml`.
+- A rendered manifest file can have dots, for example `upstream--customresourcedefinition-applications.argoproj.io.yaml`.
+- The prefix of an upstream rendered manifest file has a double hyphen: `upstream--`. Refer to [GitOps layout](gitops-layout.md#rendered-files).
 - `schemas/tests/gitops-tree/` and `schemas/tests/instance-terraform/` name a tree, not a `kind`.
 
 ## Legacy folders
