@@ -4,13 +4,13 @@
 | Name | Version |
 | ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | > 1.15.0 |
-| <a name="requirement_kind"></a> [kind](#requirement\_kind) | 0.11.0 |
+| <a name="requirement_kind"></a> [kind](#requirement\_kind) | 0.13.0 |
 
 ## Providers
 
 | Name | Version |
 | ---- | ------- |
-| <a name="provider_kind"></a> [kind](#provider\_kind) | 0.11.0 |
+| <a name="provider_kind"></a> [kind](#provider\_kind) | 0.13.0 |
 | <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
 
 ## Inputs
@@ -29,8 +29,8 @@
 | <a name="input_kubeconfig_path"></a> [kubeconfig\_path](#input\_kubeconfig\_path) | Path where the kubeconfig will be written. Defaults to ~/.kube/kind-<name> to avoid polluting the default kubeconfig. | `string` | `""` | no |
 | <a name="input_name"></a> [name](#input\_name) | Name of the Kind cluster. Must be lowercase alphanumeric and hyphens only. | `string` | n/a | yes |
 | <a name="input_node_image"></a> [node\_image](#input\_node\_image) | Base image name for Kind nodes (without tag or digest). | `string` | `"kindest/node"` | no |
-| <a name="input_node_image_digest"></a> [node\_image\_digest](#input\_node\_image\_digest) | SHA256 digest of the node image for reproducible, tamper-resistant builds. Find the digest for a given release at https://github.com/kubernetes-sigs/kind/releases. | `string` | `"3489c7674813ba5d8b1a9977baea8a6e553784dab7b84759d1014dbd78f7ebd5"` | no |
-| <a name="input_node_image_tag"></a> [node\_image\_tag](#input\_node\_image\_tag) | Kubernetes version tag for the node image (e.g. v1.36.1). | `string` | `"v1.36.1"` | no |
+| <a name="input_node_image_digest"></a> [node\_image\_digest](#input\_node\_image\_digest) | SHA256 digest of the node image for reproducible, tamper-resistant builds. The reference is the default node image compiled into the pinned kind binary. Release notes: https://github.com/kubernetes-sigs/kind/releases. | `string` | `"a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5"` | no |
+| <a name="input_node_image_tag"></a> [node\_image\_tag](#input\_node\_image\_tag) | Kubernetes version tag for the node image (e.g. v1.37.0). | `string` | `"v1.37.0"` | no |
 | <a name="input_pod_subnet"></a> [pod\_subnet](#input\_pod\_subnet) | CIDR range for pod IPs. Leave empty to use the Kind default (10.244.0.0/16). Set to match your production cluster for staging environments. | `string` | `""` | no |
 | <a name="input_service_subnet"></a> [service\_subnet](#input\_service\_subnet) | CIDR range for service IPs. Leave empty to use the Kind default (10.96.0.0/12). Set to match your production cluster for staging environments. | `string` | `""` | no |
 | <a name="input_worker_count"></a> [worker\_count](#input\_worker\_count) | Number of worker nodes. | `number` | `2` | no |

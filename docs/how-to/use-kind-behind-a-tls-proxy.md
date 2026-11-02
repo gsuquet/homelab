@@ -46,7 +46,7 @@ To do this step manually:
 To make sure that the VM trusts the CA, pull an image:
 
 ```bash
-docker pull kindest/node:v1.36.1
+docker pull kindest/node:v1.37.0
 ```
 
 ## 2. Make the Kind nodes trust the CA
