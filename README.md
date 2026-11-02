@@ -2,7 +2,7 @@
 
 > A personal infrastructure sandbox, configuration archive, and learning environment for Infrastructure as Code, Kubernetes GitOps, Ansible, and Terraform.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Renovate](https://img.shields.io/badge/renovate-enabled-brightgreen.svg)](renovate.json)
 
 ---
@@ -89,4 +89,4 @@ For security vulnerability reporting instructions, please see [SECURITY.md](SECU
 
 ## License
 
-This project is licensed under the MIT License - see [LICENSE.md](LICENSE.md) for details.
+This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
