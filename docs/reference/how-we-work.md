@@ -15,7 +15,7 @@ This page lists the rules for the work items, the PRs, the review, the commits a
 - A small, reversible change has no docs step. Examples: a change to `kind-local`, to the tooling, or a bug fix. The same PR updates the reference pages that the change makes wrong.
 - A bug fix makes the code do what its docs, its tests or its PR already tell, and it adds no new behavior.
 - The PR description names its step. It links to the docs of the subject, except for a small change.
-- The repository has no RFCs and no ADRs.
+- The decisions and their reasons are in the explanation pages. The repository has no separate proposal or decision files.
 
 ## Work items
 

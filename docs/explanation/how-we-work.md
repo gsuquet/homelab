@@ -35,12 +35,12 @@ The doc PR is short enough to review. It holds the decisions and their reasons, 
 ### Alternatives that I did not select
 
 - **Code first, docs after.** The docs follow the accidents of the code, and a reviewer has no target. I do not use it for a new subject. I use it only for small, reversible changes.
-- **RFCs and ADRs.** This repository used this process before. An RFC held the proposal and its discussion, and the ADRs recorded each decision from the RFC. Then the docs, an interface specification, the tests and the code followed, in that order. I stopped it for these reasons:
-  - It made too much text before the code. A small feature needed an RFC, then ADRs, then the docs.
-  - The ADRs restated the RFCs. Each decision was in two or three files, and the reader had to read them all.
-  - An accepted record did not change. The docs changed with the system. Thus the records and the docs did not agree after some time.
+- **Proposals, then decision records.** This repository used this process before. A long proposal held the design and its discussion. After its acceptance, one short decision record for each decision restated it. Then the docs, an interface specification, the tests and the code followed, in that order. I stopped it for these reasons:
+  - It made too much text before the code. A small feature needed a proposal, then decision records, then the docs.
+  - The decision records restated the proposals. Each decision was in two or three files, and the reader had to read them all.
+  - An accepted proposal or decision record did not change, but the docs changed with the system. Thus they did not agree after some time.
 
-  Git history keeps the old records. The decisions that still apply are now in the Diátaxis pages.
+  Git history keeps the old files. The decisions that still apply are now in the Diátaxis pages.
 - **Plans outside of the repository**, for example in a document tool. Agents cannot read them with `gh`, a PR cannot close them, and they are not in the history of the repository.
 
 ## Where the work is: the board
