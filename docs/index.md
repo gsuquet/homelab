@@ -60,6 +60,9 @@ Information-oriented documentation for looking up technical details.
 | [Applications](reference/applications.md) | Deployed apps with versions, ports, and storage |
 | [Mise Tasks](reference/mise-tasks.md) | All `mise run` tasks with descriptions and usage |
 | [Tools](reference/tools.md) | All project tools with versions and install methods |
+| [Writing Rules](reference/writing-rules.md) | The Diátaxis sections, ASD-STE100 and the Vale checks |
+| [Policies](reference/policies.md) | The Conftest policies and what each one checks |
+| [Schemas](reference/schemas.md) | The JSON Schemas of `module.yaml`, `instance.yaml` and `cluster.yaml` |
 | [How We Work](reference/how-we-work.md) | The rules for issues, PRs, labels, the review, commits and the merge |
 | [Labels and Annotations](reference/labels-and-annotations.md) | The Kubernetes and cloud label keys, and their checks |
 | [Provider Accounts](reference/provider-accounts.md) | The scope rule, `accounts/`, state, credentials, budgets and naming |
