@@ -190,7 +190,8 @@ It runs these tasks:
 | `lint:actions` | actionlint, zizmor | Syntax and security of the workflows in `.github/workflows/`. |
 | `lint:shell` | ShellCheck, shfmt | Shell scripts tracked by git. shfmt reads its settings from `.editorconfig`. |
 | `lint:docs` | Vale | Markdown files against the ASD-STE100 rules. Only errors fail the check. Refer to [Writing rules](writing-rules.md). |
-| `lint:records` | `git grep -P` | No tracked file refers to the old proposal and decision record files: their numbered names, their abbreviation, or their old folders. IETF references, for example `RFC 1123`, stay legal. `CHANGELOG.md` is not checked, because git-cliff generates it from the Git history. |
+| `lint:records` | `git grep -P` | No tracked file refers to the old proposal and decision record files: their numbered names, their abbreviation, or their old folders. IETF references, for example `RFC 1123`, stay legal. `CHANGELOG.md` is not checked, because git-cliff generates it from the Git history. Only "no match" passes: a `git grep` error fails the check. |
+| `lint:records-test` | Bash | Runs `lint:records` with a fake `git` for each exit code, and checks that only "no match" passes. |
 | `schemas:test` | check-jsonschema | Refer to [Schemas](schemas.md). |
 | `schemas:check` | check-jsonschema, yq | Refer to [Schemas](schemas.md). |
 

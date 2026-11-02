@@ -50,7 +50,7 @@ The repository adds two rules for its own keys:
 
 ## Families of keys
 
-| Family | Prefixes | Owner | The repository sets it |
+| Family | Prefixes | Defined by | The repository sets it |
 | --- | --- | --- | --- |
 | Kubernetes core | `kubernetes.io/`, `k8s.io/` and their subdomains, but not `app.kubernetes.io/` | Kubernetes | Only the keys that Kubernetes documents for users, for example the Pod Security labels. Only from the K2 allowlist. |
 | Recommended labels | `app.kubernetes.io/` | Shared convention | Yes, in the hand-written charts |
@@ -134,7 +134,7 @@ Sources: [Kubernetes: recommended labels](https://kubernetes.io/docs/concepts/ov
 | `annotation` | `argocd.argoproj.io/tracking-id`, value `<app>:<group>/<kind>:<namespace>/<name>` | None of the label problems. |
 | `annotation+label` | Both | The label is for information only. |
 
-- The repository uses `annotation`, set explicitly. The values of the `argocd` component, `gitops/infrastructure/argocd/sources/values.yaml`, set `application.resourceTrackingMethod: annotation` in the `configs.cm` values of the chart (#225).
+- The repository uses `annotation`, set explicitly. The values of the `argocd` component, `gitops/infrastructure/argocd/sources/values.yaml`, will set `application.resourceTrackingMethod: annotation` in the `configs.cm` values of the chart (#225).
 - Since Argo CD 3.0, the default method is `annotation` ([Argo CD: upgrade from 2.14 to 3.0](https://argo-cd.readthedocs.io/en/stable/operator-manual/upgrading/2.14-3.0/)). A change of the method makes Argo CD write new tracking keys at the next sync.
 - The legacy Argo CD v3.3.7 in `kubernetes/bootstrap/argo-cd/` sets `application.instanceLabelKey: argocd.argoproj.io/instance`, but no method. It is out of scope. The migration removes it.
 
@@ -189,7 +189,7 @@ The plugin forbids two prefixes to kubelets: `node-restriction.kubernetes.io/`, 
 
 ## Other keys of the stack
 
-| Key | Type | Owner | Use |
+| Key | Type | Defined by | Use |
 | --- | --- | --- | --- |
 | `pod-security.kubernetes.io/enforce`, `audit`, `warn` | Label on `Namespace` | Kubernetes | Pod Security level: `privileged`, `baseline` or `restricted`. A check exists. |
 | `pod-security.kubernetes.io/enforce-version`, `audit-version`, `warn-version` | Label on `Namespace` | Kubernetes | The version of the Pod Security Standards: `latest` or a Kubernetes minor version. Not used. |

@@ -23,7 +23,7 @@ If one condition is false, the item goes into a different repository.
 | Windows machine setup (`gsuquet/choco-setup`) | No | Same reason. |
 | A tool with its own release cycle, for example the reusable workflows (`gsuquet/workflows`, later `gsuquet/.github`) | No | It has versions and tags of its own, and other repositories call it. |
 | The source code of an app | No | The [Argo CD best practices](https://argo-cd.readthedocs.io/en/stable/user-guide/best_practices/) keep the configuration separate from the application source code. |
-| Agent skills and hooks | Not decided | |
+| Agent skills and hooks | Not decided | The agents design decides their place later. |
 
 ## Layout
 
@@ -89,7 +89,7 @@ These requirements apply to each root module, in `accounts/` and in `instances/`
 | --- | --- | --- |
 | S1 | One state for each root module. | The [HashiCorp style guide](https://developer.hashicorp.com/terraform/language/style). A failure affects one account only. |
 | S2 | The state is not only on one machine. It has versions, and an earlier version can be restored. | A disk failure or a wrong command must not lose the state. |
-| S3 | Encryption at rest. No access for agents or CI. | The state holds secrets in plain text. |
+| S3 | Encryption at rest. Access only for the GitHub account `gsuquet` and the local machine of that account. No access for agents or CI. | The state holds secrets in plain text. |
 | S4 | State locking. | Two runs at the same time can damage the state. |
 | S5 | The backend stays inside a free tier, on a plan that does not end. | A trial that ends and deletes its resources must not hold the state. |
 | S6 | Credentials for the backend come from the environment, not from a file in Git. | The repository is public. |
@@ -139,7 +139,7 @@ These rules apply to each provider account, and first to the Cloudflare account,
 
 | ID | Rule | Check |
 | --- | --- | --- |
-| G1 | `accounts/aws/` has an `aws_budgets_budget`, `accounts/gcp/` has a `google_billing_budget`, `accounts/azure/` has an `azurerm_consumption_budget_subscription`. Each has an actual and a forecast threshold, and it sends an email. | A Conftest policy on `accounts/<provider>/`. |
+| G1 | `accounts/aws/` has an `aws_budgets_budget`, `accounts/gcp/` has a `google_billing_budget`, `accounts/azure/` has an `azurerm_consumption_budget_subscription`. Each has an actual and a forecast threshold, and it sends an email to the account email address. | A Conftest policy on `accounts/<provider>/`. |
 | G2 | The budget comes in the first PR of the account, before any other resource. | The review. |
 | G3 | Each paid plan, each removal of a spending limit and each paid product is a manual decision, outside of agent sessions. A budget exists first, where the provider has one. | The review. |
 | G4 | Long-lived resources, for example the state backend, do not go on a plan that ends and deletes its resources. | Requirement S5. |

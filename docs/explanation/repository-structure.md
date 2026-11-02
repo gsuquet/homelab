@@ -66,7 +66,7 @@ The cost: the naming rules can conflict with names from upstream projects, so th
 
 ## Legacy folders
 
-The production cluster `olympus` still runs from `ansible/`, `kubernetes/` and `scripts/`. The production Argo CD ApplicationSets read paths in `kubernetes/` at `HEAD`, with `prune: true` and the resources finalizer. A move or a rename of `kubernetes/` thus deletes the production workloads. Thus the folders stay in place, in a "deprecated" state, until the migration of the Raspberry Pi. A check refuses new files in them.
+The production cluster `olympus` still runs from `ansible/`, `kubernetes/` and `scripts/`. The production Argo CD ApplicationSets read paths in `kubernetes/` at `HEAD`, with `prune: true` and the resources finalizer. A move or a rename of `kubernetes/` thus deletes the production workloads. Thus the folders stay in place, in a "deprecated" state, until the migration of the Raspberry Pi. A check will refuse new files in them (#219).
 
 I did not select these alternatives:
 
