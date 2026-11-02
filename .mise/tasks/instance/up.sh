@@ -2,6 +2,13 @@
 #MISE description="Create or update an instance"
 #USAGE arg "<instance>" help="Instance name: a folder in instances/"
 
+# Environment (for an instance that uses cluster-kind; see docs/reference/mise-tasks.md):
+#   COLIMA_CPU      CPUs of the Colima VM when the task starts Colima. Default: 4.
+#   COLIMA_MEMORY   Memory of the Colima VM in GiB. Default: 8, lowered to the host memory minus 4 GiB.
+#   COLIMA_DISK     Disk of the Colima VM in GiB. Default: not set (Colima keeps its own size).
+#   COLIMA_STRICT   1: fail, instead of warn, if the running Colima VM is smaller than requested.
+#   KIND_MIN_MEMORY Minimum memory of the Docker VM in GiB. Default: 4.
+
 set -euo pipefail
 
 # shellcheck source=../_base/log.sh

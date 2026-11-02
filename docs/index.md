@@ -43,6 +43,7 @@ Task-oriented recipes that solve a specific problem. Assumes familiarity with th
 | [Open the Argo CD UI](how-to/open-argocd-ui.md) | Log in to Argo CD on an instance with a port-forward |
 | [Configure Cloudflare](how-to/configure-cloudflare.md) | Set up the Cloudflare tunnel for external access |
 | [Use Kind behind a TLS-inspecting proxy](how-to/use-kind-behind-a-tls-proxy.md) | Make the Colima VM and the Kind nodes trust a company proxy CA |
+| [Resize the Colima VM](how-to/resize-the-colima-vm.md) | Fix a `TLS handshake timeout` during the apply of a Kind instance |
 
 ---
 

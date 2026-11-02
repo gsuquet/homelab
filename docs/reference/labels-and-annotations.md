@@ -217,7 +217,7 @@ The plugin forbids two prefixes to kubelets: `node-restriction.kubernetes.io/`, 
 | `node-restriction.kubernetes.io/<name>` | Label | `Node` | Lowercase, digits, `-` | An administrator, after the node joins | No | Yes |
 | `tenant.<p>/name` | Label | `Namespace` | The tenant of the component in `data.labels`. `platform` for the `infrastructure` components. | Repository | Yes | Yes |
 | `ownership.<p>/owner` | Label | `Namespace` | `gsuquet` | Repository | Yes | Yes |
-| `ownership.<p>/contact` | Annotation | `Namespace` | URL or address | Repository | No | Not applicable |
+| `ownership.<p>/contact` | Annotation | `Namespace` | An `https://` URL or an address with `@` | Repository | No | Not applicable |
 | `network.<p>/zone` | Label | `Namespace` | From the zero-trust design | Repository | From the zero-trust design | Yes |
 | `network.<p>/exposure` | Label | `Namespace` | From the zero-trust design | Repository | From the zero-trust design | Yes |
 | `backup.<p>/policy` | Label | `Namespace`, `PersistentVolumeClaim` | From the backup design | Repository | From the backup design | Yes |
@@ -321,17 +321,17 @@ flowchart LR
 | K3 No prefix | Hand-written objects in `gitops/` | No key without a prefix, except the allowlist. Conftest has no earlier state, so the check refuses all keys without a prefix, not only new keys. | `deny` |
 | K3w No prefix in upstream charts | Upstream objects in `gitops/` | The same rule as K3. | `warn` |
 | K4 Custom keys | All objects in `gitops/`, with an allowlist for upstream exceptions | Each key with the custom prefix uses one of the six sub-groups and a name from `data.labels`, on a permitted kind, with a permitted value. This also applies to the keys that are not required yet. `tenant` and `network` only on a `Namespace`, with the one `tenant` value and the permitted `network` values of the component. | `deny` |
-| K5 Required keys | `Namespace` objects in `gitops/` | The required labels of [Required keys](#required-keys). `tenant.<p>/name` is `platform` for an `infrastructure` component, and the tenant of the component in `data.labels` for an `apps` component, not `platform`. `ownership.<p>/owner` is `gsuquet`. | `deny` |
-| K6 Required keys of workloads | Hand-written objects and pod templates in `gitops/` | The required `app.kubernetes.io/*` labels. | `deny` |
+| K5 Required keys | `Namespace` objects in `gitops/` | The required labels of [Required keys](#required-keys). `tenant.<p>/name` is `platform` for an `infrastructure` component, and the tenant of the component in `data.labels` for an `apps` component, not `platform`. `ownership.<p>/owner` is `gsuquet`. | `deny`. Now `warn`, until #224. |
+| K6 Required keys of workloads | Hand-written objects and pod templates in `gitops/` | The required `app.kubernetes.io/*` labels. | `deny`. Now `warn`, until #224. |
 | K7 Required keys in upstream charts | Rendered upstream objects | The same keys as K6. | `warn` |
 | K8 Stable selectors | `spec.selector.matchLabels` of workloads, and `spec.selector` of a `Service` | No `app.kubernetes.io/version` and no `helm.sh/chart`. | `deny` |
-| K9 Argo CD tracking | The rendered `argocd-cm` ConfigMap | `application.resourceTrackingMethod` is `annotation`. | `deny` |
+| K9 Argo CD tracking | The rendered `argocd-cm` ConfigMap | `application.resourceTrackingMethod` is `annotation`. | `deny`. Now `warn`, until #225. |
 | K10 Sync options | All rendered objects and `Application` objects in `gitops/`, with an allowlist for upstream exceptions | No `Replace=true` and no `Force=true`, in `argocd.argoproj.io/sync-options` and in `spec.syncPolicy.syncOptions` of an `Application`. | `deny` |
 | K11 Cloud defaults | `provider "google"` and `provider "aws"` blocks and module calls in `instances/` | `default_labels`, `default_tags.tags` and each `tags` argument of a module call are exactly `local.cloud_labels`. A `merge()` that overrides keys fails. | `deny` |
 | K12 Cloud tags | `azurerm` resources in `modules/` with a `tags` argument | The argument comes from the `tags` variable of the module. Azure DNS resources can need an exemption. | `deny` |
 | K13 Cloud keys | The keys of the `cloud_labels` local in `instances/` | The required cloud keys of `data.labels` are present: the `instance` keys now, and `cost.<p>/center` after the cost field. Each key is in the permitted set. Each cloud form has max. 63 characters. No two keys have the same cloud form. | `deny` |
 | K14 Pod Security of applications | `Namespace` objects of the components in `apps` | `pod-security.kubernetes.io/enforce` is `restricted` or `baseline`, except the allowlist. | `deny` |
-| K15 Namespace of a component | All `Namespace` objects in `rendered/<component>/`, and `cluster.yaml` | `metadata.name` is the `namespace` of the component in `cluster.yaml`. Each namespace in `cluster.yaml` is unique. An `apps` namespace is not in the reserved list: `default`, `kube-*`, `argocd` and the namespaces that Terraform creates. A second `Namespace` from an upstream chart needs an allowlist entry. | `deny` |
+| K15 Namespace of a component | All `Namespace` objects in `rendered/<component>/`, and `cluster.yaml` | `metadata.name` is the `namespace` of the component in `cluster.yaml`. Each namespace in `cluster.yaml` is unique. An `apps` namespace is not in the reserved list: `default`, `kube-*`, `argocd` and the namespaces that Terraform creates (now `cert-manager`). A second `Namespace` from an upstream chart needs an allowlist entry. | `deny` |
 
 Rules of the checks:
 
@@ -342,6 +342,7 @@ Rules of the checks:
 - K2, K3 and K6 apply to the hand-written objects. K5 applies to all `Namespace` objects in `gitops/`. The legacy files in `kubernetes/` get only K1.
 - K1 to K7 read the keys in `metadata.labels` and `metadata.annotations`, also in pod templates. They do not read selectors, for example `nodeSelector` or `namespaceSelector`. Only K8 reads `spec.selector`.
 - A check starts as `warn` for one PR if the existing files fail it. Then it changes to `deny`.
+- The checks fail when `data.labels` is not loaded, or when a key that a check reads is missing, has the wrong type, or is an empty list. Thus a check cannot pass in silence.
 - K11 to K13 come with the first Google Cloud, Azure or AWS instance.
 - The existing checks stay: the Pod Security labels on a `Namespace`, the sync waves, no `CreateNamespace=true` in an `Application`, and no `resources-finalizer.argocd.argoproj.io` finalizer.
 - `policy/data/` holds the data files of the policies, not the policies of one type of input.
@@ -357,7 +358,6 @@ Rules of the checks:
 
 | Item | Issue or PR |
 | --- | --- |
-| The data file, the `upstream--` render prefix, the `sources/charts/` check, and the checks K1 to K10, K14 and K15 | #198 |
 | The required labels on the `argocd` Namespace and objects, then K5 and K6 to `deny` | #224 |
 | The `annotation` tracking method, then K9 to `deny`. Verify the key path and the method of the legacy Argo CD. | #225 |
 | `FailOnSharedResource=true` on each `Application`, with a check | #226 |

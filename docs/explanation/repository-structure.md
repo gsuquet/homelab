@@ -88,16 +88,5 @@ The cost: a default file does not appear in the file browser, the Git history or
 
 ## No `CODEOWNERS`
 
-Agents open PRs with my account, so GitHub cannot enforce `CODEOWNERS` for this repository. A file that claims a control that GitHub does not enforce misleads a reader. Thus I remove `.github/CODEOWNERS` (#196). The removal removes no control. A separate identity for the agents can bring real required reviews later.
+Agents open PRs with my account, so GitHub cannot enforce `CODEOWNERS` for this repository. A file that claims a control that GitHub does not enforce misleads a reader. Thus the repository has no `.github/CODEOWNERS` file. Its removal removed no control. A separate identity for the agents can bring real required reviews later.
 
-## Open work
-
-| Item | Issue or PR |
-| --- | --- |
-| The rewrite of the structure reference page with the target tree and a legacy section | #191 |
-| The removal of `.github/CODEOWNERS` | #196 |
-| The deprecation `README.md` files, the `lint:legacy` task and its allowlist | #219 |
-| The rewrite of `README.md` and `CONTRIBUTING.md`, and the move of the shared community files to `gsuquet/.github` | #220 (waits for #214) |
-| The checks for the naming rules that have none, and a check of the folders at the root | #221 |
-| The repository description, the topics and the docs link of the community profile | #222 |
-| The removal of the legacy folders after the migration of the Raspberry Pi | #223 |

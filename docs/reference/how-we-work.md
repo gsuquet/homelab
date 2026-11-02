@@ -223,7 +223,7 @@ This is the target state. Today, the ruleset `main` has no required status check
   - The source of each required check is the GitHub Actions app (`integration_id`). Without a source, a token with `repo` access can set a commit status with the same name.
   - The PR rule permits only the squash merge.
   - Its own deletion rule, with an empty bypass list.
-  - Remove "Require review from Code Owners" after #196 removes `.github/CODEOWNERS`.
+  - No "Require review from Code Owners". The repository has no `.github/CODEOWNERS` file, so the rule has no use.
 - A branch ruleset for `~ALL`, with no exclusion and an empty bypass list: "Require signed commits" only.
 - A branch ruleset for `~ALL`, with no exclusion, and the Renovate App (`renovate-gsuquet[bot]`) as the only bypass actor: "Block force pushes" only. Renovate force-pushes its branches when it rebases them.
 - A branch ruleset for `~ALL`, with no exclusion, and the administrator role and the Renovate App as bypass actors: "Restrict deletions" only. Renovate deletes the branches of closed PRs. "Automatically delete head branches" stays on.
@@ -282,9 +282,8 @@ These items are not on `main` yet. Until an item merges, the reviewer checks its
 | Item | Issue or PR |
 | --- | --- |
 | The label file and its sync task | #193 |
-| The removal of `.github/CODEOWNERS` | #196 |
 | The issue forms, `config.yml`, the new PR template and the labeler | #200 |
-| The rulesets and the merge settings. A test that a Renovate dev tool PR still merges while "Require review from Code Owners" exists. | #201 |
+| The rulesets and the merge settings, with the removal of "Require review from Code Owners" from the ruleset `main`. A test that a Renovate dev tool PR still merges while that rule exists. | #201 |
 | The board fields, states and views | #202 |
 | The move of the old plans to issues, and their deletion | #203 |
 | The PR title check | #204 |

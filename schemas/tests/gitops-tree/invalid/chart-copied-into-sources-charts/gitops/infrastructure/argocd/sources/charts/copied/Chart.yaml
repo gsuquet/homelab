@@ -1,0 +1,6 @@
+---
+# A chart copied into sources/charts/. Helm accepts it as a dependency, and
+# manifests:render would mark its objects as upstream.
+apiVersion: v2
+name: copied
+version: 1.0.0
