@@ -31,7 +31,8 @@ An instance folder can hold one secrets root module, `instances/<instance>/secre
 
 - It has no `instance.yaml`. It inherits `purpose` and `state.backend` from the `instance.yaml` of its parent. Thus the schema rule on `state.backend` and SC11 apply to it through the parent.
 - `instance-checks.sh` checks the folder too.
-- Only `mise run secrets:apply <instance>` runs Terraform in it, by hand, outside of agent sessions, after the review of the diffs.
+- Only a person, by hand, outside of agent sessions, runs Terraform in it, normally through `secrets:apply`, after the review of the diffs.
+- The dummy test and the `terraform destroy` of [Go back](../how-to/apply-secrets.md#go-back) run with the environment of `secrets:apply` ([The clean environment of `secrets:apply`](#the-clean-environment-of-secretsapply)).
 - The instance root module never reads the SOPS file. `mise run instance:up` does not touch the seeds.
 
 ### The preconditions of `secrets:apply`
@@ -92,7 +93,7 @@ The review reads each diff since the last apply under `instances/`, `modules/`, 
 
 | Key | Count | Where the private key is | Recipient of |
 | --- | --- | --- | --- |
-| Scope key | One for each SOPS file, first `kind-local` | `keys.txt` on the operator machine only. A hardware key through an age plugin before any production value. | Its one SOPS file |
+| Scope key | One for each SOPS file, first `kind-local` | `keys.txt` only on the machine of the person who applies the secrets. A hardware key through an age plugin before any production value. | Its one SOPS file |
 | Recovery key | One | Offline, for example printed. Created on a machine that no agent uses, or on an offline live system. | Each SOPS file |
 
 - No SSH recipients. Without another key, SOPS reads `~/.ssh/id_ed25519` and `~/.ssh/id_rsa` to decrypt ([SOPS: age](https://github.com/getsops/docs/blob/main/content/en/docs/usage/identities/age/_index.md)).
@@ -189,7 +190,7 @@ One store for each OpenChoreo tenant. A tenant is its OpenChoreo namespace, and 
 Not consumers:
 
 - M1 has no consumer.
-- `agentgateway-system`: agentgateway calls Vertex AI through federation. It becomes a consumer only with the fallback of question 14 of [kagent and agentgateway](kagent-and-agentgateway.md).
+- `agentgateway-system`: agentgateway calls Vertex AI through federation. It becomes a consumer only with the [fallback if the federation fails](kagent-and-agentgateway.md#the-fallback-if-the-federation-fails).
 - `kagent`: it gets no store, because its controller can write in `kagent`.
 
 A PR adds a consumer to the consumer list only together with the component of that consumer. SC9 checks both directions.
@@ -225,7 +226,7 @@ Chart values, after [ESO: security best practices](https://external-secrets.io/l
 | agentgateway controller (v1.7.0) | Reads Secrets in all namespaces. With federation, no model key exists for it to read. Its deployer can run a pod as the proxy `ServiceAccount`, which has the Google identity. | `rbac.gatewayNamespaces` limits only its writes |
 | OpenChoreo cluster agent | `*` on `secrets`, `clustersecretstores` and RBAC kinds (upstream) | The repository role of the [OpenChoreo platform](../explanation/openchoreo-platform.md#the-cluster-agent-role) |
 | OpenChoreo control plane: controller manager, API, cluster gateway (upstream 1.3.3) | `get` and `list` on `secrets` in all namespaces. The controller manager also `watch`. | Where their charts permit. This waits for the OpenChoreo work. |
-| kagent controller | Reads all core resources in all namespaces (chart 0.10.4) | `rbac.namespaces: [kagent]` (question 5 A of [kagent and agentgateway](kagent-and-agentgateway.md)). This row applies only if a later change makes it cluster-wide again. |
+| kagent controller | Reads all core resources in all namespaces (chart 0.10.4) | `rbac.namespaces: [kagent]` (option A of [The scope of the kagent controller](../explanation/kagent-and-agentgateway.md#the-scope-of-the-kagent-controller)). This row applies only if a later change makes it cluster-wide again. |
 | Argo CD application controller and `argocd-server` | Their default cluster-wide roles. `argocd-server` has `get`, `patch` and `delete` on all resources (chart 10.11.6, on `main`). | Where their chart permits |
 | cert-manager controller, when an instance installs it | Reads and writes the Secrets of certificates in the namespaces that it serves | Where its chart permits |
 
@@ -238,16 +239,16 @@ The stores isolate the consumers from each other, not from these controllers.
 - Pin the kagent chart to an exact version.
 - Never set `providers.*.apiKey`. The chart then renders a Secret with the key into `rendered/`. SC7 refuses it.
 - `kagent-tools`: `rbac.readOnly: true` and `rbac.allowSecrets: false`.
-- The kagent controller: `rbac.namespaces: [kagent]` (question 5 A). The chart then renders a getter and a writer `Role` with `""/*` in `kagent` only. SC16 permits these two roles there, by name.
-- kmcp: off in M1 (`kmcp.enabled: false`, question 8 A). If it comes later, `kmcp.rbac.namespaces: [kagent]`.
-- The auth mode of the controller: question 13 of the kagent design. A `NetworkPolicy` and checks now, the principals of kagent v1.0 later.
-- No key in `kagent`. No `ModelConfig` refers to a model key. If the agent runtime needs a value, question 16 of the kagent design holds the options. A dummy Secret with data then needs a new SC7 exception, which only a decision outside of agent sessions can add.
+- The kagent controller: `rbac.namespaces: [kagent]` ([The scope of the kagent controller](../explanation/kagent-and-agentgateway.md#the-scope-of-the-kagent-controller)). The chart then renders a getter and a writer `Role` with `""/*` in `kagent` only. SC16 permits these two roles there, by name.
+- kmcp: off in M1 (`kmcp.enabled: false`, [kmcp in M1](../explanation/kagent-and-agentgateway.md#kmcp-in-m1)). If it comes later, `kmcp.rbac.namespaces: [kagent]`.
+- The auth mode of the controller: [Access to the kagent API](../explanation/kagent-and-agentgateway.md#access-to-the-kagent-api). A `NetworkPolicy` and checks now, the principals of kagent v1.0 later.
+- No key in `kagent`. No `ModelConfig` refers to a model key. If the agent runtime needs a value, [A key for the kagent `ModelConfig`](kagent-and-agentgateway.md#a-key-for-the-kagent-modelconfig) holds the options. A dummy Secret with data then needs a new SC7 exception, which only a decision outside of agent sessions can add.
 
 ## Checks
 
 | ID | Check | Tool | Rule | Level |
 | --- | --- | --- | --- | --- |
-| SC0 | Push protection | GitHub (exists, on) | Refuses a push with a turned-on pattern. The non-provider patterns are on (question 6). Writers can bypass it. | Server |
+| SC0 | Push protection | GitHub (exists, on) | Refuses a push with a turned-on pattern. The non-provider patterns are on ([Secret scanning patterns](../explanation/secrets-management.md#secret-scanning-patterns)). Writers can bypass it. | Server |
 | SC1 | Secret scan in CI | New `lint:secrets` in `mise run lint` | gitleaks scans the commits of the PR. `lint.yml` installs gitleaks and gets the full branch history. A hit means: rotate the value at its issuer, then clean the PR. | Fail |
 | SC1a | Full history | `gitleaks git`, one time | Scan all the history. A hit means a rotation. | One time |
 | SC2 | Before the commit | pre-commit `gitleaks`, `detect-private-key` (exist) | Unchanged. | Fail |
@@ -255,7 +256,7 @@ The stores isolate the consumers from each other, not from these controllers.
 | SC4 | SOPS file encrypted | `lint:secrets` | `sops filestatus` gives `{"encrypted":true}` for each `*.sops.yaml`. | Fail |
 | SC5 | SOPS recipients | `lint:secrets` | The recipients of each file equal its rule in `.sops.yaml`. | Fail |
 | SC6 | `.sops.yaml` shape | Conftest `sops` | Anchored `path_regex`, the recovery key, no rule without `path_regex`. | Fail |
-| SC7 | No Secret data in `gitops/` | Conftest `kubernetes` | No values in `data` or `stringData`, also when encrypted. `kubernetes/` keeps the current rule. One exception: in `gitops/clusters/kind-local/rendered/kagent/`, the `Secret` `kagent-postgresql` with the one key `POSTGRES_PASSWORD` and the value `a2FnZW50`, the base64 form of the chart constant `kagent` (question 9 A of the kagent design). `policy/data/secrets.yaml` lists it with that path, and the check compares the exact value. A second exception for a dummy `ModelConfig` key needs a decision (question 16 of the kagent design). | Fail |
+| SC7 | No Secret data in `gitops/` | Conftest `kubernetes` | No values in `data` or `stringData`, also when encrypted. `kubernetes/` keeps the current rule. One exception: in `gitops/clusters/kind-local/rendered/kagent/`, the `Secret` `kagent-postgresql` with the one key `POSTGRES_PASSWORD` and the value `a2FnZW50`, the base64 form of the chart constant `kagent` (option A of [The kagent database](../explanation/kagent-and-agentgateway.md#the-kagent-database)). `policy/data/secrets.yaml` lists it with that path, and the check compares the exact value. A second exception for a dummy `ModelConfig` key needs a decision ([A key for the kagent `ModelConfig`](kagent-and-agentgateway.md#a-key-for-the-kagent-modelconfig)). Planned: until the enforcement step, `AGENTS.md` rule 4 and [Policies](policies.md) still permit SOPS-encrypted Secrets. The enforcement PR changes `AGENTS.md`, `policies.md` and the Rego together. Then rule 4 is scoped by tree: `gitops/` has no Secret data except the SC7 exception, and `kubernetes/` keeps the SOPS or Sealed Secrets rule. | Fail |
 | SC8 | No Sealed Secrets in `gitops/` | Conftest `kubernetes` | No `kind: SealedSecret`. | Fail |
 | SC9 | ESO objects | Conftest `kubernetes` | Refer to [SC9 rules](#sc9-rules). | Fail |
 | SC9a | `ClusterSecretStore` in the cluster | `ValidatingAdmissionPolicy` | The SC9 rules for `ClusterSecretStore`, at admission: a name `oc-<tenant>`, the `remoteNamespace` and the ServiceAccount namespace equal to `secret-seeds-` plus the name, and exactly the one regex condition. | Deny |
@@ -313,7 +314,7 @@ SC16 reads each `Role`, `ClusterRole`, `RoleBinding` and `ClusterRoleBinding`, a
 
 - Never run `sops decrypt`, `sops edit`, `sops exec-env`, `kubectl get secret -o yaml`, `secrets:apply`, or any `terraform` command in `instances/*/secrets/`. Never read `keys.txt` or a `.tfstate` file, and never delete one.
 - Never run `kubectl create token` for the proxy `ServiceAccount` of `agentgateway-system`, and never read its token file. Never run a `terraform` command in `accounts/`, never edit `accounts/gcp/jwks/` by hand, and never merge a PR that touches `accounts/`. Agents may run `vertex:jwks`: it writes public keys to a file in a PR ([Generate the Vertex JWKS](../how-to/generate-vertex-jwks.md)).
-- `mise run instance:up` and `instance:down` stay permitted. After a re-create of a cluster with seeds, tell the operator.
+- `mise run instance:up` and `instance:down` stay permitted. After a re-create of a cluster with seeds, tell the person who applies the secrets.
 - No agent session runs during the edit of a SOPS file or during `secrets:apply`.
 - Write the code around a secret, never the value. If a value shows in the output of an agent, rotate it.
 
@@ -343,7 +344,7 @@ A later spike or the implementation PR settles these items.
 - **Kind.** A `kindest/node` image for Kubernetes 1.37 exists for the selected `kind` version. The kind release notes are on `github.com/kubernetes-sigs`, which is not a permitted domain. If none exists, a decision is necessary.
 - **SOPS.** It refuses a file that matches no rule. The `filestatus` output in 3.13.3. The ephemeral resource reads `SOPS_AGE_KEY_FILE`, `SOPS_AGE_KEY_CMD` and age plugins, and how it fails without a TTY. The provider example writes `data.sops_file` for the ephemeral resource; use `ephemeral.sops_file`. The editor of `secrets:edit` and its settings.
 - **Terraform.** A module variable that is ephemeral feeds `data_wo` through `for_each`. `data_wo_revision = parseint(substr(filesha256(<file>), 0, 8), 16)` is valid. A refresh does not fill `data` when only `data_wo` is set; the 3.1.0 page still says "All arguments including the secret data will be stored in the raw state as plain-text". The provider drops a Secret from the state on a 404, and a create sends `data_wo` also when `data_wo_revision` did not change. `-replace` of each seed on each run. An `action` block can or cannot read an ephemeral value. SC15 can find each reference with the HCL parser of Conftest, which gives expressions as strings.
-- **The dummy test.** `secrets:apply`; `terraform plan -refresh-only -out=<file>` and `terraform show -json <file>`; `terraform apply -refresh-only`; `terraform show -json`. Search for the dummy and for its base64 form in the state, its backup, the saved plan and each output. The fallback, if a search finds it, is in [Apply the secrets](../how-to/apply-secrets.md#if-the-dummy-test-fails).
+- **The dummy test.** With the environment of `secrets:apply`: `secrets:apply`; `terraform plan -refresh-only -out=<file>` and `terraform show -json <file>`; `terraform apply -refresh-only`; `terraform show -json`. Search for the dummy and for its base64 form in the state, its backup, the saved plan and each output. The fallback, if a search finds it, is in [Apply the secrets](../how-to/apply-secrets.md#if-the-dummy-test-fails).
 - **The secrets root module.** The schema and lint checks accept `instances/<instance>/secrets/`, and its inheritance of `state.backend`. The loopback and `exec` checks of the kubeconfig. An empty `TF_CLI_CONFIG_FILE` works.
 - **ESO.** The store fields. A store ServiceAccount in the consumer namespace reads the seed namespace through a `RoleBinding` there. `createPushSecret` and `createClusterPushSecret` are under `crds.`, and each `crds.create*: false` needs the matching `process*: false`. `crds.createClusterExternalSecret: false` removes that CRD. `processClusterGenerator`. The forced refresh annotation and the status names. `deletionPolicy: Retain` keeps the consumer Secret when its seed goes away. The ESO Application syncs a store before its consumer namespace exists, or retries.
 - **The admission policy.** The CEL expressions of SC9a for `ClusterSecretStore`. If the upstream OpenChoreo cluster agent role can change a `ValidatingAdmissionPolicy` or its binding.
@@ -357,11 +358,17 @@ A later spike or the implementation PR settles these items.
 - **gitleaks 8.30.1.** The command for the commit range of a `pull_request` merge ref, and a built-in rule for age keys.
 - **Costs not read.** AWS Secrets Manager prices and the KMS cost of an SSM `SecureString`. The Azure Key Vault free tier: community answers say 10,000 transactions a month for 12 months ([Microsoft Q&A](https://learn.microsoft.com/en-us/answers/questions/5608202/how-to-correctly-estimate-azure-key-vault-cost)). The free tiers of Bitwarden, Infisical and 1Password. If Cloud KMS Autokey fits SOPS.
 
+## Exceptions in other pages
+
+This design permits `Namespace` objects that match `^secret-seeds-` in the `external-secrets` component, and a secrets root module in an instance folder. The policy and structure pages do not change now. Each exception comes with the code that needs it, thus each page matches `main` at each step of [Roll out the secrets design](../how-to/apply-secrets.md#roll-out-the-secrets-design):
+
+- **Step 4, the ESO PR.** It adds a K15 data entry `{component: external-secrets, pattern: "^secret-seeds-"}`, with a pass test and a fail test. It adds `secret-seeds-*` to `reserved_namespaces`, and updates [Labels and annotations](labels-and-annotations.md).
+- **Step 5, the secrets root module PR.** It updates the [Files of an instance](repository-structure.md#files-of-an-instance) table of Repository structure, the instance schema and `instance-checks.sh`.
+
 ## Open decisions
 
-The seven questions of this design are decided. Refer to [Secrets management (explanation)](../explanation/secrets-management.md). These items stay open:
+The decisions of this design are in [Secrets management (explanation)](../explanation/secrets-management.md). These items stay open:
 
-- **The fallback if the federation fails in agentgateway** (question 14 of [kagent and agentgateway](kagent-and-agentgateway.md)). The recommendation there is a service account key in SOPS. Then `agentgateway-system` becomes a consumer, the key comes from `gcloud` (not Terraform: SC11), and the hardware key (question 3 c) comes first.
-- **A dummy `ModelConfig` key for kagent** (question 16 of the kagent design). A dummy Secret with data needs a second SC7 exception.
-- **A spend kill switch** (question 15 of the kagent design).
-- **The changes to K15 and to the instance folder.** This design permits `^secret-seeds-` `Namespace` objects in the `external-secrets` component, and a secrets root module in an instance folder. [Labels and annotations](labels-and-annotations.md) (K15) and [Repository structure](repository-structure.md) do not have these exceptions yet. Options: change those pages in the PR that adds each item, or change them now. The recommendation of this design is that these exceptions apply.
+- **The fallback if the federation fails in agentgateway** ([kagent and agentgateway](kagent-and-agentgateway.md#the-fallback-if-the-federation-fails)). The recommendation there is a service account key in SOPS. Then `agentgateway-system` becomes a consumer, the key comes from `gcloud` (not Terraform: SC11), and the hardware key option of [The place of the age scope key](../explanation/secrets-management.md#the-place-of-the-age-scope-key) comes first.
+- **A dummy `ModelConfig` key for kagent** ([kagent and agentgateway](kagent-and-agentgateway.md#a-key-for-the-kagent-modelconfig)). A dummy Secret with data needs a second SC7 exception.
+- **A spend kill switch** ([kagent and agentgateway](kagent-and-agentgateway.md#a-spend-kill-switch-for-the-vertex-project)).

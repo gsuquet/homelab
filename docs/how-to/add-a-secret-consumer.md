@@ -50,4 +50,4 @@ OpenChoreo cells use a `ClusterSecretStore`, not a namespaced store.
 - Do not put a `kind: Secret` with data into `gitops/`. SC7 refuses it.
 - Do not use `data "sops_file"`. SC10 refuses it.
 - Do not run a `terraform` command in `instances/<instance>/secrets/`, if you are an agent.
-- Do not add a store to `kagent`. Do not add one to `agentgateway-system`, except with the fallback of question 14 of [kagent and agentgateway](../explanation/kagent-and-agentgateway.md). Refer to [Secrets (reference)](../reference/secrets.md#consumers).
+- Do not add a store to `kagent`. Do not add one to `agentgateway-system`, except with the [fallback if the federation fails](../reference/kagent-and-agentgateway.md#the-fallback-if-the-federation-fails). Refer to [Secrets (reference)](../reference/secrets.md#consumers).

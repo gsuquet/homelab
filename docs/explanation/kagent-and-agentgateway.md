@@ -62,7 +62,7 @@ The hop from the agent to the proxy is plain HTTP inside the cluster. It holds n
 
 **How kagent uses agentgateway.** The kagent page [Bring your own agentgateway](https://kagent.dev/docs/kagent/0.x/supported-providers/byo-agentgateway/) says: "Because agentgateway exposes an OpenAI-compatible API, you configure the `ModelConfig` with `provider: OpenAI` and set `openAI.baseUrl`." It also says that the key "belongs to the gateway rather than to kagent". Thus the `ModelConfig` has no provider key. I do not use the kagent provider `GeminiVertexAI`: with it, kagent calls Vertex AI directly, bypasses the gateway, and needs a Google identity in `kagent`.
 
-**How agentgateway fronts Vertex AI.** The [agentgateway Vertex AI guide](https://agentgateway.dev/docs/kubernetes/latest/llm/providers/vertex/) uses an `AgentgatewayBackend` with the provider `vertexai`. Its example authenticates with `policies.auth.secretRef`, an API key. I use the service account path instead, `policies.auth.gcp`, without a Secret. The client API stays OpenAI Chat Completions, and agentgateway translates. The backend fixes the model, thus an agent cannot select a more expensive model.
+**How agentgateway fronts Vertex AI.** The [agentgateway Vertex AI guide](https://agentgateway.dev/docs/kubernetes/latest/llm/providers/vertex/) uses an `AgentgatewayBackend` with the provider `vertexai`. Its example authenticates with `policies.auth.secretRef`, an API key. I use the service account path instead, `policies.auth.gcp`, without a Secret. The client API stays OpenAI Chat Completions, and agentgateway translates. The backend fixes the model. Thus I expect that an agent cannot select a more expensive model. This is not verified: an open check confirms that the backend model replaces the model of the request ([Open checks](../reference/kagent-and-agentgateway.md#open-checks)).
 
 The diagram shows the M1 components. In text: Terraform makes the cluster, the Gateway API CRDs, Cilium and Argo CD. Argo CD syncs `agentgateway`, then `kagent`. The kubelet gives the proxy a projected token, and the proxy exchanges it for a Google access token. The agent pod in `kagent` calls the agentgateway proxy, and the proxy calls Vertex AI with the access token. The agent calls the kagent tool server, and the tool server reads the cluster with a read-only role. M1 has no Secret with a model credential, and no ESO consumer.
 
@@ -122,7 +122,7 @@ sequenceDiagram
     V-->>P: answer
 ```
 
-**Impersonation, not direct access.** Google recommends direct resource access, and gives impersonation as the alternative. I use impersonation for two reasons. One service account to disable revokes all access (U2). The fallback of [Q14](../reference/kagent-and-agentgateway.md#q14-the-fallback-if-the-federation-fails) uses the same identity.
+**Impersonation, not direct access.** Google recommends direct resource access, and gives impersonation as the alternative. I use impersonation for two reasons. One service account to disable revokes all access (U2). The [fallback if the federation fails](../reference/kagent-and-agentgateway.md#the-fallback-if-the-federation-fails) uses the same identity.
 
 **Each new cluster has new keys.** kubeadm makes the service account signing key of a cluster, if the cluster gets no key of its own ([Kubernetes: PKI certificates](https://kubernetes.io/docs/setup/best-practices/certificates/)). Thus each `instance:up` after an `instance:down` makes a new JWKS. The provider refuses the tokens of the new cluster until its keys are in the key set and I apply. Google asks for a new upload whenever the signing keys rotate. An upload "replaces any existing uploaded keys with the ones in the file", and "You cannot restore the replaced keys" ([Google Cloud: federation with other providers](https://docs.cloud.google.com/iam/docs/workload-identity-federation-with-other-providers)).
 
@@ -135,6 +135,8 @@ sequenceDiagram
 - **A replacement of the provider uses the current keys**, because Terraform builds the key set from the files.
 
 **The integrity of the files matters, not their secrecy.** Each key in the set can sign tokens that Google accepts for the pool. A `kid` is only a string: a PR can keep the real `kid` and change `n` and `e` to a key whose private half its author holds. That person can then mint proxy tokens from anywhere, after the cluster is gone, and around the rate limit of the gateway. Thus `vertex:jwks --check` compares the whole file with the live cluster, not only the `kid`. I run it on that laptop before the merge of each JWKS PR. The lint script permits only the public JWK members, thus it also refuses a private key member before it reaches the public repository.
+
+**One file in each JWKS PR.** A JWKS PR changes exactly one file under `accounts/gcp/jwks/`. Thus the `--check` on the laptop of that file covers the whole change. A PR that changes two files needs two checks on two laptops, and one of them is easy to forget. A change of `issuer.txt` applies to both laptops, thus it needs `--check` on both laptops before the merge. The JWKS lint script enforces the one-file rule.
 
 These rules stop the key of an agent from reaching the set: I review and merge each PR that touches `accounts/`, I run `--check` before the merge, and only I apply `accounts/gcp/`. Agents never merge such a PR. These are my working rules, not controls of GitHub, because the agents use my GitHub account ([Secrets management](secrets-management.md)). I do not rely on `CODEOWNERS`, which PR #196 removes.
 
@@ -156,7 +158,7 @@ The controls:
 
 - The budget G1 on the Vertex project, in the first PR of the project (G2 in [Provider accounts](../reference/provider-accounts.md#free-tier-guardrails)). "Setting an alerts-only budget doesn't automatically cap Google Cloud or Google Maps Platform usage or spending", and "there is a delay between your use of Google Cloud resources, and the usage costs reporting to Cloud Billing" ([Google Cloud: budgets](https://docs.cloud.google.com/billing/docs/how-to/budgets)).
 - The rate limit on the route, and the read-only tools that limit a loop.
-- A kill switch that disables billing on the dedicated project. It is an open decision ([Q15](../reference/kagent-and-agentgateway.md#q15-a-spend-kill-switch-for-the-vertex-project)).
+- A kill switch that disables billing on the dedicated project. It is an open decision ([a spend kill switch](../reference/kagent-and-agentgateway.md#a-spend-kill-switch-for-the-vertex-project)).
 
 **The footprint.** M1 requests about 850m CPU and 1.4 GiB of memory, on top of the `kind-local` base. I turned off the ten bundled agents, grafana-mcp and kmcp: the default install requests about 1160m CPU and 2240Mi. M1 alone fits on the 8 GB laptop, if Docker has enough memory for the base (not measured). M1 with M2 does not fit on the 8 GB laptop, and is expected to fit on the 16 GB laptop.
 
@@ -189,25 +191,25 @@ I selected Vertex AI with a service account identity, as the [secrets design](se
 I did not select these alternatives:
 
 - **A Gemini API key** (the first recommendation). One string in a Secret, and a free tier. But the free tier lets Google use the prompts, and a key in the cluster is readable by each trusted component.
-- **A service account key in SOPS.** It works without the federation, but a key is a long-lived secret. It stays the recommended fallback ([Q14](../reference/kagent-and-agentgateway.md#q14-the-fallback-if-the-federation-fails)).
+- **A service account key in SOPS.** It works without the federation, but a key is a long-lived secret. It stays the recommended fallback ([the fallback if the federation fails](../reference/kagent-and-agentgateway.md#the-fallback-if-the-federation-fails)).
 
-### Q1. The kagent version
+### The kagent version
 
 I selected v0.10.4, the latest stable release, with `kagent.dev/v1alpha2`. M1 needs a stable release now. A migration moves to v1.0 before M3 writes component types, because M3 renders `Agent` objects. A move from `kagent.dev/v1alpha2` to `api.kagent.dev/v1alpha3` after M3 changes each type.
 
 Not selected: B, wait for v1.0.0 GA, with `api.kagent.dev/v1alpha3`. C, v1.0.0-rc1 now: it has the new API group and the principals, but it is a release candidate, and GitHub marks it wrong.
 
-### Q2. The path of the model calls
+### The path of the model calls
 
 The milestone decides it: kagent to agentgateway to Gemini on Vertex AI. Refer to [The model path goes through agentgateway](#the-model-path-goes-through-agentgateway).
 
-### Q3. The agentgateway object for the model route
+### The agentgateway object for the model route
 
 I selected `AgentgatewayBackend` and `HTTPRoute`. The agentgateway provider guides use them, and the OpenChoreo traits render backends.
 
 Not selected: B, `AgentgatewayModel`, as in the kagent page. That page shows only OpenAI, and no source shows a Google provider with it. The page also says that the feature is "experimental and disabled by default", but agentgateway v1.6.0 turned it on by default, thus that sentence is out of date.
 
-### Q4. The model
+### The model
 
 I selected `gemini-3.8-flash` on Vertex AI, in the location `eu`, fixed at the gateway backend.
 
@@ -218,7 +220,7 @@ I selected `gemini-3.8-flash` on Vertex AI, in the location `eu`, fixed at the g
 
 Not selected: `gemini-2.5-flash`, because its retirement date is October 20, 2026 ([Google Cloud: model versions](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/learn/model-versions)). `gemini-2.5-flash-lite`, the model of the agentgateway Gemini guide on the Gemini API.
 
-### Q5. The scope of the kagent controller
+### The scope of the kagent controller
 
 I selected `rbac.namespaces: [kagent]`. The chart supports it in v0.10.4. The controller still reads the Secrets of `kagent`, where no model credential is. SC16 of the [secrets design](../reference/secrets.md) permits this one namespaced rule as a listed exception. An upstream PR for option C stays a follow-up.
 
@@ -226,25 +228,25 @@ This choice does not scale to M3 by value. `rbac.namespaces` needs each name at 
 
 Not selected: B, the cluster-wide rule as a bounded exception for `kind-local` only: the controller could then read each Secret of the cluster. C alone, a patch that removes `secrets` from the core rule. The core rule is `resources: ["*"]`, thus a patch must list each core resource that the controller needs, and I did not verify that list.
 
-### Q6. The tools of the first agent
+### The tools of the first agent
 
 I selected `k8s_get_resources`, `k8s_describe_resource` and `k8s_get_events`, with the read role on the whole cluster. They answer the done question, and they send no logs to Vertex AI. A log can hold a secret value or an injected instruction.
 
 Not selected: B, the same tools and `k8s_get_pod_logs`. C, the same tools with the tool role limited to some namespaces through `kagent-tools.rbac.namespaces`. C can come with a later tenants design.
 
-### Q7. The namespace of agentgateway
+### The namespace of agentgateway
 
 I selected `agentgateway-system`, the upstream default. The kagent and agentgateway guides use it. M3 sets the trait parameters to it, because the module traits take the Gateway name and namespace as parameters.
 
 Not selected: B, `openchoreo-data-plane`, as the OpenChoreo module. It couples M1 to M2, and the OpenChoreo design keeps third-party controllers out of the plane namespaces. C, `agentgateway`.
 
-### Q8. kmcp in M1
+### kmcp in M1
 
 I turned kmcp off. No `MCPServer` CRD, and about 10m CPU and 64Mi less. No M1 use case needs it. A later design turns it on with its own security analysis.
 
 Not selected: B, on, as the chart default.
 
-### Q9. The kagent database
+### The kagent database
 
 The bundled PostgreSQL always renders the Secret `kagent-postgresql` with `data` (the constant `kagent`). SC7 and done criterion 9 refuse it. The chart has no value for an existing Secret. v0.10.4 has no SQLite mode for the controller: the chart fails with "No database connection configured. Set database.postgres.url, database.postgres.urlFile, or enable database.postgres.bundled." ([`controller-deployment.yaml`](https://github.com/kagent-dev/kagent/blob/v0.10.4/helm/kagent/templates/controller-deployment.yaml)).
 
@@ -255,7 +257,7 @@ I selected option A now, then option C before an instance with real data:
 
 Not selected: B, the bundled PostgreSQL and a post-render step that removes the Secret, with an `ExternalSecret` of the same name. It adds a render feature, a seed and a store in `kagent`, which the invariant of `kagent` forbids.
 
-### Q10. Access to the agentgateway listener
+### Access to the agentgateway listener
 
 I selected option A now, then option B later:
 
@@ -264,22 +266,22 @@ I selected option A now, then option B later:
 
 Not selected: C, nothing until a later zero-trust design.
 
-### Q11. Prompt guards in M1
+### Prompt guards in M1
 
 I selected option A now, then option B with the first real data:
 
 - **A now:** no prompt guard in M1. Only read-only tools and a rate limit. `kind-local` holds only test data.
 - **B with the first real data:** a regex prompt guard on the route, for example the built-in patterns for card numbers and email addresses, as the OpenChoreo trait does, after a review of the guard schema.
 
-### Q12. The cluster-wide Secret read of the agentgateway controller
+### The cluster-wide Secret read of the agentgateway controller
 
 I selected option A: `rbac.gatewayNamespaces: [agentgateway-system]`, the controller on the trusted list of cluster-wide Secret readers under its allowlist check ([Secrets](../reference/secrets.md)), and an upstream issue that asks for a namespaced read. I accept the residual read on `kind-local`. A patch of the rendered `ClusterRole` is a follow-up ([Later](#later)).
 
 With Vertex AI through federation, no Gemini key exists for the controller to read. It still reads the other Secrets of the cluster, and its deployer can run a pod as the proxy `ServiceAccount`.
 
-### Q13. Access to the kagent API
+### Access to the kagent API
 
-The API has no authentication, and an `Agent` can run any image as any `ServiceAccount` of `kagent`. I selected option A now, then option C with the kagent v1.0 migration of Q1:
+The API has no authentication, and an `Agent` can run any image as any `ServiceAccount` of `kagent`. I selected option A now, then option C with the kagent v1.0 migration ([The kagent version](#the-kagent-version)):
 
 - **A now:** a `NetworkPolicy` in `kagent` that permits ingress only from `kagent`, the AppProject requirements in step R5 of [Roll out OpenChoreo](../how-to/roll-out-openchoreo.md), and the Conftest check that refuses `type: BYO`, custom `serviceAccountName` values and Secret references in `env` or `envFrom`. Access from the laptop only through a port-forward.
 - **C with the migration:** A, and kagent v1.0 with its principals and owned-resource RBAC.
@@ -340,14 +342,18 @@ What M3 must do, and what it must not do:
 - **Do not run the helm commands of the module.** The module installs agentgateway v1.1.0 into `openchoreo-data-plane`. v1.1.x does not support Gateway API v1.6. M3 uses the M1 controller.
 - **Change the trait templates.** The `ai-llm-routing` trait has no Gemini provider. Its `vertex` provider renders `vertexai: {model}` without `projectId`, and the v1.7.0 CRD requires `projectId`. The trait also writes an `ExternalSecret` for each component, with the provider key in the cell namespace. M3 changes the trait so that it routes to the shared M1 backend, and no provider credential goes into a cell. M3 checks the trait against the v1.5.0 and v1.7.0 breaking changes. Examples: the `ReferenceGrant` for a cross-namespace route delegation, and prompt guards that also scan the tool output.
 - **Bind the cluster agent RBAC as a separate object**, as the [OpenChoreo design](openchoreo-platform.md) requires. The module sample gives `get`, `list`, `watch`, `create`, `update`, `patch` and `delete` on `agentgatewaybackends` and `agentgatewaypolicies`. M3 adds `agents` and `modelconfigs` of the kagent API group.
-- **Select the kagent RBAC model for the cells before M3** (Q5).
-- **Migrate kagent before M3**, if I select v1.0 (Q1).
+- **Select the kagent RBAC model for the cells before M3** ([The scope of the kagent controller](#the-scope-of-the-kagent-controller)).
+- **Migrate kagent before M3**, if I select v1.0 ([The kagent version](#the-kagent-version)).
 
 **Why I do not align with the module version.** The module pins agentgateway v1.1.0. I selected v1.7.0, because v1.1.x does not support the Gateway API v1.6.2 of the repository, and because the module itself needs changes for Gemini. I align with the module in its Gateway name, its listener names and ports, and its trait parameters.
 
 ### Open decisions
 
-Three decisions are open: [Q14](../reference/kagent-and-agentgateway.md#q14-the-fallback-if-the-federation-fails) (the fallback if the federation fails), [Q15](../reference/kagent-and-agentgateway.md#q15-a-spend-kill-switch-for-the-vertex-project) (a spend kill switch) and [Q16](../reference/kagent-and-agentgateway.md#q16-a-key-for-the-kagent-modelconfig) (a key for the kagent `ModelConfig`). They come from the selection of Vertex AI through Workload Identity Federation.
+Three decisions are open: [the fallback if the federation fails](../reference/kagent-and-agentgateway.md#the-fallback-if-the-federation-fails), [a spend kill switch](../reference/kagent-and-agentgateway.md#a-spend-kill-switch-for-the-vertex-project) and [a key for the kagent `ModelConfig`](../reference/kagent-and-agentgateway.md#a-key-for-the-kagent-modelconfig). They come from the selection of Vertex AI through Workload Identity Federation. The reference page has the options and the recommendations. The reasons:
+
+- **The fallback.** Google calls keys the exception, and says to choose a more secure alternative whenever possible ([Google Cloud: service account keys](https://docs.cloud.google.com/iam/docs/best-practices-for-managing-service-account-keys)). Thus the recommended key ends when the upstream fix comes, and M1 goes back to the federation. The Gemini API changes the provider, and puts a key with the same money value into the same path. No fallback can block M1 for a long time.
+- **The kill switch.** The dedicated project holds only Vertex AI and the federation, thus a shutdown stops only the model calls. A spend cap can replace the billing removal if it works for Vertex AI, because it pauses without a removal of billing.
+- **The key for the `ModelConfig`.** A dummy value adds no secret, only a constant that a check pins. An `ExternalSecret` or a real listener key puts a store or a real key into `kagent`.
 
 ## Security analysis
 
@@ -355,7 +361,7 @@ Three decisions are open: [Q14](../reference/kagent-and-agentgateway.md#q14-the-
 
 **The gap.** The kagent controller has wide rights by default, in v0.10.4 and on `main`. Its getter `ClusterRole` gives `get`, `list` and `watch` on all core resources, thus on each Secret in each namespace. "Granting `list` access to Secrets implicitly lets the subject fetch the contents" ([Kubernetes: good practices for Secrets](https://kubernetes.io/docs/concepts/security/secrets-good-practices/)). Its writer `ClusterRole` writes all resources of `""`, `apps` and `batch`. SC16 of the [secrets design](../reference/secrets.md) refuses a rendered role with this rule.
 
-**The fix.** With `rbac.namespaces: [kagent]`, the chart makes a `Role` in `kagent` instead (Q5). The controller can then read and write the core objects of `kagent` only. No model credential is there. `resources: ["*"]` includes Secrets, thus a check that looks only for the word `secrets` does not see it. With Q5 A, the controller is not on the trusted list of cluster-wide Secret readers. Only an unscoped controller goes there.
+**The fix.** With `rbac.namespaces: [kagent]`, the chart makes a `Role` in `kagent` instead ([The scope of the kagent controller](#the-scope-of-the-kagent-controller)). The controller can then read and write the core objects of `kagent` only. No model credential is there. `resources: ["*"]` includes Secrets, thus a check that looks only for the word `secrets` does not see it. With this scope, the controller is not on the trusted list of cluster-wide Secret readers. Only an unscoped controller goes there.
 
 **The invariant of `kagent`.** The writer rule `""/*` also covers the subresources `pods/exec` and `serviceaccounts/token`, and the `secrets` of `kagent`. Thus the controller, or each subject that controls it, can act as each `ServiceAccount` in `kagent`. That includes the tool server, which reads pods, logs and ConfigMaps in all namespaces. The rule: no `ServiceAccount` in `kagent` has more rights than the read role of the tool server, and no ESO store is in `kagent`. A Conftest check enforces it.
 
@@ -367,7 +373,7 @@ The agentgateway controller also reads each Secret of the cluster. The chart com
 
 **What a value narrows.** `rbac.gatewayNamespaces` changes the deployer binding into one `RoleBinding` for each listed namespace. I set `[agentgateway-system]`. M1 and M3 use only the shared Gateway in that namespace, thus the list does not change in M3. The namespace exists before the binding, because it is in wave `-2`.
 
-**What stays.** No value narrows the read. The controller can read each Secret of the cluster, also each seed namespace `secret-seeds-*` of the secrets design. That breaks the rule that only ESO reads the seeds. Thus the controller goes on the trusted list of cluster-wide Secret readers, under an allowlist check (Q12). Each one is narrowed where the chart permits it, and an upstream patch is a follow-up. I accept the residual risk on `kind-local`.
+**What stays.** No value narrows the read. The controller can read each Secret of the cluster, also each seed namespace `secret-seeds-*` of the secrets design. That breaks the rule that only ESO reads the seeds. Thus the controller goes on the trusted list of cluster-wide Secret readers, under an allowlist check ([The cluster-wide Secret read of the agentgateway controller](#the-cluster-wide-secret-read-of-the-agentgateway-controller)). Each one is narrowed where the chart permits it, and an upstream patch is a follow-up. I accept the residual risk on `kind-local`.
 
 The same invariant applies to `agentgateway-system`: no `ServiceAccount` there has more rights than the controller. The deployer can make a Deployment with each `ServiceAccount` of `agentgateway-system`, thus a stronger account there gives a path to more rights. It can also run a pod as the proxy `ServiceAccount`, and that pod can get a Vertex AI token.
 
@@ -381,7 +387,7 @@ The `kagent-tools` chart has `rbac.readOnly: false` by default. Then it makes a 
 
 A Conftest check of the secrets design refuses a wildcard, `nonResourceURLs` and `secrets` in the rendered tool `ClusterRole`. These values make it pass.
 
-The read role still reads ConfigMaps and pod logs in all namespaces. A ConfigMap or a log can hold sensitive data. The first agent does not get the log tool (Q6).
+The read role still reads ConfigMaps and pod logs in all namespaces. A ConfigMap or a log can hold sensitive data. The first agent does not get the log tool ([The tools of the first agent](#the-tools-of-the-first-agent)).
 
 The ten bundled agents are off. `k8s-agent` lists `k8s_delete_resource`, `k8s_apply_manifest`, `k8s_execute_command`, `k8s_patch_resource` and `k8s_create_resource_from_url`, without `requireApproval`.
 
@@ -394,7 +400,7 @@ The controls:
 1. The `NetworkPolicy` in `kagent` permits ingress only from pods in `kagent`.
 2. Only Git makes agents. The change of the `apps` AppProject in step R5 of [Roll out OpenChoreo](../how-to/roll-out-openchoreo.md) refuses the groups `kagent.dev` and `agentgateway.dev`, and the destinations `kagent` and `agentgateway-system`. Then an `apps` component cannot put a pod into `kagent` to reach the API. This design makes no edit of its own to the AppProject.
 3. A Conftest check refuses an `Agent` with `type: BYO`, a custom `serviceAccountName`, or a Secret in `env` or `envFrom`.
-4. **The residual risk:** a process in `kagent`, or I through a port-forward, can still make an agent through the API, because the API has no authentication. Before an exposure outside the laptop, I must turn on `trusted-proxy` with oauth2-proxy, or use the principals of kagent v1.0 (Q13).
+4. **The residual risk:** a process in `kagent`, or I through a port-forward, can still make an agent through the API, because the API has no authentication. Before an exposure outside the laptop, I must turn on `trusted-proxy` with oauth2-proxy, or use the principals of kagent v1.0 ([Access to the kagent API](#access-to-the-kagent-api)).
 
 ### The proxy token
 
@@ -409,7 +415,7 @@ The federation guide names no network check, thus a copied token works outside t
 - The attribute condition accepts one subject only.
 - The custom role permits only `aiplatform.endpoints.predict`.
 - SC16 refuses `serviceaccounts/token`, `pods/exec` and workload writes in `agentgateway-system` outside its allowlist.
-- The rate limit, the budget G1 and the kill switch of Q15.
+- The rate limit, the budget G1, and the kill switch if [the spend kill switch decision](../reference/kagent-and-agentgateway.md#a-spend-kill-switch-for-the-vertex-project) selects one.
 - The OpenChoreo cluster agent has `*` on pods, but the second admission policy of the [OpenChoreo design](openchoreo-platform.md) refuses its writes into `agentgateway-system`.
 
 ### Google credential handling
@@ -428,7 +434,7 @@ An agent reads data that other people or programs write: pod names, events, anno
 - The tools are read-only and have no access to Secrets. A successful injection can read cluster objects and send them to Vertex AI. It cannot change the cluster.
 - Each agent lists its tools by name in `toolNames`. M1 uses no remote MCP server except the kagent tool server.
 - The system message tells the agent to treat the content as data. This is a weak control.
-- agentgateway v1.7.0 has prompt guards with regex, webhook and moderation options, and since v1.7.0 they "inspect tool outputs by default". M1 does not turn them on. I read only the existence of these pages, not their schema (Q11).
+- agentgateway v1.7.0 has prompt guards with regex, webhook and moderation options, and since v1.7.0 they "inspect tool outputs by default". M1 does not turn them on. I read only the existence of these pages, not their schema ([Prompt guards in M1](#prompt-guards-in-m1)).
 - `requireApproval` of kagent asks a person before a tool call. M1 has no write tool, thus it does not need it.
 
 ### The agent identity gap
@@ -441,7 +447,7 @@ Until then, M1 runs only on `kind-local`, with read-only tools, with the API rea
 
 The agent sends its prompt, the tool results and the answer to Google. The tool results hold cluster data: resource names, specs and events of `kind-local`. On Vertex AI, Google does not use the prompts to improve its products ([Google Cloud: migrate from the Gemini API](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/migrate/migrate-google-ai)). The location `eu` is a multi-region for ML processing ([Google Cloud: Gemini 3.8 Flash](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/3-8-flash)). Thus:
 
-- M1 sends only test data from `kind-local`. Data from `olympus` or from a person waits for the prompt guard of Q11 B.
+- M1 sends only test data from `kind-local`. Data from `olympus` or from a person waits for the regex prompt guard, option B of [Prompt guards in M1](#prompt-guards-in-m1).
 - The agentgateway access log holds the model and the token counts. I did not verify if the log holds the prompt. An open check has it, because the log stays in the cluster.
 
 ### Supply chain
@@ -465,7 +471,7 @@ New sources: `ghcr.io/kagent-dev`, `cr.agentgateway.dev` and `docker.io/library/
 - [Repository structure](repository-structure.md): the layout, the App of Apps and the waves.
 - [Labels and annotations](labels-and-annotations.md): the labels of the two namespaces, and the checks K5, K14 and K15.
 - [Repository scope](repository-scope.md) and [Provider accounts](../reference/provider-accounts.md): the lifecycle rule, `accounts/gcp/`, the budget G1 and G2, the short apply session, and no secret resource in local state.
-- [Secrets management](secrets-management.md) and [Secrets](../reference/secrets.md): Vertex AI with a service account identity, short-lived tokens for each apply session, SC7 for `kagent-postgresql`, SC16, and the trusted list of cluster-wide Secret readers. The fallback of Q14 makes `agentgateway-system` a secrets consumer again.
+- [Secrets management](secrets-management.md) and [Secrets](../reference/secrets.md): Vertex AI with a service account identity, short-lived tokens for each apply session, SC7 for `kagent-postgresql`, SC16, and the trusted list of cluster-wide Secret readers. The [fallback if the federation fails](../reference/kagent-and-agentgateway.md#the-fallback-if-the-federation-fails) makes `agentgateway-system` a secrets consumer again.
 - [OpenChoreo platform](openchoreo-platform.md): the Gateway API version, kgateway as the OpenChoreo gateway, the cluster agent RBAC and the M3 groundwork.
 - A later zero-trust design: the network policies and the egress of the agent pods.
 - The agent identity design: the identity of each agent and the authentication of the kagent API.

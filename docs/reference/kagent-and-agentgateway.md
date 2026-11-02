@@ -359,7 +359,7 @@ spec:
   model: gemini-3.8-flash
   openAI:
     baseUrl: http://agentgateway-proxy.agentgateway-system.svc.cluster.local/v1
-  # No apiKeySecret: the gateway holds the identity (Q16).
+  # No apiKeySecret: the gateway holds the identity (open decision: a key for the kagent ModelConfig).
 ---
 apiVersion: kagent.dev/v1alpha2
 kind: Agent
@@ -453,7 +453,7 @@ No `google_service_account_key`. Nobody creates a key for `agentgateway-vertex`.
 ### `mise run vertex:jwks kind-local <laptop> --check`
 
 - It exits non-zero if `accounts/gcp/jwks/<laptop>.json` differs in any JWK member from `kubectl get --raw /openid/v1/jwks` of the live cluster on that laptop.
-- It compares the whole file, not only the `kid`. A `kid` is only a string: a PR can keep the real `kid` and change `n` and `e` to a key whose private half its author holds.
+- It compares the whole file, not only the `kid`. The reason is in [The Vertex AI federation](../explanation/kagent-and-agentgateway.md#the-vertex-ai-federation).
 - It runs by hand on that laptop, outside of agent sessions, before the merge of each JWKS PR.
 
 ### The JWKS lint script
@@ -467,6 +467,7 @@ No `google_service_account_key`. Nobody creates a key for `agentgateway-vertex`.
 | Use | Each key has `use: sig`. |
 | Count | The combined set has at most 8 keys. |
 | Unique `kid` | No `kid` repeats. |
+| PR scope | [not yet] A PR changes exactly one file under `accounts/gcp/jwks/`. The one exception is the first PR of R1, which adds the lint script, `issuer.txt` and the first laptop file together. |
 
 ### The Terraform `precondition`
 
@@ -475,7 +476,8 @@ A `precondition` on the provider resource ([HashiCorp: custom conditions](https:
 ### Who changes the key set
 
 - A person reviews and merges each PR that touches `accounts/`, by hand, outside of agent sessions. Agents never merge such a PR.
-- `--check` runs before the merge, on the laptop of the file.
+- [not yet] A JWKS PR changes exactly one file under `accounts/gcp/jwks/`. The JWKS lint script enforces it. The first PR of R1 adds the lint script itself, `issuer.txt` and the first laptop file, so the rule applies from the next JWKS PR.
+- `--check` runs before the merge, on the laptop of the file. A change of `issuer.txt` needs `--check` on both laptops.
 - The apply of `accounts/gcp/` runs by hand, in one apply session, outside of agent sessions. Agents get no provider token ([Provider accounts](provider-accounts.md#who-applies)).
 - These are working rules, not GitHub controls, because the agents use the same GitHub account ([Secrets management](../explanation/secrets-management.md)). They do not rely on `CODEOWNERS`, which the repository no longer has (#196).
 - To revoke the keys of one laptop: remove its file, then apply.
@@ -551,8 +553,8 @@ The v1.7.0 chart ([`role.yaml`](https://github.com/agentgateway/agentgateway/blo
 
 | Namespace | Selects | Permits | Source |
 | --- | --- | --- | --- |
-| `agentgateway-system` | All pods of the namespace | Ingress to the proxy port 80 only from the namespace `kagent`. Ingress to the controller port 9978 only from `agentgateway-system`. The kubelet probes. No other ingress. | Q10 A |
-| `kagent` | All pods of the namespace | Ingress only from pods in `kagent`. The proxy does not call kagent, thus no other source is necessary. | Q13 A |
+| `agentgateway-system` | All pods of the namespace | Ingress to the proxy port 80 only from the namespace `kagent`. Ingress to the controller port 9978 only from `agentgateway-system`. The kubelet probes. No other ingress. | Option A of [Access to the agentgateway listener](../explanation/kagent-and-agentgateway.md#access-to-the-agentgateway-listener) |
+| `kagent` | All pods of the namespace | Ingress only from pods in `kagent`. The proxy does not call kagent, thus no other source is necessary. | Option A of [Access to the kagent API](../explanation/kagent-and-agentgateway.md#access-to-the-kagent-api) |
 
 - Cilium enforces standard network policies.
 - A `kubectl port-forward` goes into the network namespace of the pod, thus the `kagent` policy does not stop it (to verify).
@@ -597,7 +599,7 @@ The bundled PostgreSQL always renders the Secret `kagent-postgresql` with `data:
 | Gateway name and namespace | `agentgateway-proxy` in `agentgateway-system` | The module traits take `gatewayName` and `gatewayNamespace` as parameters. |
 | Listener names and ports | `llm` on 80, `mcp` on 3000 | The `ai-llm-routing` trait has `sectionName: llm` in its template, not as a parameter. The `ai-mcp-federation` trait adds port `3000` to its URL. |
 | `allowedRoutes` of the listeners | `Same`, as a value of the component | M3 sets a selector on the cell namespaces, through the value. The template does not change. |
-| kagent watched namespaces | `[kagent]`, as a value | `rbac.namespaces` needs each name at render time: the chart renders one `Role` for each name, and passes the list to `WATCH_NAMESPACES`. OpenChoreo makes the cell namespaces at run time, with a hash in the name. M3 needs one of: cell namespaces with fixed names for each tenant and environment, the owned-resource RBAC of kagent v1.0, or a patched cluster role without `secrets` (Q5 option C). M3 makes this choice before it starts, next to the v1.0 migration. |
+| kagent watched namespaces | `[kagent]`, as a value | `rbac.namespaces` needs each name at render time: the chart renders one `Role` for each name, and passes the list to `WATCH_NAMESPACES`. OpenChoreo makes the cell namespaces at run time, with a hash in the name. M3 needs one of: cell namespaces with fixed names for each tenant and environment, the owned-resource RBAC of kagent v1.0, or a patched cluster role without `secrets` (option C of [The scope of the kagent controller](../explanation/kagent-and-agentgateway.md#the-scope-of-the-kagent-controller)). M3 makes this choice before it starts, next to the v1.0 migration. |
 | Ingress sources of the gateway `NetworkPolicy` | `kagent` only, as a value | An agent in a cell namespace must reach the proxy. M3 adds the cell namespaces through a namespace selector, by value. |
 | `ReferenceGrant` for the shared backend | None in M1 | A cell `HTTPRoute` with a `backendRef` to `agentgateway-system/gemini` needs a `ReferenceGrant` in `agentgateway-system`. The `agentgateway` component holds it, and M3 adds it by value. |
 | One identity and one quota | One Google service account for all callers | In M3, all tenants share the identity, the quota and the bill. M3 decides between per-tenant rate limits on the route and per-tenant service accounts. |
@@ -640,22 +642,22 @@ Each item must be true on a `kind-local` cluster that `mise run instance:up` mak
 4. **Agent ready.** Check: `kubectl -n kagent wait --for=condition=Ready agent/cluster-reader --timeout=300s`.
 5. **Answer through agentgateway.** Through `kubectl -n kagent port-forward svc/kagent-controller 8083:8083`, an A2A message to `http://localhost:8083/api/a2a/kagent/cluster-reader/` asks "How many namespaces does this cluster have?". The number in the answer is equal to the output of `kubectl get ns --no-headers | wc -l`. The v0.10.4 release has no CLI binary, thus the check uses the A2A endpoint. The implementation PR records the JSON-RPC request.
 6. **Access log.** Check: the logs of the proxy pods in `agentgateway-system` have a line that names the backend `gemini` with the status 200, at the time of check 5. The implementation PR records the name of the proxy Deployment and the field names. The names `gen_ai.provider.name` and `http.status` come from an OpenAI example in the documentation, and they are not verified for Gemini.
-7. **No direct path.** No agent pod has a model credential. Check: `kubectl -n kagent get deploy cluster-reader -o yaml` has no `GOOGLE_API_KEY` and no `GOOGLE_APPLICATION_CREDENTIALS`, no `ModelConfig` uses `GeminiVertexAI`, and no Secret in `kagent` has a model key. [Q16](#q16-a-key-for-the-kagent-modelconfig) can add a dummy value, which is not a credential.
+7. **No direct path.** No agent pod has a model credential. Check: `kubectl -n kagent get deploy cluster-reader -o yaml` has no `GOOGLE_API_KEY` and no `GOOGLE_APPLICATION_CREDENTIALS`, no `ModelConfig` uses `GeminiVertexAI`, and no Secret in `kagent` has a model key. The open decision [a key for the kagent `ModelConfig`](#a-key-for-the-kagent-modelconfig) can add a dummy value, which is not a credential.
 8. **Least privilege.** Checks with `kubectl auth can-i`:
    - As the tool `ServiceAccount`: `get secrets -A`, `delete pods -A` and `create clusterrolebindings` are `no`. The rendered tool `ClusterRole` has no `*` and no `nonResourceURLs`.
    - As the kagent controller `ServiceAccount`: `get secrets -n agentgateway-system` is `no`. `gitops/clusters/kind-local/rendered/kagent/` has no getter or writer `ClusterRole`.
-   - As `system:serviceaccount:agentgateway-system:agentgateway`: `create deployments -n default` and `create serviceaccounts -n default` are `no`. `gitops/clusters/kind-local/rendered/agentgateway/` has no `ClusterRoleBinding` to the deployer role. `get secrets -n default` is `yes`: this is the accepted residual risk of Q12.
+   - As `system:serviceaccount:agentgateway-system:agentgateway`: `create deployments -n default` and `create serviceaccounts -n default` are `no`. `gitops/clusters/kind-local/rendered/agentgateway/` has no `ClusterRoleBinding` to the deployer role. `get secrets -n default` is `yes`: this is the accepted residual risk of [The cluster-wide Secret read of the agentgateway controller](../explanation/kagent-and-agentgateway.md#the-cluster-wide-secret-read-of-the-agentgateway-controller).
    - As the tool `ServiceAccount` and as the kagent controller `ServiceAccount`: `create serviceaccounts/token -n agentgateway-system` and `create pods/exec -n agentgateway-system` are `no`.
-9. **No plaintext key.** `mise run lint` passes, with the gitleaks check of the [secrets design](secrets.md). No file in `rendered/` has a `Secret` with `data` or `stringData`, except the Secret `kagent-postgresql` in `gitops/clusters/kind-local/rendered/kagent/`, which the SC7 exception permits (Q9 A). No user-managed key exists for `agentgateway-vertex`. Check: `gcloud iam service-accounts keys list --iam-account=<email> --managed-by=user` is empty.
-10. **Pins.** Each chart has an exact version. Each image that the chart permits has a digest. The images that the controllers make at run time, the agent runtime and the proxy, also run by digest. Check: the implementation PR lists them, `kubectl get pods -n kagent -n agentgateway-system -o jsonpath` shows the digests, and `mise run lint` passes.
+9. **No plaintext key.** `mise run lint` passes, with the gitleaks check of the [secrets design](secrets.md). No file in `rendered/` has a `Secret` with `data` or `stringData`, except the Secret `kagent-postgresql` in `gitops/clusters/kind-local/rendered/kagent/`, which the SC7 exception permits (option A of [The kagent database](../explanation/kagent-and-agentgateway.md#the-kagent-database)). No user-managed key exists for `agentgateway-vertex`. Check: `gcloud iam service-accounts keys list --iam-account=<email> --managed-by=user` is empty.
+10. **Pins.** Each chart has an exact version. Each image that the chart permits has a digest. The images that the controllers make at run time, the agent runtime and the proxy, also run by digest. Check: the implementation PR lists them, and `mise run lint` passes. For each namespace `kagent` and `agentgateway-system`, this command shows the digests ([kubectl JSONPath](https://kubernetes.io/docs/reference/kubectl/jsonpath/)): `kubectl -n <ns> get pods -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.containerStatuses[*].imageID}{"\n"}{end}'`.
 11. **Footprint.** The PR records the peak memory and CPU of the kind node containers with `docker stats`, during check 5.
 12. **Exposure.** No `LoadBalancer` or `NodePort` Service in `gitops/clusters/kind-local/rendered/agentgateway/` or `gitops/clusters/kind-local/rendered/kagent/`.
 13. **Repeatable.** `mise run instance:down`, then `mise run instance:up`. Before the apply of the new keys, the Applications `agentgateway` and `kagent` are `Synced` and `Healthy`, and a model call fails with a Google authentication error. Then `mise run vertex:jwks kind-local <laptop>` replaces the file of that laptop, `--check` passes on that laptop, the PR merges, and the apply of `accounts/gcp/` follows. The plan changes only `oidc.jwks_json`, and the file of the other laptop does not change. Criteria 1 to 18 give the same result as before, also on the other laptop.
-14. **Gateway network policy.** A pod in `default` cannot reach the proxy. Check: `kubectl run -n default --rm -it probe --image=<pinned curl image> -- curl -m 5 http://agentgateway-proxy.agentgateway-system/v1/chat/completions` times out. The same request from a pod in `kagent` gets an answer.
+14. **Gateway network policy.** A pod in `default` cannot reach the proxy. Check: `kubectl run -n default --rm -i --restart=Never probe --image=<pinned curl image> -- curl -m 5 http://agentgateway-proxy.agentgateway-system/v1/chat/completions` times out. The same request from a pod in `kagent` gets an answer.
 15. **kagent network policy.** A pod in `default` cannot reach the kagent API. Check: the same probe to `http://kagent-controller.kagent:8083/` times out.
 16. **No BYO agent.** The Conftest tests of the `Agent` check have a failing case for `type: BYO`, for a `serviceAccountName`, and for `envFrom` with a Secret. After step R5 of [Roll out OpenChoreo](../how-to/roll-out-openchoreo.md), the `apps` AppProject refuses the groups `kagent.dev` and `agentgateway.dev`, and the destinations `kagent` and `agentgateway-system`. Until R5 merges, this part of the check waits.
 17. **Federation scope.** A token of another `ServiceAccount`, with the same audience, gets no Google token. Check: `kubectl create token default -n agentgateway-system --audience=<provider audience>`, then a token exchange with the Google Security Token Service, is refused by the attribute condition. The implementation PR records the request.
-18. **Cost controls.** The Vertex project has the budget G1 of [Provider accounts](provider-accounts.md), and the kill switch if [Q15](#q15-a-spend-kill-switch-for-the-vertex-project) selects one. The route has the rate limit. Check: the plan of `accounts/gcp/` in the PR, and the `AgentgatewayPolicy` in `rendered/`.
+18. **Cost controls.** The Vertex project has the budget G1 of [Provider accounts](provider-accounts.md), and the kill switch if [the spend kill switch decision](#a-spend-kill-switch-for-the-vertex-project) selects one. The route has the rate limit. Check: the plan of `accounts/gcp/` in the PR, and the `AgentgatewayPolicy` in `rendered/`.
 
 The two criteria of the M1 milestone map to these checks:
 
@@ -670,16 +672,14 @@ The two criteria of the M1 milestone map to these checks:
 
 A later spike or the implementation PR settles each item.
 
-- The check of done criterion 10 gives `-n` two times. `kubectl` uses only the last `-n`, so the command reads one namespace. Run it one time for each namespace.
-
 kagent:
 
 - `providers: null` in the parent chart removes the subchart default, and no `ModelConfig` renders from the chart. The `ModelConfig` has the name `default-model-config`.
-- The Go ADK OpenAI client works with no API key, and appends `/chat/completions` to the base URL that ends in `/v1`. The CRD accepts a `ModelConfig` without `apiKeySecret`. If the runtime needs a value, [Q16](#q16-a-key-for-the-kagent-modelconfig) applies.
+- The Go ADK OpenAI client works with no API key, and appends `/chat/completions` to the base URL that ends in `/v1`. The CRD accepts a `ModelConfig` without `apiKeySecret`. If the runtime needs a value, the open decision [a key for the kagent `ModelConfig`](#a-key-for-the-kagent-modelconfig) applies.
 - `rbac.namespaces: [kagent]` makes only a `Role`, and the controller works with it. The tool server keeps its own `ClusterRole`.
 - The rendered `kagent-tools` role with `readOnly: true` and `allowSecrets: false`, and the effect of `--read-only` on the tool list.
 - `kagent-tools.tools.enabledTools: [k8s]`, which the chart passes as `--tools=` ([`deployment.yaml`](https://github.com/kagent-dev/tools/blob/v0.3.0/helm/kagent-tools/templates/deployment.yaml)). It removes the Helm, Istio, Argo and Cilium tools from the server. Check the tool group name.
-- The SC7 exception or the external database of Q9 works with the controller.
+- The SC7 exception or the external database of [The kagent database](../explanation/kagent-and-agentgateway.md#the-kagent-database) works with the controller.
 - Kubernetes 1.37 with the controller (client-go v0.36.3) and the tool server.
 - A tag with a digest for the controller and UI images. `fullDigest` for the agent runtimes.
 - The condition `Ready` of an `Agent`, and the JSON-RPC request for the A2A endpoint.
@@ -697,9 +697,9 @@ agentgateway:
 
 Vertex AI and the federation:
 
-- **(a)** The proxy pod gets the projected token volume, the `ConfigMap` and the variable through `AgentgatewayParameters` (`spec.env` and the `spec.deployment` overlay), or through the chart. Confirm the names of the proxy container and of the proxy `ServiceAccount` in the running pod. If (a) or (b) fails: [Q14](#q14-the-fallback-if-the-federation-fails).
+- **(a)** The proxy pod gets the projected token volume, the `ConfigMap` and the variable through `AgentgatewayParameters` (`spec.env` and the `spec.deployment` overlay), or through the chart. Confirm the names of the proxy container and of the proxy `ServiceAccount` in the running pod. If (a) or (b) fails: [The fallback if the federation fails](#the-fallback-if-the-federation-fails).
 - **(b)** A credential configuration of type `external_account` with a file `credential_source` works in agentgateway v1.7.0 (`google-cloud-auth` 1.17.0), through the default chain and `GOOGLE_APPLICATION_CREDENTIALS`.
-- **(c)** The kagent `ModelConfig` needs no `apiKeySecret` when the gateway needs none ([Q16](#q16-a-key-for-the-kagent-modelconfig)).
+- **(c)** The kagent `ModelConfig` needs no `apiKeySecret` when the gateway needs none ([A key for the kagent `ModelConfig`](#a-key-for-the-kagent-modelconfig)).
 - **(d)** If Google blocks key creation for a project with no organization (`iam.disableServiceAccountKeyCreation`, [Google Cloud: restrict service accounts](https://docs.cloud.google.com/resource-manager/docs/organization-policy/restricting-service-accounts)). This matters only for the fallback.
 - The issuer of `kind-local` from `/.well-known/openid-configuration` is the same on both laptops. Google accepts the provider create with that issuer, which it cannot reach, and with `jwks_json` from Git.
 - The key set in Git. After an apply with the new file of laptop A, an agent on laptop B still answers. The `precondition` fails a plan with 9 keys or a duplicate `kid`. `--check` fails on a file with a changed `n`. The lint script fails on an unknown file name and on a member `d`. Terraform builds a valid `oidc.jwks_json` from the files.
@@ -708,7 +708,7 @@ Vertex AI and the federation:
 - The egress of the proxy to the Security Token Service, the IAM credentials API and the Vertex AI endpoint of `eu` works through Cilium.
 - **Confirm pricing** of `gemini-3.8-flash` in `eu` on the pricing page. The numbers in [Cost](../explanation/kagent-and-agentgateway.md#the-cost) come from a search snippet only.
 - The stage "generally available" of `gemini-3.8-flash`. The model page does not state it. Only a summary of [Google Cloud: Gemini models](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/models) gives it.
-- The eligibility of Vertex AI for spend cap budgets, and a lower Vertex AI quota as a cap ([Q15](#q15-a-spend-kill-switch-for-the-vertex-project)).
+- The eligibility of Vertex AI for spend cap budgets, and a lower Vertex AI quota as a cap ([A spend kill switch for the Vertex project](#a-spend-kill-switch-for-the-vertex-project)).
 
 Both tools and the platform:
 
@@ -725,9 +725,9 @@ Both tools and the platform:
 
 ## Open decisions
 
-These come from the selection of Vertex AI through Workload Identity Federation. Each one has options and a recommendation.
+These come from the selection of Vertex AI through Workload Identity Federation. Each one has options and a recommendation. The reasons are in [Open decisions](../explanation/kagent-and-agentgateway.md#open-decisions).
 
-### Q14. The fallback if the federation fails
+### The fallback if the federation fails
 
 Two points of the federation are not verified: open check (a) and open check (b). If (a) or (b) fails, this decision applies.
 
@@ -740,13 +740,13 @@ Two points of the federation are not verified: open check (a) and open check (b)
 **Recommendation:** A, with four conditions, and an upstream issue for (a) or (b) in parallel:
 
 1. The key has only the custom role.
-2. The kill switch of [Q15](#q15-a-spend-kill-switch-for-the-vertex-project) is on.
+2. The kill switch of [A spend kill switch for the Vertex project](#a-spend-kill-switch-for-the-vertex-project) is on.
 3. The key rotates every 90 days, and at once after a suspected leak.
 4. The hardware key option of the [secrets design](../explanation/secrets-management.md) comes before this key goes into SOPS, because a plain `keys.txt` is readable by each agent, and this key spends money.
 
-Google calls keys the exception, and says to choose a more secure alternative whenever possible ([Google Cloud: service account keys](https://docs.cloud.google.com/iam/docs/best-practices-for-managing-service-account-keys)). Thus A ends when the upstream fix comes, and M1 goes back to the federation. B changes the provider, and puts a key with the same money value into the same path. C can block M1 for a long time.
+A ends when the upstream fix comes, and M1 goes back to the federation.
 
-### Q15. A spend kill switch for the Vertex project
+### A spend kill switch for the Vertex project
 
 Vertex AI has no free tier for this model, and each agent session with the kind kubeconfig can mint a proxy token. "Setting an alerts-only budget doesn't automatically cap Google Cloud or Google Maps Platform usage or spending", and the cost data comes with a delay ([Google Cloud: budgets](https://docs.cloud.google.com/billing/docs/how-to/budgets)).
 
@@ -756,17 +756,17 @@ Vertex AI has no free tier for this model, and each agent session with the kind 
 | B | A budget with a Pub/Sub notification, and a Cloud Run function that removes the billing account from the dedicated Vertex project at the threshold ([Google Cloud: disable billing with notifications](https://docs.cloud.google.com/billing/docs/how-to/disable-billing-with-notifications)). That page warns: it "removes Cloud Billing from your project, shutting down all resources", "Resources might be irretrievably deleted", and it "doesn't guarantee that you won't spend more than your budget", because of the delay. The function needs an identity that can change the billing of the project. |
 | C | A spend cap budget, which pauses the eligible services, or a lower Vertex AI quota. Not verified: that Vertex AI is eligible for a spend cap, and the quota for this model. |
 
-**Recommendation:** B, on the dedicated Vertex project only, at the amount of the budget G1, and A with lower alert thresholds before it. The project holds only Vertex AI and the federation, thus a shutdown stops only the model calls. A person links the billing account again by hand, and then checks the pool and the service account. The function and its identity go into `accounts/gcp/`, out of reach of the agents. If an open check shows that C works for Vertex AI, C can replace B, because it pauses without a removal of billing.
+**Recommendation:** B, on the dedicated Vertex project only, at the amount of the budget G1, and A with lower alert thresholds before it. A person links the billing account again by hand, and then checks the pool and the service account. The function and its identity go into `accounts/gcp/`, out of reach of the agents. If an open check shows that C works for Vertex AI, C can replace B.
 
-### Q16. A key for the kagent `ModelConfig`
+### A key for the kagent `ModelConfig`
 
-In the kagent v0.10.4 CRD, `apiKeySecret` is optional ([`modelconfig_types.go`](https://github.com/kagent-dev/kagent/blob/v0.10.4/go/api/v1alpha2/modelconfig_types.go)). The kagent page [Bring your own agentgateway](https://kagent.dev/docs/kagent/0.x/supported-providers/byo-agentgateway/) documents a "No authentication" `ModelConfig` with no `apiKeySecret`, thus this decision is likely moot. The agent runtime, the OpenAI client of the Go ADK, is not tested without a key (open check (c)). If it needs a value, the `ModelConfig` must refer to a Secret in `kagent`, and a Secret with data in `rendered/` breaks SC7 ([Secrets](secrets.md)). agentgateway does not check the value, because the listener has no key (Q10 A).
+In the kagent v0.10.4 CRD, `apiKeySecret` is optional ([`modelconfig_types.go`](https://github.com/kagent-dev/kagent/blob/v0.10.4/go/api/v1alpha2/modelconfig_types.go)). The kagent page [Bring your own agentgateway](https://kagent.dev/docs/kagent/0.x/supported-providers/byo-agentgateway/) documents a "No authentication" `ModelConfig` with no `apiKeySecret`, thus this decision is likely moot. The agent runtime, the OpenAI client of the Go ADK, is not tested without a key (open check (c)). If it needs a value, the `ModelConfig` must refer to a Secret in `kagent`, and a Secret with data in `rendered/` breaks SC7 ([Secrets](secrets.md)). agentgateway does not check the value, because the listener has no key (option A of [Access to the agentgateway listener](../explanation/kagent-and-agentgateway.md#access-to-the-agentgateway-listener)).
 
 | Option | Content |
 | --- | --- |
 | A | A Secret in `kagent` with a fixed dummy value, rendered into Git, and a new narrow SC7 exception. The exception names the path, the Secret, the key and the exact value, as for `kagent-postgresql`. The value is not a credential. |
 | B | An `ExternalSecret` in `kagent` from a seed of the secrets design. It needs a store in `kagent`, which the invariant of `kagent` forbids. |
-| C | Q10 B now: a real API key on the listener, and its Secret in `kagent`. It needs the same delivery as B, before the agent identity design. |
+| C | Option B of [Access to the agentgateway listener](../explanation/kagent-and-agentgateway.md#access-to-the-agentgateway-listener), now: a real API key on the listener, and its Secret in `kagent`. It needs the same delivery as B, before the agent identity design. |
 | D | A fix in kagent, as an upstream issue or PR, so that the runtime accepts no key. M1 waits for it. |
 
-**Recommendation:** test first, and expect the documented no-key path to work. If the runtime needs a value, A on `kind-local`, with D as an upstream issue in parallel. A adds no secret, only a constant that a check pins. It needs a new SC7 exception in the [secrets design](secrets.md), as a decision across both designs. B and C put a store or a real key into `kagent`.
+**Recommendation:** test first, and expect the documented no-key path to work. If the runtime needs a value, A on `kind-local`, with D as an upstream issue in parallel. A needs a new SC7 exception in the [secrets design](secrets.md), as a decision across both designs.
