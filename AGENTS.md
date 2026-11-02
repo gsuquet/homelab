@@ -23,7 +23,18 @@ The repository is in migration to a new design. The new design uses `modules/`, 
 
 ## How we work
 
-Obey [Work rules](docs/reference/how-we-work.md) for each change. It holds the rules for the plans, the issues, the branches, the PRs, the review, the commits and the merge. It also holds the push and merge limits of the agents. Read these limits before you push or open a PR. The reasons are in [How we work](docs/explanation/how-we-work.md). The steps are in [Make a change](docs/how-to/make-a-change.md).
+Obey [Work rules](docs/reference/how-we-work.md) for each change. It holds the rules for the plans, the issues, the branches, the PRs, the review, the commits and the merge. The reasons are in [How we work](docs/explanation/how-we-work.md). The steps are in [Make a change](docs/how-to/make-a-change.md).
+
+## Push and merge limits
+
+These limits are safety rules, so they are also here. The source is "Push and merge limits of the agents" in [Work rules](docs/reference/how-we-work.md#push-and-merge-limits-of-the-agents).
+
+- Push only branch refs. Never push to `main` or to another default branch.
+- Never force-push, in any form: `--force`, `-f`, `--force-with-lease` or a `+` reference.
+- Never push tags. Never delete remote branches or tags (`--delete`, `:branch`).
+- Never merge a PR (`gh pr merge`), also not with auto-merge (`--auto`).
+- Never use `--no-verify`.
+- When a hook, a ruleset, a guard or a check refuses an action, stop and report it. Do not find another way to do the action.
 
 ## Tools and tasks
 
