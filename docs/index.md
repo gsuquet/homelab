@@ -59,6 +59,7 @@ Information-oriented documentation for looking up technical details.
 | [Applications](reference/applications.md) | Deployed apps with versions, ports, and storage |
 | [Mise Tasks](reference/mise-tasks.md) | All `mise run` tasks with descriptions and usage |
 | [Tools](reference/tools.md) | All project tools with versions and install methods |
+| [How We Work](reference/how-we-work.md) | The rules for issues, PRs, labels, the review, commits and the merge |
 
 ---
 
@@ -74,6 +75,7 @@ Understanding-oriented documents that explain how the system works, and why. The
 | [Secret Management](explanation/secret-management.md) | How Sealed Secrets enables encrypted GitOps secrets |
 | [Smart Home Stack](explanation/smart-home-stack.md) | How Zigbee2MQTT, Mosquitto, and Home Assistant work together |
 | [Automated Updates](explanation/automated-updates.md) | How Renovate keeps dependencies current |
+| [How We Work](explanation/how-we-work.md) | The doc-first workflow, the review and the merge, and why |
 
 ---
 

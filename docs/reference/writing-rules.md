@@ -13,7 +13,9 @@ The documentation in `docs/` uses the [Diátaxis](https://diataxis.fr/) structur
 | Reference | `docs/reference/` | Facts: tasks, schemas, policies, modules. |
 | Explanation | `docs/explanation/` | Design decisions and the reasons for them. |
 
-The RFCs and the ADRs are in `docs/records/`, outside of the Diátaxis sections. A record is a fixed document with a date and a status. Refer to [RFC 0001](../records/rfcs/0001-records-process.md).
+A new subject starts with its docs: an explanation page for the design and the decisions, a reference page for the exact specifications, and a how-to page for the operator tasks. Refer to [How we work](how-we-work.md#workflow-steps).
+
+A diagram is a Mermaid fenced code block or an SVG file. Vale does not check code blocks, so put a short text version of each diagram next to it.
 
 ## Language
 
