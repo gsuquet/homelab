@@ -37,7 +37,7 @@ An agent does not review its own work. A different agent reviews each PR.
 
 Agents open PRs with the owner's GitHub account, and GitHub does not let an author approve their own PR. Thus GitHub cannot enforce this table. It is a rule that each agent must obey: do not merge a PR in an owner row. A ruleset on `main` requires the `Run every linter and check` status.
 
-`docs/records/`: only the owner accepts an RFC or an ADR. Agents draft them. Write in the PR description which agent made the change and which agent reviewed it.
+Write in the PR description which agent made the change and which agent reviewed it.
 
 ## Tools and tasks
 
