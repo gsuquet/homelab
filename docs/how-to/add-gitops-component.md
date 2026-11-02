@@ -1,6 +1,6 @@
 # Add a GitOps component
 
-This procedure adds an infrastructure component or an application to a cluster. Argo CD then deploys it from Git. For the design, refer to [GitOps with Argo CD](../explanation/gitops-with-argocd.md).
+This guide shows how to add an infrastructure component or an application to a cluster. Argo CD then deploys it from Git.
 
 ## Prerequisites
 
@@ -50,7 +50,7 @@ This procedure adds an infrastructure component or an application to a cluster. 
 9. Run `mise run manifests:render`.
 10. Make sure that `gitops/clusters/<cluster>/rendered/<component>/` contains the expected manifests, and that `rendered/argocd/` contains the new Application.
 11. Run `mise run lint` and `mise run schemas:check`.
-12. Open a pull request.
+12. Open a pull request. Do not push to `main`.
 
 When the pull request merges, the `argocd` Application makes the new Application in its sync wave. Argo CD then syncs the component.
 
@@ -59,5 +59,13 @@ When the pull request merges, the `argocd` Application makes the new Application
 1. Remove the component from `gitops/clusters/<cluster>/cluster.yaml`.
 2. Remove `gitops/clusters/<cluster>/values/<component>.yaml` if it exists.
 3. Run `mise run manifests:render`.
+4. Open a pull request.
 
-Argo CD deletes the Application. The Application has no resources finalizer, thus the resources stay in the cluster. Delete them with `kubectl` if necessary.
+When the pull request merges, Argo CD deletes the Application. The Application has no resources finalizer, thus the resources stay in the cluster. Delete them with `kubectl` if necessary.
+
+## Related pages
+
+- [GitOps layout](../reference/gitops-layout.md): the fields of `cluster.yaml`, the values order and the sync waves.
+- [Labels and annotations](../reference/labels-and-annotations.md#required-keys): the required labels.
+- [GitOps with Argo CD](../explanation/gitops-with-argocd.md): why each component ships its Namespace, and why a removed component keeps its resources.
+- [Render manifests](render-manifests.md)

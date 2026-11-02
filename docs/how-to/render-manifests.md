@@ -1,85 +1,54 @@
-# How to Render Manifests
+# Render manifests
 
-This project pre-renders Helm charts to plain YAML and commits the output. When a chart's `sources/Chart.yaml` or `sources/values.yaml` changes, the rendered output in `manifests/` must be regenerated.
+This guide shows how to update the rendered manifests in `gitops/clusters/<cluster>/rendered/` after a change to a GitOps component.
 
-See [Rendered Manifests Pattern](../explanation/rendered-manifests-pattern.md) for background on why this approach is used.
+Render after a change to one of these files:
 
----
+- `gitops/<group>/<component>/sources/`, for example the chart version in `Chart.yaml` or a value in `values.yaml`;
+- `gitops/clusters/<cluster>/values/<component>.yaml`;
+- `gitops/clusters/<cluster>/cluster.yaml`.
 
-## When Re-rendering is Needed
+## Render
 
-You need to re-render when you change:
+1. Run the render from the root of the repository:
 
-- `kubernetes/bootstrap/argo-cd/sources/Chart.yaml` (ArgoCD version bump)
-- `kubernetes/bootstrap/argo-cd/sources/values.yaml` (ArgoCD configuration change)
-- Any other `**/sources/Chart.yaml` or `**/sources/values.yaml` file added in the future
+   ```bash
+   mise run manifests:render
+   ```
 
-You do **not** need to re-render when you:
+2. Examine the changes in the rendered folders:
 
-- Add or modify plain YAML application manifests under `kubernetes/applications/`
-- Change Ansible playbooks or roles
-- Modify non-chart configuration
+   ```bash
+   git status -- gitops/clusters/
+   git diff -- gitops/clusters/
+   ```
 
----
+3. Commit the sources and the rendered files together, and open a pull request.
 
-## The `gitops/` Layout
+The `render-manifests` pre-commit hook does steps 1 and 3 for you: on a commit that changes one of these files, it renders and stages `gitops/**/rendered/`. Run the task yourself to examine the output before the commit.
 
-A component in `gitops/infrastructure/` or `gitops/apps/` renders one time for each cluster that lists it in `gitops/clusters/<cluster>/cluster.yaml`. The task merges `sources/values.yaml`, the content of `cluster.yaml` as `gitops.cluster`, and `gitops/clusters/<cluster>/values/<component>.yaml` if it exists. It writes one file for each resource, `<kind>-<name>.yaml`, to `gitops/clusters/<cluster>/rendered/<component>/`. A resource from an upstream chart gets the prefix `upstream--`. Two resources with the same kind and name stop the task. The task deletes `rendered/` first, thus the folder of a removed component goes away. Refer to [gitops/README.md](../../gitops/README.md).
-
-`manifests:check` also checks `gitops/**/rendered/`.
-
----
-
-## Re-render with mise
-
-From the repository root:
-
-```bash
-mise run manifests:render
-```
-
-The script:
-
-1. Finds all `**/sources/Chart.yaml` files in the repository
-2. For each chart, runs `helm dependency update` to fetch or update chart dependencies
-3. Runs `helm template <component> <source_dir> -f values.yaml` to produce `manifests/install.yaml`
-4. Splits `install.yaml` into individual files named after each Kubernetes resource (using `# Source:` comments)
-5. Handles duplicate filenames by appending a numeric suffix
-6. Updates `kustomization.yaml` to list all generated files
-
-The script prints a summary of how many charts were rendered and whether any errors occurred.
-
----
-
-## The Pre-commit Hook
-
-You rarely need to run `mise run manifests:render` manually. The pre-commit hook does it automatically:
-
-```yaml
-# .pre-commit-config.yaml
-- id: render-manifests
-  name: Render Kubernetes manifests
-  language: system
-  entry: mise run manifests:render
-  files: 'kubernetes/**/sources/.*\.yaml'
-  pass_filenames: false
-```
-
-This hook fires on `git commit` when any `sources/*.yaml` file is staged. It renders all charts and stages the updated `manifests/` files before the commit completes.
-
-This means:
-
-- If you update `sources/Chart.yaml` and run `git commit`, the hook re-renders and includes the updated `manifests/` in the same commit automatically
-- You only need to run `mise run manifests:render` manually if you want to inspect the output before committing
-
----
-
-## Validate That Manifests Are Current
-
-To check whether the committed manifests match what the current sources would produce:
+## Check that the manifests are current
 
 ```bash
 mise run manifests:check
 ```
 
-This runs `manifests:render` and checks whether `kubernetes/**/manifests/` files changed. It exits with a non-zero code if they are out of date. This check is used in CI to prevent un-rendered changes from being merged.
+The task renders again and fails when the rendered files change. CI runs it on each pull request that changes `gitops/`.
+
+To check the rendered files against the Kubernetes schemas, run:
+
+```bash
+mise run manifests:validate
+```
+
+## Fix a pull request that fails `manifests:check`
+
+1. Check out the branch of the pull request.
+2. Run `mise run manifests:render`.
+3. Commit the rendered files and push the branch.
+
+## Related pages
+
+- [Rendered manifests pattern](../explanation/rendered-manifests-pattern.md): why the repository commits the output of Helm.
+- [Mise tasks](../reference/mise-tasks.md): the steps and the errors of each task.
+- [GitOps layout](../reference/gitops-layout.md#rendered-files): the file names and the values order.

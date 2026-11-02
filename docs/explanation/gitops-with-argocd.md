@@ -1,287 +1,100 @@
-# Explanation: GitOps with ArgoCD
+# GitOps with Argo CD
 
-This document explains how GitOps is implemented in this homelab and the specific patterns ArgoCD uses to manage the cluster.
+The clusters of the platform get their workloads from Git. Nobody runs `kubectl apply` to deploy a component. A pull request changes the files in `gitops/`, and Argo CD makes each cluster equal to the `main` branch. This page tells why the platform works this way, why `gitops/` has its shape, and why Argo CD manages itself.
 
----
+## Why GitOps
 
-## What GitOps Means
+With GitOps, Git holds the desired state of each cluster. This gives four properties:
 
-GitOps is a practice where Git is the single source of truth for the desired state of a system. Instead of running `kubectl apply` manually, you commit changes to Git and a controller (ArgoCD) reconciles the cluster to match.
+- **Declarative:** files describe the state, not the steps to get to it.
+- **Versioned:** each change is a commit, with an author, a date and a message.
+- **Reviewed:** each change goes through a pull request before it reaches `main`, and thus before it reaches a cluster.
+- **Self-healing:** when a resource in the cluster is different from Git, Argo CD puts it back. A manual change does not stay.
 
-The key properties:
+The last property also makes a cluster easy to rebuild. A new cluster with Argo CD gets the same workloads from the same files. A test cluster such as `kind-local` gets them in some minutes.
 
-- **Declarative**: The desired state is described in YAML files in Git, not in runbook steps
-- **Versioned**: Every change is a Git commit with a message, author, and timestamp
-- **Auditable**: `git log` shows exactly what changed and when
-- **Self-healing**: If someone manually changes a resource in the cluster, ArgoCD reverts it on the next sync
+## Why `gitops/` has three parts
 
----
+`gitops/` uses the layout of the Flux and Argo CD reference repositories: `infrastructure/`, `apps/` and `clusters/`.
 
-## The new design: `gitops/`
+- A component in `infrastructure/` can change cluster-scoped resources, for example CRDs or webhooks. Argo CD itself and cert-manager are examples.
+- A component in `apps/` is an application. Its AppProject limits it to namespaced resources, outside the system namespaces.
+- A folder in `clusters/` holds all that is specific to one cluster: the list of its components, its value overrides and its rendered manifests.
 
-The new design keeps all the GitOps sources in `gitops/`. It uses the layout of the Flux and Argo CD reference repositories: `clusters/`, `infrastructure/` and `apps/`. Argo CD manages itself from the first day. The `olympus` cluster still uses the old layout in `kubernetes/`, until its migration.
+The split between `infrastructure/` and `apps/` is a security boundary, not only an order. An application cannot change a CRD or a resource in `kube-system`, because the `apps` AppProject does not let it.
 
-### Layout
+A component is the same for each cluster. A cluster selects its components and can override their values. When two clusters need a different tool, for example two different gateways, the repository has two components, and each cluster selects one. One component with values that change the tool would hide two designs in one chart. A review of one cluster would then not show the effect on the other.
 
-| Folder | Content |
-| --- | --- |
-| `gitops/infrastructure/<component>/sources/` | A component that can change cluster-scoped resources, for example Argo CD or cert-manager. The chart and the values for all clusters. |
-| `gitops/apps/<app>/sources/` | An application. The chart and the values for all clusters. |
-| `gitops/clusters/<cluster>/` | All that is specific to one cluster: the list of components, the value overrides and the rendered manifests. |
+## Why Terraform and GitOps stay apart
 
-A component is the same for each cluster. A cluster selects its components and can override their values. When two clusters need a different tool, for example two gateways, make two components and let each cluster select one. Do not make one component with values that change the tool.
+A GitOps cluster and its Terraform instance have the same name. `instances/<name>/` creates the cluster, and `gitops/clusters/<name>/` tells Argo CD what to deploy on it.
 
-A GitOps cluster and its Terraform instance have the same name: `instances/<name>/` creates the cluster, and `gitops/clusters/<name>/` tells Argo CD what to deploy on it. Terraform and GitOps stay in different folders, because Terraform runs one time and Argo CD reads Git all the time.
+The two folders stay apart because the two tools run in different ways. Terraform runs one time, when a person or an agent starts it, and it changes what its state knows. Argo CD reads Git all the time and corrects each difference. If both tools managed the same resources, each one would undo the changes of the other.
 
-### Bootstrap
+Thus Terraform does one thing in the cluster: the bootstrap of Argo CD.
 
-Terraform installs Argo CD one time. The `bootstrap-argocd` module applies the rendered manifests in `gitops/clusters/<cluster>/rendered/argocd/`. These manifests contain:
+## Why Argo CD manages itself
 
-- Argo CD, rendered from the upstream `argo-cd` chart.
-- The `infrastructure` and `apps` AppProjects.
-- One Application for each component of the cluster, also for `argocd`.
+Argo CD needs a first install, and something must do it. The `bootstrap-argocd` module of Terraform applies the rendered manifests of `gitops/clusters/<cluster>/rendered/argocd/` one time. These manifests contain Argo CD, its two AppProjects and one Application for each component of the cluster. Terraform applies only the Application of Argo CD itself, `argocd`.
 
-Terraform applies only the `argocd` Application. This Application syncs the same rendered folder from Git. Thus, after the bootstrap, Argo CD manages itself, and it makes the other Applications in the order of their sync waves.
-
-```text
-Terraform (one time)              Git (main)
-        │                             │
-        ▼                             ▼
- rendered/argocd/  ─────────▶  argocd Application ──▶ Argo CD, AppProjects
-                                      │
-                                      ▼
-                  one Application for each component in cluster.yaml,
-                  in the order of the sync waves
+```mermaid
+flowchart LR
+    tf["Terraform, one time"] --> rendered["rendered/argocd/"]
+    rendered --> app["argocd Application"]
+    git["Git, main"] --> app
+    app --> argocd["Argo CD and the AppProjects"]
+    app --> apps["One Application for each component, in the order of the sync waves"]
 ```
 
-Each `kubectl_manifest` in the module has `ignore_changes = all`. Terraform creates the resources, but it does not update them. Terraform applies them as the `argocd-controller` field manager, thus Argo CD owns all the fields after its first sync. Argo CD applies all the changes from Git, and Terraform and Argo CD do not fight over the same fields.
+The `argocd` Application syncs the same rendered folder from Git. After the bootstrap, Argo CD manages itself. An upgrade of Argo CD is a pull request, the same as any other change. No second tool must run, and no tool keeps a copy of the state that can drift.
 
-### Upgrade Argo CD
+Two settings of the module keep Terraform out of the way after the bootstrap:
 
-1. Change the chart version in `gitops/infrastructure/argocd/sources/Chart.yaml`, or change the values.
-2. Run `mise run manifests:render`.
-3. Merge the pull request.
+- Each resource ignores all changes after its creation. Terraform does not try to undo what Argo CD applies later.
+- Terraform applies the resources as the field manager of the Argo CD controller. Thus Argo CD owns all the fields after its first sync. If Terraform used its own field manager, a field that a later commit removes would stay in the cluster, because Terraform would still own it.
 
-The `argocd` Application syncs the new manifests and Argo CD upgrades itself.
+Terraform does not apply the Applications of the other components. If it did, they would all sync at the same time. Argo CD makes them, in the order of their sync waves.
 
-### Entry point of a cluster
+## Why each component ships its Namespace
 
-`gitops/clusters/<cluster>/cluster.yaml` lists the components and the applications of the cluster:
+Argo CD can create a namespace with the `CreateNamespace` sync option. The platform does not use this option. Each component has its own `Namespace` in `sources/templates/namespace.yaml`.
 
-```yaml
-apiVersion: infra.gsuquet.com/v1alpha1
-kind: GitOpsCluster
-name: kind-local
-infrastructure:
-  - name: argocd
-    namespace: argocd
-  - name: cert-manager
-    namespace: cert-manager
-apps:
-  - name: home-assistant
-    namespace: home-assistant
-    dependsOn:
-      - cert-manager
-```
+With `CreateNamespace`, the namespace has no labels from Git. Its Pod Security level and its policy labels would not be in a review, and a change to them would not be in the history. With a `Namespace` in Git, a reviewer sees the security level of each component.
 
-`mise run manifests:render` renders each listed component to `gitops/clusters/<cluster>/rendered/<component>/`. The `argocd` component renders one Application for each item ("app of apps"). Each Application syncs the rendered folder of its component.
+## Why the components sync in waves
 
-To add a component, refer to [Add a GitOps component](../how-to/add-gitops-component.md).
+A component often needs another component first. An issuer of cert-manager needs the CRDs of cert-manager. An application that uses certificates needs cert-manager.
 
-### Values
+Argo CD has sync waves for the resources of one Application, but no order between Applications. The platform makes this order with two parts:
 
-A component renders with these values. A value in a later item replaces the same value in an earlier item.
+- The Applications are resources of the `argocd` Application. Thus the sync waves of the `argocd` Application also order the Applications. `dependsOn` in `cluster.yaml` sets the wave of each Application.
+- A custom health check gives each Application the health of its resources. Thus Argo CD starts a wave only when the Applications of the earlier waves are `Healthy`.
 
-1. `gitops/<group>/<component>/sources/values.yaml`: the values for all clusters.
-2. `gitops.cluster`: the content of `cluster.yaml`. The `argocd` chart uses it to make the Applications.
-3. `gitops/clusters/<cluster>/values/<component>.yaml`: the overrides for one cluster. This file is optional.
+A sync timeout of 15 minutes limits the wait. Without it, one component that never becomes `Healthy` would stop all the later syncs of the `argocd` Application, also the upgrades of Argo CD.
 
-### Namespaces
+The `argocd` Application is a special case. It is in its own folder, so the health check would make it wait for itself. Thus the health check always makes it `Healthy`, and `argocd` cannot have `dependsOn`.
 
-Each component ships its own `Namespace` in `sources/templates/namespace.yaml`. Thus the Pod Security labels and the policy labels are in Git, and a reviewer sees them. The Applications do not use `CreateNamespace`. A Conftest policy makes sure that each `Namespace` in `gitops/` has the three Pod Security labels (`enforce`, `audit`, `warn`). `mise run schemas:check` makes sure that the rendered folder of each component contains the namespace of its item in `cluster.yaml`.
+The waves have a limit. They order the syncs of the `argocd` Application only: when an Application is new, or when its spec changes. When one commit changes the rendered manifests of two existing components, their two Applications sync at the same time. Some changes need a fixed order, for example the upgrade of a component and of a component that needs it. Such a change goes in two pull requests.
 
-### Sync waves and dependencies
+## Why a removed component keeps its resources
 
-Argo CD applies the resources of one Application in waves. A Conftest policy checks the first two waves:
+When a component leaves `cluster.yaml`, Argo CD deletes its Application. The Applications have no resources finalizer, so the resources of the component stay in the cluster.
 
-| Wave | Resources |
-| --- | --- |
-| `-2` | `Namespace` |
-| `-1` | `CustomResourceDefinition` |
-| `0` | All other resources (default) |
-| `1` or more | Resources that need the custom resources of the same component, for example a `ClusterIssuer` after cert-manager |
+This makes a mistake in `cluster.yaml` cheap. A line removed by error does not delete a database or its volumes. The cost is a manual clean-up after an intentional removal.
 
-Between components, `dependsOn` in `cluster.yaml` sets the order. The `argocd` chart gives each Application a sync wave: `1` without `dependsOn`, else the wave of its deepest dependency plus 1. The render fails when `dependsOn` names an unknown component or makes a cycle.
+The same reason protects Argo CD itself. Argo CD does not prune its own CRDs, because a deleted CRD deletes all the Applications. It does not prune or delete the `argocd` namespace or `argocd-secret`, also when the `argocd` Application goes away.
 
-The Applications are resources of the `argocd` Application, thus the same waves order them. A health check in `argocd-cm` gives each Application the health of its resources. Thus Argo CD starts a wave only when the Applications of the previous waves are `Healthy`. A sync stops after 15 minutes (`controller.sync.timeout.seconds`), thus one component that is not `Healthy` does not stop all the later syncs.
+## Alternatives
 
-The waves order the syncs of the `argocd` Application only: they apply when an Application is new or when its spec changes. When one commit changes the rendered manifests of two components, their two Applications sync at the same time. To upgrade a component and a component that needs it in a fixed order, use two pull requests.
+- **ApplicationSets with a Git generator.** An ApplicationSet can make one Application for each folder in Git. This removes the list in `cluster.yaml`. But the Applications then exist only in the cluster, not in Git, and a review does not show them. The rendered Applications in `rendered/argocd/` show each Application, with its sync wave, in the diff of the pull request.
+- **Terraform for all the workloads.** Terraform can apply Helm releases. But it does not correct drift between two runs. Argo CD corrects drift all the time.
 
-`argocd` cannot have `dependsOn`: Argo CD syncs before all the other components. The `argocd` Application is in its own folder, thus the health check always makes it `Healthy`. Else it waits for itself.
+## Related pages
 
-### Argo CD settings
-
-| Setting | Value | Reason |
-| --- | --- | --- |
-| Diff | Server-side (`controller.diff.server.side`) | It goes with server-side apply. Defaulted fields do not show as OutOfSync. |
-| Default role | `role:readonly` | A logged-in user without a role can look, but not change. |
-| Application health | Custom health check | The sync waves between components wait for each component. |
-| Sync timeout | 15 minutes (`controller.sync.timeout.seconds`) | A component that is not `Healthy` does not stop the syncs of the `argocd` Application. |
-| Resource exclusions | The chart defaults | They already exclude Endpoints, Leases, Cilium identities and endpoints, and Kyverno reports. |
-| Resources | Memory request equal to the limit, a CPU request, no CPU limit | The cluster resource policy. Sized for a Raspberry Pi 4 with 8 GiB. |
-| Admin user | On | Change the password and delete `argocd-initial-admin-secret` after the first login. SSO comes later. |
-
-### Projects
-
-| Project | Source | Cluster-scoped resources | Namespaces |
-| --- | --- | --- | --- |
-| `infrastructure` | This repository | All | All |
-| `apps` | This repository | `Namespace` only | All, but not `kube-system` and `argocd` |
-
-### Safety rules
-
-- Argo CD does not prune the Argo CD CRDs. A deleted CRD deletes all the Applications.
-- Argo CD does not prune or delete the `argocd` namespace, also when you delete the `argocd` Application.
-- `mise run schemas:check` makes sure that each cluster lists `argocd`. Without it, the cluster has no `argocd` Application, and Argo CD does not manage itself. The `bootstrap-argocd` module also stops when the rendered folder has no `argocd` Application.
-- All components use the rendered manifests pattern: `mise run schemas:check` makes sure that each folder in `gitops/infrastructure/` and `gitops/apps/` has `sources/Chart.yaml`.
-- Each Application tries a failed sync again, up to 5 times. Argo CD does not try a failed sync again for the same revision without this setting.
-- The Applications have no resources finalizer. When a component goes out of `cluster.yaml`, Argo CD deletes its Application, but the resources stay in the cluster. A Conftest policy denies the finalizer.
-- The chart renders `argocd-secret` with no data. `argocd-server` does not start without this `Secret`. When it starts, it adds its keys, for example `server.secretkey`, and it makes `argocd-initial-admin-secret`.
-- The annotation `Prune=false,Delete=false` on `argocd-secret` stops Argo CD from deleting the `Secret` when a commit removes it or when the Application is deleted. A Conftest policy denies a `Secret` with plain values in Git.
-
-### Test a branch on Kind
-
-The Applications sync `main`. To test a branch, add `gitops/clusters/kind-local/values/argocd.yaml` with `gitops.targetRevision` set to the branch name, and render. Remove the file before the merge. A Conftest policy fails `mise run lint` when a rendered Application does not sync `main`.
-
----
-
-## Old layout: `kubernetes/` (olympus)
-
-The rest of this page tells how the old layout works on `olympus`. The migration removes it.
-
-### How ArgoCD Watches This Repository
-
-ArgoCD is configured with a single Application called `argocd-bootstrap` (defined in `kubernetes/bootstrap/argo-cd/bootstrap-application.yaml`). This Application points at the `kubernetes/bootstrap/argo-cd/` directory in the repo:
-
-```yaml
-source:
-  repoURL: https://github.com/gsuquet/homelab.git
-  targetRevision: HEAD
-  path: kubernetes/bootstrap/argo-cd
-syncPolicy:
-  automated:
-    selfHeal: true
-    prune: true
-```
-
-This Application manages ArgoCD itself — if you change any file in `kubernetes/bootstrap/argo-cd/`, ArgoCD detects the change and applies it to itself (a self-update).
-
----
-
-### The ApplicationSet Pattern
-
-Instead of writing an ArgoCD `Application` for every service, this project uses `ApplicationSet` resources that auto-discover applications by scanning Git directory paths.
-
-#### Applications ApplicationSet
-
-```yaml
-# kubernetes/bootstrap/argo-cd/applications-applicationset.yaml
-generators:
-  - git:
-      repoURL: https://github.com/gsuquet/homelab.git
-      revision: HEAD
-      directories:
-        - path: kubernetes/applications/*
-template:
-  metadata:
-    name: '{{.path.basename}}'
-  spec:
-    project: applications
-    source:
-      path: '{{.path}}'
-    destination:
-      namespace: '{{.path.basename}}'
-    syncPolicy:
-      automated:
-        selfHeal: true
-        prune: true
-        serverSideApply: true
-      syncOptions:
-        - CreateNamespace=true
-```
-
-Every directory under `kubernetes/applications/` becomes an ArgoCD Application. The namespace is automatically created with the same name as the directory. No ArgoCD configuration needs to change when you add a new application — just create the directory and push.
-
-The same pattern applies to `kubernetes/system/*` via the `system-applicationset.yaml`.
-
----
-
-### Self-Managing ArgoCD
-
-ArgoCD manages its own deployment. This is possible because ArgoCD is already running when it applies its own manifests — it effectively updates itself on the next sync.
-
-The chain of self-management:
-
-1. `bootstrap-application.yaml` — applied manually once by Ansible; makes ArgoCD watch `kubernetes/bootstrap/argo-cd/`
-2. `applications-applicationset.yaml` and `system-applicationset.yaml` — managed by the bootstrap Application; auto-deploy all other apps
-3. The rendered ArgoCD manifests in `manifests/` — managed by the bootstrap Application; ArgoCD applies updates to its own Deployments
-
-If the ArgoCD version in `sources/Chart.yaml` is bumped, re-rendered, and pushed to Git, ArgoCD detects the change and performs a rolling update of its own pods.
-
----
-
-### Sync Policy
-
-All Applications and ApplicationSets in this project are configured with:
-
-```yaml
-syncPolicy:
-  automated:
-    selfHeal: true    # Revert manual changes to the cluster
-    prune: true       # Delete resources removed from Git
-  syncOptions:
-    - ServerSideApply=true   # Use server-side apply (handles large CRDs better)
-    - CreateNamespace=true   # Auto-create namespace if missing
-```
-
-- **`selfHeal: true`** means if you `kubectl edit` something in the cluster, ArgoCD reverts it within 3 minutes
-- **`prune: true`** means if you delete a file from Git, ArgoCD deletes the corresponding resource from the cluster
-- **`ServerSideApply`** avoids annotation size limits on large resources like CRDs
-
----
-
-### How to Trigger a Sync
-
-**Normal path**: Commit to the `main` branch and push. ArgoCD polls Git every 3 minutes and syncs automatically.
-
-**Immediate sync** (without waiting 3 minutes):
-
-```bash
-# Trigger a refresh of a specific application
-kubectl annotate application <app-name> -n argocd \
-  argocd.argoproj.io/refresh=normal --overwrite
-
-# Or hard refresh (clears cache)
-kubectl annotate application <app-name> -n argocd \
-  argocd.argoproj.io/refresh=hard --overwrite
-```
-
-**Manual sync via kubectl**:
-
-```bash
-kubectl patch application <app-name> -n argocd \
-  --type merge -p '{"operation":{"initiatedBy":{"username":"admin"},"sync":{"revision":"HEAD"}}}'
-```
-
----
-
-### ArgoCD Projects
-
-Applications are grouped into two ArgoCD Projects, which define security boundaries:
-
-| Project | Source Paths | Cluster Permissions | Namespace Restrictions |
-| ------- | ------------ | ------------------- | ---------------------- |
-| `system` | `kubernetes/` | All cluster-scoped resources | All namespaces |
-| `applications` | `kubernetes/` | Namespace-scoped resources only | All except `kube-system` |
-
-The `system` project needs cluster-scoped permissions to install CRDs and cluster roles (e.g., Sealed Secrets). The `applications` project intentionally restricts applications to their own namespaces.
+- [GitOps layout](../reference/gitops-layout.md): the folders, the values, the sync waves and the settings.
+- [Rendered manifests pattern](rendered-manifests-pattern.md): why the repository commits the output of Helm.
+- [Add a GitOps component](../how-to/add-gitops-component.md)
+- [Upgrade Argo CD](../how-to/upgrade-argo-cd.md)
+- [Test a branch on Kind](../how-to/test-a-branch-on-kind.md)
+- [Force a sync](../how-to/force-a-sync.md)
+- [Open the Argo CD UI](../how-to/open-argocd-ui.md)
