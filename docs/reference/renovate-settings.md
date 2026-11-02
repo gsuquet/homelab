@@ -72,6 +72,8 @@ All the other Renovate PRs merge by hand. This includes the Terraform providers,
 | `vulnerabilityAlerts.minimumReleaseAge` | `null` | A security fix does not wait 3 days. |
 | `vulnerabilityAlerts.schedule` | `at any time` | A security fix opens at any time. |
 
+These settings take effect only when the Dependency graph and the Dependabot alerts of the repository are on. Renovate reads the vulnerability alerts from GitHub ([Renovate: vulnerabilityAlerts](https://docs.renovatebot.com/configuration-options/#vulnerabilityalerts)). In this repository, the Dependabot alerts are off, so Renovate opens no vulnerability PR.
+
 ## Related pages
 
 - [Automated updates](../explanation/automated-updates.md)

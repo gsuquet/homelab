@@ -18,11 +18,12 @@ For a small, reversible change, for example a bug fix or a change to the tooling
 4. Create the issue of the task, and add it to the project "Perso":
 
    ```bash
-   gh issue create --repo gsuquet/homelab --title "<type>(<scope>): <task>"
+   gh issue create --repo gsuquet/homelab --title "<type>(<scope>): <task>" \
+     --body-file <file> --label kind/<kind> --label area/<area>
    gh project item-add 2 --owner gsuquet --url <issue-url>
    ```
 
-5. Create a branch from the current `main`:
+5. Create a branch from the current `main`, and set the Status of the item to `In progress`:
 
    ```bash
    git fetch origin
@@ -54,8 +55,8 @@ For a small, reversible change, for example a bug fix or a change to the tooling
 11. Fix each HIGH finding. Fix each FIX finding, or answer it with a reason in the PR. Push each fix as a new commit.
 12. After a HIGH finding, ask a new agent for a second review round. Without a HIGH finding, there is no second round.
 13. If the agents do not agree on a finding, add the label `state/needs-decision`, and set the Status of the item to `In review`.
-14. Mark the PR ready for review.
-15. A person merges the PR with a squash merge.
+14. Mark the PR ready for review, and set the Status of the item to `In review`.
+15. A person merges the PR with a squash merge. GitHub closes the issue, and the Status becomes `Done`.
 
 ## Related pages
 

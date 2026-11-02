@@ -14,7 +14,7 @@ The cost is many update PRs. Renovate makes them, so that a person does not have
 
 A new release can be broken, or it can contain malicious code. Such a release is often withdrawn or reported in the first days. Thus Renovate proposes a release only when it is three days old.
 
-A security fix does not wait, because the known weakness is a larger risk than a new release. A security fix also opens at any time, not only on the schedule.
+For a security fix, the known weakness is a larger risk than a new release. Thus `renovate.json` lets a vulnerability PR skip the wait and the schedule. Renovate finds these fixes through the Dependabot alerts of GitHub. The Dependabot alerts of this repository are off, so a security fix comes with the normal updates, after the wait. Refer to [Renovate settings](../reference/renovate-settings.md#vulnerability-alerts).
 
 ## Why the PRs come once a week
 
@@ -28,7 +28,7 @@ These updates are frequent and low in risk. The tools run on a laptop and in CI.
 
 Renovate merges these PRs itself, after the checks of the branch pass. It does not use the auto-merge of GitHub. The auto-merge of GitHub waits only for the required status checks of `main`, and the ruleset on `main` has none. Thus it could merge a PR while a check fails.
 
-A compromised tool can still reach `main` after the checks pass. The three-day wait makes this risk smaller, but a security fix skips the wait.
+A compromised tool can still reach `main` after the checks pass. The three-day wait makes this risk smaller.
 
 ## Why the other updates merge by hand
 

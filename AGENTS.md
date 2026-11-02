@@ -27,14 +27,16 @@ Obey [Work rules](docs/reference/how-we-work.md) for each change. It holds the r
 
 ## Push and merge limits
 
-These limits are safety rules, so they are also here. The source is "Push and merge limits of the agents" in [Work rules](docs/reference/how-we-work.md#push-and-merge-limits-of-the-agents).
+These limits are safety rules, so this file repeats all of them. The source is "Push and merge limits of the agents" in [Work rules](docs/reference/how-we-work.md#push-and-merge-limits-of-the-agents). When the two do not agree, the reference is correct.
 
-- Push only branch refs. Never push to `main` or to another default branch.
-- Never force-push, in any form: `--force`, `-f`, `--force-with-lease` or a `+` reference.
-- Never push tags. Never delete remote branches or tags (`--delete`, `:branch`).
+- Push only branch refs, and only to remotes under `github.com/gsuquet/`. Never push to `main` or to another default branch.
+- Open a PR only when its base repository is under `github.com/gsuquet/`. A PR from a fork targets the parent repository by default.
 - Never merge a PR (`gh pr merge`), also not with auto-merge (`--auto`).
+- Never force-push, in any form: `--force`, `-f`, `--force-with-lease` or a `+` reference.
+- Never push tags. Never delete remote branches or tags (`--delete`, `:branch`). Never use `--mirror` or `--all`.
 - Never use `--no-verify`.
-- When a hook, a ruleset, a guard or a check refuses an action, stop and report it. Do not find another way to do the action.
+- Never change the settings, the rulesets or the projects of a repository, unless the request names one specific change. To add an item to the project "Perso" and to move items on it is permitted.
+- When a hook, a ruleset, a guard or a check refuses an action, stop and report it. Do not find another way to do the action, for example `--no-verify`, the API, or a deletion and a new creation.
 
 ## Tools and tasks
 

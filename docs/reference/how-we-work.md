@@ -39,6 +39,16 @@ The fields of "Perso":
 | Size | `XS`, `S`, `M`, `L`, `XL` |
 | Start date, End date | Dates |
 
+Status moves:
+
+| Event | Status |
+| --- | --- |
+| A new item | `Backlog` |
+| The branch of the item exists | `In progress` |
+| The PR is ready for review | `In review` |
+| The reviewer and the implementing agent do not agree | `In review`, with `state/needs-decision` |
+| The PR merges, or the issue closes | `Done` |
+
 ## Branches
 
 | Branch | Format | Example |
@@ -98,9 +108,9 @@ The PR description tells what changed and why, links to the docs of the subject,
 | Role | Can do | Must not do |
 | --- | --- | --- |
 | Person (the `gsuquet` account) | Merge PRs. Change settings and rulesets. Apply changes to cloud accounts. Run `mise run labels:sync`. | |
-| Orchestrator (an agent) | Split a plan into issues. Give an issue to an implementing agent. Start a reviewing agent. Add items to "Perso" and move them. | Merge. Review a PR that it implemented. |
-| Implementing agent | Push a branch. Open a draft PR. Edit the description of its PR. Fix review findings. | Merge. Review its own work. |
-| Reviewing agent | Read the PR, run the checks, write findings. | Change the branch. Merge. |
+| Orchestrator (an agent) | Split a plan into issues. Give an issue to an implementing agent. Start a reviewing agent. Add items to "Perso" and move them. | Merge. Review a PR that it implemented. Apply changes to cloud accounts. |
+| Implementing agent | Push a branch. Open a draft PR. Edit the description of its PR. Fix review findings. Mark its PR ready after the review. | Merge. Review its own work. Apply changes to cloud accounts. |
+| Reviewing agent | Read the PR, run the checks, write findings. | Change the branch. Merge. Apply changes to cloud accounts. |
 | Renovate (GitHub App `renovate-gsuquet`) | Open dependency PRs. Merge the PRs that [Renovate settings](renovate-settings.md#automerge) permit. | Merge other PRs. |
 
 - One agent can be the orchestrator and the implementing agent of the same task. The reviewing agent is always a different agent.
@@ -111,7 +121,7 @@ The PR description tells what changed and why, links to the docs of the subject,
 The agents use the GitHub account of the repository, so GitHub cannot enforce these limits. Each agent obeys them.
 
 - An agent pushes only branch refs, and only to remotes under `github.com/gsuquet/`. It never pushes to `main` or to another default branch.
-- An agent opens a PR only when the base repository is under `github.com/gsuquet/`.
+- An agent opens a PR only when the base repository is under `github.com/gsuquet/`. A PR from a fork targets the parent repository by default.
 - An agent never merges a PR (`gh pr merge`), also not with auto-merge (`--auto`).
 - An agent never force-pushes, in any form: `--force`, `-f`, `--force-with-lease` or a `+` reference.
 - An agent never pushes a tag. It never deletes a remote branch or tag (`--delete`, `:branch`). It never uses `--mirror` or `--all`.
