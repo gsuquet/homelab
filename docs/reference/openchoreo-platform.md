@@ -20,7 +20,7 @@ The [installation guide for an existing cluster](https://openchoreo.dev/docs/get
 | Image registry | `twuni/docker-registry` and a zot build cache for local builds | None | Not in M2. |
 | Observability modules | OpenSearch for logs and traces, Prometheus for metrics, an OpenTelemetry Collector for events | None | Not in M2. Heavy. |
 | Cilium | Not required. The `networking-cilium` module is optional. | v1.20.0, kube-proxy replacement, from Terraform | No conflict. Stays at 1.20.0. |
-| Kyverno | Not required. The v1.3.3 source has no reference to Kyverno. | Dropped on 2026-10-31 | No conflict. |
+| Kyverno | Not required. The v1.3.3 source has no reference to Kyverno. | Not used | No conflict. |
 | Argo CD | Not installed. The GitOps guide uses Flux CD, and Flux CD is the default GitOps module. | Argo CD manages itself from `gitops/` | No second Argo CD. |
 
 The OpenChoreo images and the portal image have `linux/amd64` and `linux/arm64` builds. The third-party images are not verified (refer to [Open checks](#open-checks)).
@@ -123,7 +123,7 @@ Terraform makes these items, from the data of the `kind` network, in the `cluste
 - One `CiliumLoadBalancerIPPool` from the subnet of the kind Docker network. L2 announcements stay off. The host uses `kubectl port-forward`.
 - The CoreDNS `rewrite` in the `coredns` ConfigMap of `kube-system`, which sends the OpenChoreo hostnames to the kgateway Service of the control plane.
 
-Terraform also manages the Gateway API CRDs. kgateway, OpenChoreo and agentgateway do not install them.
+Terraform also manages the Gateway API CRDs. kgateway, OpenChoreo and agentgateway must not install them.
 
 ## Rules for an author
 
@@ -298,7 +298,7 @@ The cluster agent stays a trusted Secret reader with both roles (SC16, [Secrets 
 
 ## Done criteria for M2
 
-Each item must be true on a `kind-local` cluster that `mise run instance:up` makes from an empty state, on the commit of the implementation PR, after a run of `mise run secrets:apply kind-local`. The machine is the 16 GB laptop.
+Each item must be true on a `kind-local` cluster that `mise run instance:up kind-local` makes from an empty state, on the commit of the implementation PR, after a run of `mise run secrets:apply kind-local` by hand, outside of agent sessions ([Apply the secrets](../how-to/apply-secrets.md)). The machine is the 16 GB laptop.
 
 ### Positive criteria
 
@@ -323,7 +323,7 @@ Each item must be true on a `kind-local` cluster that `mise run instance:up` mak
 ### General criteria
 
 1. No OpenChoreo object is in the `default` namespace. `mise run lint` passes. No rendered `Secret` has `data` or `stringData`, except the narrow SC7 exception for `kagent-postgresql` in `gitops/clusters/kind-local/rendered/kagent/` ([Secrets (reference)](secrets.md)).
-2. Each chart has an exact version, and each image that the charts permit has a digest. `mise run instance:down`, then `mise run instance:up` and `mise run secrets:apply kind-local`, gives the same result.
+2. Each chart has an exact version, and each image that the charts permit has a digest. `mise run instance:down kind-local`, then `mise run instance:up kind-local` and `mise run secrets:apply kind-local` (by hand), gives the same result.
 3. The PR records the memory limit of the Docker VM. The limit is 12 GiB or more for the test. The PR records the peak memory and CPU of the kind node containers, from the start of `instance:up` to the end of negative criterion 6. This includes the first sync and the image pulls. It samples `docker stats --no-stream` every 5 seconds, or reads `memory.peak` of each node cgroup. It does this once with M2 alone, and once with M1 and M2 together. The peak with M1 and M2 is below 12 GiB, so that 4 GB stay for macOS on the 16 GB laptop. No pod is `OOMKilled`, and no kind node container shows `OOMKilled` in `docker inspect`. These numbers also feed the plan for `olympus`.
 4. Before the end of M2, the data plane chart runs with `clusterAgent.rbac.create: false`, and the repository manages the agent `ClusterRole` and `ClusterRoleBinding`. All positive criteria pass with this role.
 
@@ -370,13 +370,6 @@ The implementation PR settles these items.
 - **Resources.** The requests of the chart defaults are about 750m CPU and 900 MiB for the control plane, and about 150m CPU and 256 MiB for the data plane, without kgateway and ThunderID. Compare them with the measurement of general criterion 3.
 - **kagent.** The OpenChoreo `Workload` contract against a kagent `Agent`, as input for M3.
 
-## Open decisions
+## The `cert-manager` namespace and K15
 
-### The `cert-manager` namespace and K15
-
-[Labels and annotations (reference)](labels-and-annotations.md) lists `cert-manager` in the K15 reserved list as a namespace that Terraform creates. This design installs cert-manager on `kind-local` as a GitOps component in `gitops/infrastructure/`, not through Terraform. K15 applies the reserved list only to `apps` namespaces, thus both rules can stay. Options:
-
-- A: keep `cert-manager` in the reserved list, because it is a platform namespace on all clusters.
-- B: change the K15 text, so that it does not tell that Terraform creates `cert-manager` on `kind-local`.
-
-No recommendation yet. Step R3 decides, because it adds the `cert-manager` component.
+`cert-manager` stays in the K15 `reserved_namespaces` of `policy/data/labels.yaml`. It is a platform namespace on all clusters, and K15 applies the reserved list only to `apps` namespaces. On `kind-local`, an `infrastructure` component creates it, not Terraform. Thus step R3 changes the reason of the entry, in `policy/data/labels.yaml` and in the K15 row of [Labels and annotations (reference)](labels-and-annotations.md#checks), to "platform namespaces that Terraform or an `infrastructure` component creates".

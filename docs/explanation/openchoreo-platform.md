@@ -382,6 +382,10 @@ I did not read these sources: kgateway.dev, the ThunderID chart and its source (
 - **AI features.** The SRE agent, the FinOps agent and the portal assistant send data to an LLM provider. They stay off in M2.
 - **The agent-token gap.** The OpenChoreo MCP server accepts a bearer token from ThunderID. For a non-interactive agent, the [MCP guide](https://openchoreo.dev/docs/ai/mcp-servers/) uses the `client_credentials` grant of the `service_mcp_client` application, with a shared client secret. The token lasts one hour. The guide shows no automatic refresh. The OpenChoreo authz model knows only JWT claims as subjects, and the docs name no agent identity type. Agents have no identity of their own ([How we work](how-we-work.md), [Provider accounts](../reference/provider-accounts.md)). M2 gives no agent an OpenChoreo credential. The agent identity design closes this gap before an agent uses the MCP server. The MCP guide also documents an option that turns off the issuer check in Claude Code for local HTTP. Agents must not use it.
 
+## The order of a removal
+
+A removal from `cluster.yaml` alone deletes nothing in the cluster, because the `Application` template has no resources finalizer. The OpenChoreo kinds have controller finalizers, for example `openchoreo.dev/releasebinding-cleanup`. Only the running controller removes them. The webhooks refuse each update while the controller is down, also the removal of a finalizer. `selfHeal` makes again each object that Git still holds. Thus the [rollback](../how-to/roll-out-openchoreo.md#roll-back) removes the tenant first, then the data plane, then the webhooks, and only then the controller.
+
 ## Later work
 
 - The workflow plane, with a registry and build-from-source.

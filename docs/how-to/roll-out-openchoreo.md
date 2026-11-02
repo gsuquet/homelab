@@ -7,17 +7,21 @@ This guide installs OpenChoreo v1.3.3 on `kind-local` (milestone M2), in steps R
 - Use the 16 GB laptop. The 8 GB laptop cannot run M2.
 - Give the Docker VM 12 GiB of memory or more.
 - Merge the doc PR of this design first. Each step is one PR.
-- Do the steps in order. Each step needs the previous step.
+- Do the steps in order. The dependencies:
+  - R1 and each consumer of R3 to R6 need External Secrets Operator from the [secrets design](apply-secrets.md).
+  - R4 needs cert-manager and kgateway of R3, for the CA issuer and the gateways.
+  - R5 needs the control plane of R4.
+  - R6 needs the data plane of R5, and the tenants design ([issue #182](https://github.com/gsuquet/homelab/issues/182)).
+- Do not add a second tenant, and do not install OpenChoreo on `olympus` or in the cloud, before the repository role of the cluster agent works ([The cluster agent role](../explanation/openchoreo-platform.md#the-cluster-agent-role)).
 
 ## Stop rules
 
-- Stop at each failed check. Add `state/needs-decision` to the PR, and set the Status to `Final review`.
-- Do not start R2 before External Secrets Operator works (R1).
-- If kgateway refuses Gateway API v1.6.2 in R3, stop. The Gateway API version is then decided again.
-- Do not start R6 before the tenants design ([issue #182](https://github.com/gsuquet/homelab/issues/182)) merges.
-- If the repository agent role fails its tests, M2 is not done. Stop, and wait for a decision.
-- Do not add a second tenant before the repository agent role works.
-- Do not install OpenChoreo on `olympus` or in the cloud before the repository agent role works.
+Two results stop the rollout for a decision. For each one, add `state/needs-decision` to the PR, and set the Status to `Final review`:
+
+- In R3, kgateway refuses the Gateway API v1.6.2 CRDs. The Gateway API version is then decided again.
+- The tests of the repository role of the cluster agent fail. Then M2 is not done ([The cluster agent role](../explanation/openchoreo-platform.md#the-cluster-agent-role)).
+
+A failed check of another kind is a bug: correct it in the PR of the step.
 
 ## Steps
 
@@ -26,7 +30,7 @@ This guide installs OpenChoreo v1.3.3 on `kind-local` (milestone M2), in steps R
 1. Wait until the secrets design delivers External Secrets Operator. Refer to [Secrets management](../explanation/secrets-management.md).
 2. In each later PR that adds a consumer component, add its consumer entry in the same PR.
 3. Render the ServiceAccount `eso-seed-reader` and the store `secrets` of each consumer from the secrets template. Refer to [Add a secret consumer](add-a-secret-consumer.md).
-4. After each PR that adds a seed, run `mise run secrets:apply kind-local`. Refer to [Apply secrets](apply-secrets.md).
+4. After each PR that adds a seed, by hand, outside of agent sessions, run `mise run secrets:apply kind-local` ([Apply the secrets](apply-secrets.md)).
 
 ### R2 Terraform
 
@@ -36,7 +40,7 @@ This guide installs OpenChoreo v1.3.3 on `kind-local` (milestone M2), in steps R
 
 ### R3 cert-manager, kgateway and ThunderID
 
-1. Add the `cert-manager` component, chart v1.21.2, namespace `cert-manager`.
+1. Add the `cert-manager` component, chart v1.21.2, namespace `cert-manager`. In the same PR, change the reason of `cert-manager` in `reserved_namespaces` of `policy/data/labels.yaml` and in the K15 row of [Labels and annotations](../reference/labels-and-annotations.md#checks) to "platform namespaces that Terraform or an `infrastructure` component creates". `cert-manager` stays reserved.
 2. Add the `kgateway` component, v2.3.11, namespace `kgateway-system`.
 3. Add the `thunder` component, namespace `thunder`.
 4. Add `thunder` to the consumer list, with its seeds, its `eso-seed-reader` and its store `secrets`.
@@ -81,7 +85,7 @@ Check: `kubectl get clusterdataplane default -o jsonpath='{.status.agentConnecti
 2. As the platform, add the OpenChoreo namespace `sandbox`, its Environments and its DeploymentPipeline.
 3. As the tenant, add the sample `go-greeter-service`.
 4. In the same PR, add the store `oc-sandbox`, the namespace `secret-seeds-oc-sandbox` and the test seed.
-5. Run `mise run secrets:apply kind-local`.
+5. By hand, outside of agent sessions, run `mise run secrets:apply kind-local` ([Apply the secrets](apply-secrets.md)).
 
 Check: all [done criteria](../reference/openchoreo-platform.md#done-criteria-for-m2) pass.
 
@@ -94,7 +98,7 @@ Check: all [done criteria](../reference/openchoreo-platform.md#done-criteria-for
 
 On `kind-local`, the only supported rollback is a new cluster from the commit before the change:
 
-1. Run `mise run instance:down`.
+1. Run `mise run instance:down kind-local`.
 2. Check out the commit before the change.
 3. Run `mise run instance:up kind-local`.
 
@@ -108,9 +112,9 @@ The Git path below is best effort.
 
 ### Remove OpenChoreo through Git
 
-A removal from `cluster.yaml` alone deletes nothing in the cluster. The `Application` template has no resources finalizer. The OpenChoreo kinds have controller finalizers, for example `openchoreo.dev/releasebinding-cleanup`. Only the running controller removes them. The webhooks refuse each update while the controller is down, also the removal of a finalizer. `selfHeal` makes again each object that Git still holds. Thus do the steps in this order:
+A removal from `cluster.yaml` alone deletes nothing, and the controller finalizers and webhooks force an order. The reasons are in [OpenChoreo platform](../explanation/openchoreo-platform.md). Do the steps in this order:
 
-1. Remove the tenant component from `cluster.yaml`. Argo CD deletes the `Application` and leaves its objects.
+1. Remove the tenant component from `cluster.yaml`. Argo CD deletes the `Application` and leaves its objects. `selfHeal` stops for them.
 2. While the controller runs, delete the tenant `ReleaseBinding`, `ProjectReleaseBinding`, `Component`, `Project` and `Environment` objects.
 3. Wait until the `dp-*` namespaces are gone.
 4. While the controller runs, remove the data plane component from `cluster.yaml`.
