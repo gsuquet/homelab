@@ -52,7 +52,7 @@ The rules (RFC 0004, "Anatomy of a key", "The custom prefix"):
 - The keys of the repository have the form `<subgroup>.infra.gsuquet.com/<name>`. In the other records, `<p>` is the full prefix `infra.gsuquet.com`.
 - The sub-groups follow the Kubernetes model, for example `node.kubernetes.io` and `topology.kubernetes.io`. [ADR 0025](0025-use-six-sub-groups-for-the-keys-of-the-repository.md) gives the six sub-groups.
 - The API group `infra.gsuquet.com/v1alpha1` of `cluster.yaml`, `instance.yaml` and `module.yaml` does not change.
-- This ADR owns the label prefix. [ADR 0028](0028-map-kubernetes-keys-to-cloud-labels-and-tags-with-one-rule.md) owns the form of the cloud tag keys. This ADR does not decide the name of the repository. [RFC 0005](https://github.com/gsuquet/homelab/pull/171) ("Repository scope and naming") decides it.
+- This ADR owns the label prefix. [ADR 0028](0028-map-kubernetes-keys-to-cloud-labels-and-tags-with-one-rule.md) owns the form of the cloud tag keys. This ADR does not decide the name of the repository. [RFC 0005](../rfcs/0005-repository-scope-and-naming.md) ("Naming") decides it.
 
 Security rule (RFC 0004, "Security considerations"): the prefix uses the domain `gsuquet.com`. The owner registered it with Cloudflare Registrar, and its DNS is on Cloudflare. If the registration stops, another party can register the domain and use the same keys with a different meaning. A takeover of the Cloudflare account or of its DNS has the same effect. Thus the owner keeps the registration and protects the account. No tool resolves the keys as DNS names, so the only risk is a collision of names.
 

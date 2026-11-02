@@ -63,7 +63,7 @@ The rules of the Terraform code (RFC 0004, "Cloud labels and tags"):
 - The `hashicorp/google` provider gets the map in `default_labels`. The `hashicorp/aws` provider gets it in `default_tags`. The `hashicorp/azurerm` provider has no default tags, so each module takes a `tags` variable and gives it to each resource.
 - The map does not go to the Kubernetes objects. The Kubernetes labels come from the chart sources in `gitops/`.
 - The rule can give the same cloud key for two keys of other tools. The keys of the repository have no `_`, no `.` and no uppercase letter in the name, so they do not collide. A check refuses two keys with the same cloud form in one map.
-- This ADR owns the form of the cloud tag keys. [ADR 0023](0023-use-the-custom-prefix-subgroup-infra-gsuquet-com.md) owns the label prefix. [RFC 0005](https://github.com/gsuquet/homelab/pull/171) owns only the name of the repository.
+- This ADR owns the form of the cloud tag keys. [ADR 0023](0023-use-the-custom-prefix-subgroup-infra-gsuquet-com.md) owns the label prefix. [RFC 0005](../rfcs/0005-repository-scope-and-naming.md) ("Naming") owns only the name of the repository.
 
 Sources: [Google Cloud: labels](https://docs.cloud.google.com/resource-manager/docs/labels-overview), [Azure: tags](https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/tag-resources), [AWS: tagging best practices](https://docs.aws.amazon.com/tag-editor/latest/userguide/best-practices-and-strats.html), and the [Google](https://registry.terraform.io/providers/hashicorp/google/latest/docs/guides/provider_reference), [AzureRM](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs) and [AWS](https://registry.terraform.io/providers/hashicorp/aws/latest/docs) provider documentation.
 

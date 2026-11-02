@@ -101,7 +101,7 @@ The board (RFC 0002, "The Projects board"):
 - The views:
   - "Board": columns by Status, groups by milestone.
   - "Owner queue": Status `Owner review`.
-  - "Backlog": `Backlog` and `Ready`, sorted by Priority.
+  - "Backlog": `Backlog` and `Ready`, sorted by Priority, grouped by milestone.
   - "Roadmap": the milestones and their end dates.
   - "Agents": `In progress` and `Agent review`, grouped by Agent.
   - One view for each repository.

@@ -50,7 +50,7 @@ This ADR depends on the decisions that it enforces:
 The rules (RFC 0004, "Enforcement"):
 
 - The checks go in `policy/kubernetes/kubernetes.rego` and `policy/terraform/terraform.rego`, with a test for each case that must pass and each case that must fail.
-- A data file, for example `policy/data/labels.yaml`, holds the sub-groups, the keys, their type, their kinds and their permitted values. It also holds the allowlists, a map from each component to its permitted `tenant` and `network` values, and the list of required keys for each kind. `conftest --data` loads it, and the policies read it as `data.labels`.
+- A data file, for example `policy/data/labels.yaml`, holds the sub-groups, the keys, their type, their kinds and their permitted values. It also holds the allowlists, a map from each component to its permitted `tenant` and `network` values, and the list of required keys for each kind. `conftest --data` loads it, and the policies read it as `data.labels`. `policy/data/` is an exception to the folder rule of [ADR 0016](0016-use-the-target-repository-structure.md). It holds the data files of the policies, not the policies of one type of input.
 - The checks of the hand-written objects read the rendered objects in `rendered/<component>/`, because Helm templates are not YAML before they render. The path gives the component, and `cluster.yaml` tells if it is in `infrastructure` or in `apps`.
 - A label cannot give the origin of a rendered object. The only reliable marker is the `# Source:` comment of `helm template`, and Conftest drops comments. Thus the render step keeps the origin in the file name. An object is upstream only when the second segment of its source path is `charts`.
 - Git tracks no file in `gitops/*/*/sources/charts/`, and each `dependencies[].repository` starts with `https://` or `oci://`. Else a copied chart could pass as a dependency.
@@ -106,3 +106,5 @@ Security rules (RFC 0004, "Security considerations"). An `apps` component can cr
 The checks are the confirmation. `conftest verify` runs the tests of each check, and `mise run lint` runs the checks on the files. RFC 0004 ("Rollout", step 3) adds the data file, the `--data` option and the checks K1 to K10, K14 and K15 in a separate PR. "Verify in the implementation PR" in RFC 0004 lists the details that the implementation PR must verify. They are not part of this ADR.
 
 Until the checks exist, the reviewer checks the keys of each change in `gitops/` against the other ADRs of RFC 0004.
+
+No check enforces `FailOnSharedResource=true` yet. The reviewer checks the sync options of each `Application`.

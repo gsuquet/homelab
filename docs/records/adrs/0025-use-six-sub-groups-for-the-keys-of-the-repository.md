@@ -9,13 +9,13 @@ superseded-by: null
 
 # ADR 0025: Use six sub-groups for the keys of the repository
 
-The diagram shows the six sub-groups and where their keys go. In text: `tenant` and `network` go only on a `Namespace`. `ownership` goes on a `Namespace`. `backup` goes on a `Namespace` or a `PersistentVolumeClaim`. `instance` and `cost` go on cloud resources. The `instance` keys come from `instance.yaml`. The checks require `tenant`, `instance` and `ownership` now. `network`, `backup` and `cost` become required later.
+The diagram shows the six sub-groups and where their keys go. In text: `tenant` and `network` go only on a `Namespace`. `ownership` goes on a `Namespace`. `backup` goes on a `Namespace` or a `PersistentVolumeClaim`. `instance` and `cost` go on cloud resources. The `instance` keys come from `instance.yaml`. The checks require `tenant`, `instance` and `ownership.<p>/owner` now, and `ownership.<p>/contact` is optional. `network`, `backup` and `cost` become required later.
 
 ```mermaid
 flowchart LR
     subgraph now["Required now"]
         T["tenant: name"]
-        O["ownership: owner, contact"]
+        O["ownership: owner (contact optional)"]
         I["instance: name, purpose, lifecycle, ttl, type"]
     end
     subgraph later["Required later"]
@@ -25,7 +25,7 @@ flowchart LR
     end
     T --> NS[Namespace only]
     N --> NS
-    O --> NS
+    O --> NS2[Namespace]
     B --> PV[Namespace, PersistentVolumeClaim]
     I --> CR[Cloud resources]
     C --> CR

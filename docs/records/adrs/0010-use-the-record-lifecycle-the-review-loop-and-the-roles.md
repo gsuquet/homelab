@@ -164,6 +164,7 @@ The roles (RFC 0002, "Roles"):
 - Good, because a disagreement goes to the owner, so the loop always ends.
 - Good, because a replaced decision keeps its record and links to its replacement.
 - Bad, because a new reviewing agent for each round costs more time and more tokens than one reviewer.
+- Bad, because the loop adds time to each record.
 - Bad, because an author cannot fix a wrong accepted RFC. A new RFC must replace the ADR.
 - Bad, because GitHub cannot enforce the roles while the agents use the account of the owner. Refer to ADR 0015.
 

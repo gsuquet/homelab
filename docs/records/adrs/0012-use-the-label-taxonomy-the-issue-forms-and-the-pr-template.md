@@ -32,11 +32,11 @@ The repository has the nine default GitHub labels and a few labels that the labe
 
 - Labels without a prefix, as the GitHub defaults.
 - Priority and state as labels only.
-- Labels with a prefix (`kind/`, `area/`, `state/`), issue forms and the PR template of the homelab.
+- Labels with a prefix (`kind/`, `area/`, `state/`), issue forms and the PR template of this repository.
 
 ## Decision outcome
 
-Chosen option: "Labels with a prefix (`kind/`, `area/`, `state/`), issue forms and the PR template of the homelab". With more than ten labels, a prefix shows which labels go together. A project field holds the priority and the state ([ADR 0007](0007-track-work-in-the-perso-github-project.md)), because a field has fixed values and a sort order. Labels hold the facts that tools and filters outside of the project need (RFC 0002, "Rationale and alternatives").
+Chosen option: "Labels with a prefix (`kind/`, `area/`, `state/`), issue forms and the PR template of this repository". With more than ten labels, a prefix shows which labels go together. A project field holds the priority and the state ([ADR 0007](0007-track-work-in-the-perso-github-project.md)), because a field has fixed values and a sort order. Labels hold the facts that tools and filters outside of the project need (RFC 0002, "Rationale and alternatives").
 
 The labels (RFC 0002, "Labels" and "Detailed design"):
 
@@ -79,7 +79,7 @@ The issue forms (RFC 0002, "Issue forms and the PR template", "Issue forms"):
 - An issue form cannot make a field required only for some dropdown values. Thus the form text tells when the ADR links are mandatory, and the reviewer checks them.
 - The `projects` key of a form adds the new issue to the board, with the format `gsuquet/<project-number>`. Auto-add does the same work for the people without write access to the project.
 - A form adds a label only if the label exists. Thus the labels exist before the forms.
-- These forms, `config.yml` and the PR template are the own files of the homelab. They win over the shared defaults of [ADR 0013](0013-share-community-defaults-and-reusable-workflows-in-gsuquet-github.md).
+- These forms, `config.yml` and the PR template are the own files of this repository. They win over the shared defaults of [ADR 0013](0013-share-community-defaults-and-reusable-workflows-in-gsuquet-github.md).
 
 The PR template (RFC 0002, "Issue forms and the PR template"). It stays, with four additions:
 

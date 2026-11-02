@@ -72,7 +72,7 @@ The license (RFC 0003, decision 8):
 
 - MIT applies to all the repository, also to `docs/`. The two record templates are the exception, and they keep their license notes. The RFC template is an adaptation of the Rust RFC template, and its license is not confirmed. The ADR template comes from MADR under CC0-1.0.
 - `LICENSE.md` becomes `LICENSE`, with the same copyright line. The content is plain text, and the HashiCorp and Helm structures use `LICENSE`.
-- RFC 0003 marked these two details as "proposed, not stated by the owner, to confirm or correct". The owner merged PR #168 on 2026-11-01 (commit `629b332`), after the owner learned that the merge accepts them. Thus this ADR records both details as decisions.
+- RFC 0003 marked these two details as "proposed, not stated by the owner, to confirm or correct". RFC 0003 has no open question, and the owner merged PR #168 on 2026-11-01 (commit `629b332`) with the MIT scope above. RFC 0003 ("Rollout", step 3.3) keeps the rename until the owner confirms it. The owner confirmed the rename in chat on 2026-11-02: "Yes, rename to LICENSE".
 - Each copy of upstream content keeps its upstream license ([ADR 0017](0017-use-the-terraform-module-and-instance-layout.md)).
 - This is not legal advice.
 

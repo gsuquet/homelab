@@ -58,7 +58,7 @@ The four controls (RFC 0002, "Push and merge rules"):
 
 Agent hooks, for example the hooks of Claude Code, are an early convenience. They give a fast refusal before a command runs, but they are not the controls.
 
-The controls for the time when the agents use the account of the owner (RFC 0002, "Enforcement", owner, 2026-11-01):
+The controls, now and later. The owner decided them on 2026-11-01 (RFC 0002, "Enforcement while the agents use the account of the owner"):
 
 - Now: (b) the plain Git `pre-push` script, (c) the rulesets on all branches and tags, and (d) auto-merge off.
 - Later: (a) separate credentials for the agents, when the agents run as a separate OS user, in a container or in a sandbox.
@@ -108,7 +108,7 @@ RFC 0002 ("Rollout", step 10) plans these checks. They are not part of this ADR:
 
 - A test of the `pre-push` script. It pushes each refused reference type to a local bare repository, and checks the refusal. It runs the `mise` task two times, and checks that each hook is present and runs one time.
 - A check, after the `~ALL` rulesets exist, that a deletion without the bypass fails, and that the head branch of a merged PR goes away.
-- A scheduled script that compares `gh api repos/gsuquet/homelab/rulesets` and the merge settings with a file in Git. It needs the network, so it does not run in `mise run lint`.
+- A scheduled script that compares the rulesets and the merge settings of this repository, from `gh api`, with a file in Git. It needs the network, so it does not run in `mise run lint`.
 - A test that a Renovate dev tool PR can still merge while the rule "Require review from Code Owners" exists.
 
 Until these checks exist, the owner applies the rulesets and the settings above, and the reviewer compares them with this ADR.

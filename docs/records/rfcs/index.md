@@ -8,7 +8,7 @@ A request for comments (RFC) proposes a change before somebody does the work. [R
 2. Write each section of the template.
 3. Add a row for the RFC to the table on this page.
 4. Open a GitHub draft PR. Put its number in the `pr` field.
-5. Ask a reviewer, a person or an agent that is not the author, to review the RFC. Correct it until the reviewer finds no problem.
+5. Run the review loop of [ADR 0010](../adrs/0010-use-the-record-lifecycle-the-review-loop-and-the-roles.md): a new reviewing agent for each round, until no finding stays open.
 6. Run `mise run lint`.
 7. Set the status to `review`, and mark the PR as ready for review.
 
