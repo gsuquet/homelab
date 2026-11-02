@@ -23,7 +23,7 @@ If one condition is false, the item goes into a different repository.
 | Windows machine setup (`gsuquet/choco-setup`) | No | Same reason. |
 | A tool with its own release cycle, for example the reusable workflows (`gsuquet/workflows`, later `gsuquet/.github`) | No | It has versions and tags of its own, and other repositories call it. |
 | The source code of an app | No | The [Argo CD best practices](https://argo-cd.readthedocs.io/en/stable/user-guide/best_practices/) keep the configuration separate from the application source code. |
-| Agent skills and hooks | Not decided | |
+| Agent skills and hooks | Not decided | The agents design decides their place later. |
 
 ## Layout
 
@@ -31,8 +31,8 @@ A **provider account** is one account at a provider: one Cloudflare account, one
 
 ```text
 (the root of the repository)
-├── accounts/<account>/        # Terraform root modules, one for each provider account
-│   ├── account.yaml           # Metadata. schemas/account.schema.json validates it.
+├── accounts/<account>/        # [not yet] Terraform root modules, one for each provider account
+│   ├── account.yaml           # Metadata. schemas/account.schema.json [not yet] validates it.
 │   ├── README.md              # Purpose, manual items, and the generated terraform-docs block
 │   ├── terraform.tf
 │   ├── providers.tf
@@ -65,7 +65,7 @@ state:
   backend: local            # The enum of instance.schema.json: r2 | hcp-terraform | local
 ```
 
-`schemas/account.schema.json` validates it:
+`schemas/account.schema.json` [not yet] validates it:
 
 - `name` equals the folder name, and it starts with the value of `provider`.
 - The `purpose` and `state.backend` enums are the enums of `instance.schema.json`.
@@ -79,7 +79,7 @@ state:
 | As long as one instance | `instances/<instance>/` | A GKE cluster, a tunnel that only one cluster uses, the DNS record that points to that tunnel |
 
 - An instance reads the values of an account (for example the zone ID) through a data source or an input variable, never through `terraform_remote_state` ([HashiCorp: remote state data source](https://developer.hashicorp.com/terraform/language/state/remote-state-data)).
-- The `olympus` tunnel and its DNS records go into `accounts/cloudflare/` until `instances/olympus/` exists. Their import waits for the remote backend. To move them later: import them into `instances/olympus/`, then add a `removed` block with `lifecycle { destroy = false }` in `accounts/cloudflare/`. A `removed` block without `destroy = false` deletes the tunnel.
+- The `olympus` tunnel and its DNS records go into `accounts/cloudflare/` until `instances/olympus/` exists. Their import waits for the remote backend. After the migration, they move to `instances/olympus/` ([Import provider resources](../how-to/import-provider-resources.md#move-a-resource-to-another-root-module)).
 
 ## Terraform state
 
@@ -89,7 +89,7 @@ These requirements apply to each root module, in `accounts/` and in `instances/`
 | --- | --- | --- |
 | S1 | One state for each root module. | The [HashiCorp style guide](https://developer.hashicorp.com/terraform/language/style). A failure affects one account only. |
 | S2 | The state is not only on one machine. It has versions, and an earlier version can be restored. | A disk failure or a wrong command must not lose the state. |
-| S3 | Encryption at rest. No access for agents or CI. | The state holds secrets in plain text. |
+| S3 | Encryption at rest. Access only for the GitHub account `gsuquet` and the local machine of that account. No access for agents or CI. | The state holds secrets in plain text. |
 | S4 | State locking. | Two runs at the same time can damage the state. |
 | S5 | The backend stays inside a free tier, on a plan that does not end. | A trial that ends and deletes its resources must not hold the state. |
 | S6 | Credentials for the backend come from the environment, not from a file in Git. | The repository is public. |
@@ -139,7 +139,7 @@ These rules apply to each provider account, and first to the Cloudflare account,
 
 | ID | Rule | Check |
 | --- | --- | --- |
-| G1 | `accounts/aws/` has an `aws_budgets_budget`, `accounts/gcp/` has a `google_billing_budget`, `accounts/azure/` has an `azurerm_consumption_budget_subscription`. Each has an actual and a forecast threshold, and it sends an email. | A Conftest policy on `accounts/<provider>/`. |
+| G1 | [not yet] `accounts/aws/` has an `aws_budgets_budget`, `accounts/gcp/` has a `google_billing_budget`, `accounts/azure/` has an `azurerm_consumption_budget_subscription`. Each has an actual and a forecast threshold, and it sends an email to the account email address. | A Conftest policy on `accounts/<provider>/`. |
 | G2 | The budget comes in the first PR of the account, before any other resource. | The review. |
 | G3 | Each paid plan, each removal of a spending limit and each paid product is a manual decision, outside of agent sessions. A budget exists first, where the provider has one. | The review. |
 | G4 | Long-lived resources, for example the state backend, do not go on a plan that ends and deletes its resources. | Requirement S5. |
@@ -149,7 +149,7 @@ These rules apply to each provider account, and first to the Cloudflare account,
 
 ## Drift detection
 
-- A mise task, for example `accounts:drift`, runs `terraform plan -detailed-exitcode` on each account root module, each week, by hand on the workstation. The exit code is 0 with no change, 1 for an error and 2 when the plan has changes ([HashiCorp: plan](https://developer.hashicorp.com/terraform/cli/commands/plan)).
+- [not yet] A mise task, for example `accounts:drift`, runs `terraform plan -detailed-exitcode` on each account root module, each week, by hand on the workstation. The exit code is 0 with no change, 1 for an error and 2 when the plan has changes ([HashiCorp: plan](https://developer.hashicorp.com/terraform/cli/commands/plan)).
 - `terraform plan -refresh-only` shows only the changes outside of Terraform.
 - A scheduled workflow comes only after the remote backend, a secrets store and an agent identity.
 
@@ -164,7 +164,7 @@ These rules apply to each provider account, and first to the Cloudflare account,
 | Cloudflare DNS record tags | `<cloud key>:<value>` in `tags`, for example `instance_infra_gsuquet_com_name:olympus` |
 | Grafana Cloud stack labels | The cloud key form in `labels` |
 
-- Use `infra` for the name of a new key, a tag or a link. Do not use `homelab` in a new name.
+- A new key, tag or link uses `infra` in its name. No new name uses `homelab`.
 - The GitOps group `infrastructure` keeps its name.
 
 ## Open work

@@ -50,7 +50,7 @@ The rendered objects keep `app.kubernetes.io/managed-by: Helm`, although Argo CD
 
 ## The `annotation` tracking method, set explicitly
 
-With the `label` method, Argo CD uses `app.kubernetes.io/instance` to find the owner `Application` of an object. Helm and operators also write that label. Thus Argo CD can find the wrong owner, and it can prune the objects of another tool. The `annotation` method has none of these problems.
+With the `label` method, Argo CD uses `app.kubernetes.io/instance` to find the Application that manages an object. Helm and operators also write that label. Thus Argo CD can find the wrong Application, and it can prune the objects of another tool. The `annotation` method has none of these problems.
 
 Since Argo CD 3.0, `annotation` is the default. I still set it explicitly: a later version can change the default, and a check cannot test a missing value. `annotation+label` brings back the conflicts of the label.
 

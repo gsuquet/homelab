@@ -172,6 +172,14 @@ Exceptions:
 - A rendered manifest file can have dots, for example `customresourcedefinition-applications.argoproj.io.yaml`.
 - `schemas/tests/gitops-tree/` and `schemas/tests/instance-terraform/` name a tree, not a `kind`.
 
+## Community health files and the license
+
+- The root keeps `README.md`, `LICENSE`, `CONTRIBUTING.md` and `CHANGELOG.md`.
+- `CODE_OF_CONDUCT.md` (Contributor Covenant 2.0, contact `contact@gsuquet.com`), `SECURITY.md`, `SUPPORT.md` and a generic `CONTRIBUTING.md` go to `gsuquet/.github` (#220). No `FUNDING.yml`.
+- The shared `SECURITY.md` names GitHub private vulnerability reporting first, "in the Security tab of the repository, if it is on", and email to `contact@gsuquet.com` second. It does not promise private reporting for each repository.
+- Private vulnerability reporting stays on in the settings of this repository, because a default `SECURITY.md` is not in the clones, the forks or the downloads.
+- The MIT license applies to all the repository, also to `docs/`. Each copy of upstream content keeps its upstream license.
+
 ## Legacy folders
 
 The production cluster `olympus` still runs from `ansible/`, `kubernetes/` and `scripts/`. These folders are not part of the target tree. They stay in place, in the "deprecated" state, until the migration of the Raspberry Pi.

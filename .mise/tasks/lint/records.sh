@@ -32,9 +32,23 @@ done
 # CHANGELOG.md is generated from the Git history, which keeps the old commit
 # titles. It is the only exclusion.
 log_info "Searching the tracked files for references to the old records..."
-if git grep -n -I -P "${args[@]}" -- . ':(exclude)CHANGELOG.md'; then
-    log_error "The files above refer to the old records. Point them to the Diátaxis page that holds the decision, or state the rule."
-    exit 1
-fi
+# git grep exits 0 when it finds a match, 1 when it finds none, and another
+# code on an error, for example a git without PCRE support. Only 1 is a pass.
+set +e
+git grep -n -I -P "${args[@]}" -- . ':(exclude)CHANGELOG.md'
+rc=$?
+set -e
 
-log_info "✓ No file refers to the old records."
+case "$rc" in
+    0)
+        log_error "The files above refer to the old records. Point them to the Diátaxis page that holds the decision, or state the rule."
+        exit 1
+        ;;
+    1)
+        log_info "✓ No file refers to the old records."
+        ;;
+    *)
+        log_error "git grep failed with exit code $rc."
+        exit "$rc"
+        ;;
+esac

@@ -1,0 +1,59 @@
+# Labels of the repository, in three groups (kind, area, state) and two for Renovate.
+# Apply with `mise run labels:sync`. Run it by hand, because it changes the labels of the repository.
+# color: 6 hex digits, no "#". description: 100 characters or fewer.
+
+# kind/: what is this item?
+- name: kind/feature
+  color: "1F6FEB"
+  description: New behavior
+- name: kind/bug
+  color: "1F6FEB"
+  description: Wrong behavior
+- name: kind/docs
+  color: "1F6FEB"
+  description: Documentation only
+- name: kind/chore
+  color: "1F6FEB"
+  description: Maintenance, refactoring, CI, dependencies
+
+# area/: which part of the repository does it change?
+- name: area/docs
+  color: "8250DF"
+  description: Changes under docs/ and *.md at the root
+- name: area/ci
+  color: "8250DF"
+  description: Changes under .github/, .pre-commit-config.yaml, renovate.json
+- name: area/tooling
+  color: "8250DF"
+  description: Changes under .mise/, .vale/, .vale.ini, the linter configuration files
+- name: area/modules
+  color: "8250DF"
+  description: Changes under modules/
+- name: area/instances
+  color: "8250DF"
+  description: Changes under instances/
+- name: area/gitops
+  color: "8250DF"
+  description: Changes under gitops/
+- name: area/policy
+  color: "8250DF"
+  description: Changes under policy/ and schemas/
+- name: area/legacy
+  color: "8250DF"
+  description: Changes under ansible/ and kubernetes/
+
+# state/: does something block it?
+- name: state/blocked
+  color: "9A6700"
+  description: Another item or an outside event blocks this item. The description tells which.
+- name: state/needs-decision
+  color: "9A6700"
+  description: Waiting for a decision before work continues
+
+# No prefix: Renovate sets these.
+- name: renovate
+  color: "1A7F37"
+  description: Set by Renovate on each PR
+- name: security
+  color: "CF222E"
+  description: Set by Renovate on vulnerability PRs

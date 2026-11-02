@@ -190,7 +190,8 @@ It runs these tasks:
 | `lint:actions` | actionlint, zizmor | Syntax and security of the workflows in `.github/workflows/`. |
 | `lint:shell` | ShellCheck, shfmt | Shell scripts tracked by git. shfmt reads its settings from `.editorconfig`. |
 | `lint:docs` | Vale | Markdown files against the ASD-STE100 rules. Only errors fail the check. Refer to [Writing rules](writing-rules.md). |
-| `lint:records` | `git grep -P` | No tracked file refers to the old proposal and decision record files: their numbered names, their abbreviation, or their old folders. IETF references, for example `RFC 1123`, stay legal. `CHANGELOG.md` is not checked, because git-cliff generates it from the Git history. |
+| `lint:records` | `git grep -P` | No tracked file refers to the old proposal and decision record files: their numbered names, their abbreviation, or their old folders. IETF references, for example `RFC 1123`, stay legal. `CHANGELOG.md` is not checked, because git-cliff generates it from the Git history. Only "no match" passes: a `git grep` error fails the check. |
+| `lint:records-test` | Bash | Runs `lint:records` with a fake `git` for each exit code, and checks that only "no match" passes. |
 | `schemas:test` | check-jsonschema | Refer to [Schemas](schemas.md). |
 | `schemas:check` | check-jsonschema, yq | Refer to [Schemas](schemas.md). |
 
@@ -256,6 +257,30 @@ mise run instance:down kind-local
 **Description**: Update the Terraform lock files for all supported platforms.
 
 Run it after you change a provider version. Commit the `.terraform.lock.hcl` files.
+
+---
+
+### `labels:sync`
+
+**Script**: `.mise/tasks/labels/sync.sh`
+**Description**: Make the labels of the repository equal to `.github/labels.yml`. Run this task by hand, because it changes the labels of the repository.
+
+The task always targets `gsuquet/homelab`. It does not use the git remotes. The `gh` login needs write access to the issues of the repository.
+
+The task checks the file first: each label has a name, a color of 6 hex digits and a description of 100 characters or fewer, and each name is unique (names are not case-sensitive). Then it reads the labels of the repository, so that a failure stops the task before any write. Then it runs `gh label create --force` for each label. This creates the label, or updates its color and description.
+
+| Flag | Effect |
+| --- | --- |
+| `--dry-run` | Prints each create, update and delete command. It makes no write call. It reads the labels of the repository with `gh label list`, so it needs `gh` authentication and network access. |
+| `--prune` | Prints the labels that are not in the file, then asks `[y/N]`, then deletes them with `gh label delete`. Without a terminal, the task refuses unless you add `--yes`. |
+| `--yes` | With `--prune`, deletes with no question. |
+
+Deleting a label removes it from every issue and PR. This cannot be undone.
+
+```bash
+mise run labels:sync --dry-run --prune   # Check first
+mise run labels:sync --prune             # Apply, and delete the other labels
+```
 
 ---
 
