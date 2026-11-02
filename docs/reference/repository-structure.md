@@ -74,7 +74,6 @@ homelab/
 │   ├── bootstrap-gateway-api/        # Gateway API CRDs
 │   ├── bootstrap-cilium/             # Cilium CNI
 │   ├── bootstrap-cert-manager/       # cert-manager and cluster issuers
-│   ├── bootstrap-agent-sandbox/      # agent-sandbox controller
 │   └── bootstrap-argocd/             # Argo CD bootstrap from gitops/clusters/<cluster>/rendered/argocd/
 │
 ├── instances/                        # One root module for each instance, with instance.yaml
