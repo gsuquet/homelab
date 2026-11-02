@@ -39,7 +39,6 @@ vale docs/how-to/render-manifests.md
 Vale does not check these files:
 
 - `CHANGELOG.md`, because git-cliff generates it from the commit messages.
-- `docs/reference/ansible-roles/`, because a script generates these pages, and the migration removes Ansible.
 - Files in `charts/` folders, because Helm charts can come from upstream projects.
 
 ## Add a word to the list

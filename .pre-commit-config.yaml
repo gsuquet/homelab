@@ -61,10 +61,10 @@ repos:
         stages: [commit]
 
       - id: generate-docs
-        name: Auto-generate Ansible and Terraform documentation
-        entry: bash -c 'mise run doc:generate && git add docs/reference/ansible-roles docs/reference/terraform-modules modules'
+        name: Auto-generate Terraform documentation
+        entry: bash -c 'mise run doc:generate && git add docs/reference/terraform-modules modules'
         language: system
-        files: "^(ansible/roles|modules)/.*"
+        files: "^modules/.*"
         pass_filenames: false
         stages: [commit]
 
