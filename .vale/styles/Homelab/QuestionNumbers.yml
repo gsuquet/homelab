@@ -1,0 +1,11 @@
+# A page does not refer to the numbered questions of a plan or a review.
+# State the answer as a fact.
+# Refer to docs/reference/writing-rules.md.
+extends: existence
+message: "Remove '%s'. Do not refer to a question number. State the answer as a fact."
+level: warning
+ignorecase: false
+# Vale joins the items of "raw" into one expression, so the alternatives are
+# in one item.
+raw:
+  - '\b(?:Q\d+|(?i:questions?) #?\d+)\b'
