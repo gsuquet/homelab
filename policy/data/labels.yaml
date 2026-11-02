@@ -1,0 +1,202 @@
+# The reference table of the label and annotation keys: the single source of
+# the checks. RFC 0004 ("Reference table", "Enforcement"), ADRs 0023 to 0029.
+# `conftest --data policy/data` loads this file, and the policies read it as
+# data.labels. Change a rule here, not in the Rego code.
+labels:
+  # The prefix of the repository (ADR 0023). A key is <subgroup>.<prefix>/<name>.
+  prefix: infra.gsuquet.com
+
+  # The reserved tenant of the infrastructure components (ADR 0026).
+  platform_tenant: platform
+
+  # The six sub-groups (ADR 0025). For each key:
+  # - type: label or annotation.
+  # - kinds: the Kubernetes kinds that can have the key. "Pod" is a pod
+  #   template. An empty list: no Kubernetes object can have the key.
+  # - cloud: true if the key goes on cloud resources (checks K11 to K13).
+  # - The permitted values, one of:
+  #   - values: a list. An empty list permits no value yet: the RFC that gives
+  #     the values adds them.
+  #   - pattern: a regular expression.
+  #   - values_from: tenant or network. The values of the component in
+  #     components below.
+  subgroups:
+    tenant:
+      keys:
+        name:
+          type: label
+          kinds: [Namespace]
+          values_from: tenant
+    instance:
+      # The values come from instances/<name>/instance.yaml and
+      # schemas/instance.schema.json.
+      keys:
+        name:
+          type: label
+          kinds: []
+          cloud: true
+          pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+        purpose:
+          type: label
+          kinds: []
+          cloud: true
+          values: [production, test, demo]
+        lifecycle:
+          type: label
+          kinds: []
+          cloud: true
+          values: [long-lived, ephemeral]
+        ttl:
+          type: label
+          kinds: []
+          cloud: true
+          pattern: "^[1-9][0-9]*[hd]$"
+        type:
+          # TODO(K13, RFC 0004 step 7): K13 computes the set from the
+          # cluster-* modules in modules/. Until then, the syntax only.
+          type: label
+          kinds: []
+          cloud: true
+          pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+    ownership:
+      keys:
+        owner:
+          type: label
+          kinds: [Namespace]
+          values: [gsuquet]
+        contact:
+          # A URL or an address.
+          type: annotation
+          kinds: [Namespace]
+          pattern: "^(https://[^[:space:]]+|[^@[:space:]]+@[^@[:space:]]+)$"
+    network:
+      # The zero-trust RFC gives the values, in components below.
+      keys:
+        zone:
+          type: label
+          kinds: [Namespace]
+          values_from: network
+        exposure:
+          type: label
+          kinds: [Namespace]
+          values_from: network
+    backup:
+      # A later backup RFC gives the values.
+      keys:
+        policy:
+          type: label
+          kinds: [Namespace, PersistentVolumeClaim]
+          values: []
+        retention:
+          type: annotation
+          kinds: [Namespace, PersistentVolumeClaim]
+          values: []
+    cost:
+      # The RFC that adds a cost field to instance.yaml gives the values.
+      keys:
+        center:
+          type: label
+          kinds: []
+          cloud: true
+          pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+
+  # The required keys of each kind (ADR 0026). The network, backup and cost
+  # keys become required in the PR of the RFC that gives their values. The Pod
+  # Security labels and the sync waves have their own checks.
+  required:
+    # K5: each Namespace in gitops/.
+    namespace:
+      labels:
+        - tenant.infra.gsuquet.com/name
+        - ownership.infra.gsuquet.com/owner
+    # K6 (hand-written) and K7 (upstream): the pod template of a workload.
+    pod_template:
+      labels:
+        - app.kubernetes.io/name
+        - app.kubernetes.io/instance
+        - app.kubernetes.io/part-of
+    # K6 and K7: each other object.
+    object:
+      labels:
+        - app.kubernetes.io/name
+        - app.kubernetes.io/instance
+        - app.kubernetes.io/managed-by
+    # K13 (RFC 0004 step 7): the cloud form of these keys on each cloud resource.
+    cloud:
+      labels:
+        - instance.infra.gsuquet.com/name
+        - instance.infra.gsuquet.com/purpose
+        - instance.infra.gsuquet.com/lifecycle
+        - instance.infra.gsuquet.com/type
+      ephemeral_labels:
+        - instance.infra.gsuquet.com/ttl
+
+  # K8: the keys that change at an upgrade. They are not permitted in a
+  # selector, because a selector is immutable.
+  unstable_keys:
+    - app.kubernetes.io/version
+    - helm.sh/chart
+
+  # K10: the sync options that can delete objects and their data.
+  forbidden_sync_options:
+    - Replace=true
+    - Force=true
+
+  # K14: the permitted pod-security.kubernetes.io/enforce levels of the
+  # namespaces of the apps components.
+  apps_pod_security_levels:
+    - restricted
+    - baseline
+
+  # The permitted tenant and network values of each component (K4, K5). An
+  # infrastructure component has the tenant platform_tenant and needs no entry
+  # for it. An apps component needs an entry with a tenant that is not
+  # platform_tenant. Example:
+  #   web:
+  #     tenant: home
+  #     network:
+  #       zone: []
+  #       exposure: []
+  components: {}
+
+  allowlists:
+    # K2: the keys with a reserved prefix (kubernetes.io, k8s.io and their
+    # subdomains) that a hand-written object can have.
+    reserved_prefixes:
+      keys:
+        - pod-security.kubernetes.io/enforce
+        - pod-security.kubernetes.io/audit
+        - pod-security.kubernetes.io/warn
+        - kubernetes.io/metadata.name
+        - kubernetes.io/os
+        - kubectl.kubernetes.io/default-container
+      # A key that starts with one of these strings.
+      prefixes:
+        - app.kubernetes.io/
+        - node-restriction.kubernetes.io/
+        # For hand-written Gateway API objects.
+        - gateway.networking.k8s.io/
+    # K3: the keys without a prefix that a hand-written object can have.
+    no_prefix: []
+    # K4: the custom keys of upstream objects that K4 does not check. Each
+    # entry: {component, kind, name, key}.
+    custom_keys_upstream: []
+    # K10: the sync options of upstream objects that K10 permits. Each entry:
+    # {component, kind, name, option}.
+    sync_options_upstream: []
+    # K14: the namespaces of apps components that can have a Pod Security
+    # level other than restricted or baseline.
+    pod_security_apps: []
+    # K15: the namespaces that an apps component cannot use. Glob patterns.
+    # cert-manager and agent-sandbox-system: the defaults of the Terraform
+    # modules bootstrap-cert-manager and bootstrap-agent-sandbox, which create
+    # them. bootstrap-cilium uses kube-system.
+    reserved_namespaces:
+      - default
+      - kube-*
+      - argocd
+      - cert-manager
+      - agent-sandbox-system
+    # K15: a Namespace of an upstream chart that has another name than the
+    # namespace of its component. Each entry: {component, namespace}.
+    upstream_namespaces: []
