@@ -279,7 +279,9 @@ gitops/
 │   │   ├── values.yaml       # values for all clusters
 │   │   └── templates/        # Namespace, AgentgatewayParameters, Gateway,
 │   │                         # AgentgatewayBackend, HTTPRoute, ExternalSecret,
-│   │                         # AgentgatewayPolicy, NetworkPolicy
+│   │                         # AgentgatewayPolicy, NetworkPolicy,
+│   │                         # ServiceAccount eso-seed-reader and SecretStore
+│   │                         # secrets (from the shared template of RFC 0006)
 │   └── kagent/sources/
 │       ├── Chart.yaml        # kagent-crds 0.10.4, kagent 0.10.4
 │       ├── values.yaml
@@ -547,8 +549,8 @@ The App of Apps gives each `Application` a wave from `dependsOn`. Inside each co
 | --- | --- | --- |
 | `-2` | `Namespace` | `Namespace` |
 | `-1` | `agentgateway.dev` CRDs | `kagent.dev` CRDs |
-| `0` | Controller, RBAC, Services. The controller makes the `GatewayClass` at run time. | Controller, UI, tools, PostgreSQL, RBAC, `RemoteMCPServer` from the chart |
-| `1` | `AgentgatewayParameters`, `Gateway`, `AgentgatewayBackend`, `HTTPRoute`, `AgentgatewayPolicy`, `NetworkPolicy` | `ModelConfig`, `Agent`, `NetworkPolicy` |
+| `0` | Controller, RBAC, Services, `ServiceAccount` `eso-seed-reader`. The controller makes the `GatewayClass` at run time. | Controller, UI, tools, PostgreSQL, RBAC, `RemoteMCPServer` from the chart |
+| `1` | `AgentgatewayParameters`, `Gateway`, `AgentgatewayBackend`, `HTTPRoute`, `AgentgatewayPolicy`, `NetworkPolicy`, `SecretStore` `secrets` | `ModelConfig`, `Agent`, `NetworkPolicy` |
 | `2` | `ExternalSecret` `google-secret`, with `argocd.argoproj.io/ignore-healthcheck: "true"` | — |
 
 Rules:
@@ -772,8 +774,8 @@ The ADRs of this RFC come after its acceptance, in their own PR ([ADR 0005](../a
 
 The implementation steps. Each step is one PR, after the ADRs:
 
-1. **R1 Secrets.** Wait for the ESO component of RFC 0006 on `kind-local`, with the store `secrets` in `agentgateway-system`, the seed namespace `secret-seeds-agentgateway-system` and the seed `gemini-api-key`. Wait also for the kind node image v1.37.
-2. **R2 agentgateway.** Add the component with the `Gateway`, the backend, the route, the `ExternalSecret`, the `NetworkPolicy`, `rbac.gatewayNamespaces` and the `ClusterIP` parameters. After `instance:up`, the owner runs `mise run secrets:apply kind-local`. Checks 2, 3, 9, 14 and the agentgateway part of 8.
+1. **R1 Secrets.** Wait for the ESO component of RFC 0006 on `kind-local`, and for its shared template for a consumer store. Wait also for the kind node image v1.37.
+2. **R2 agentgateway.** Add the component with the `Gateway`, the backend, the route, the `ExternalSecret`, the `ServiceAccount` `eso-seed-reader`, the `SecretStore` `secrets` from the shared template of RFC 0006, the `NetworkPolicy`, `rbac.gatewayNamespaces` and the `ClusterIP` parameters. The same PR adds `agentgateway-system` to the consumer list of RFC 0006. The `external-secrets` component then renders the seed namespace `secret-seeds-agentgateway-system` with its `Role` and its `RoleBinding` to `agentgateway-system/eso-seed-reader`. The owner adds the seed `gemini-api-key` to the SOPS file. After `instance:up`, the owner runs `mise run secrets:apply kind-local`. Checks 2, 3, 9, 14 and the agentgateway part of 8.
 3. **R3 kagent.** Add the component with the values of this RFC, the `ModelConfig`, the agent `cluster-reader`, the `NetworkPolicy` and the Conftest check for `Agent` objects. It depends on the SC7 exception of RFC 0006 for `kagent-postgresql` (question 9 A). The AppProject requirements go into RFC 0007 R5. Checks 1, 4 to 8, 10 to 13, 15 and 16.
 4. **R4 Documentation.** A how-to page "Ask an agent on kind-local", and a reference page for the agent tools and their rights.
 5. **R5 Milestone.** Write the checks of the done criteria into the M1 milestone description.
@@ -797,7 +799,7 @@ Each item must be true on a `kind-local` cluster that `mise run instance:up` mak
 10. **Pins.** Each chart has an exact version. Each image that the chart permits has a digest. The images that the controllers make at run time, the agent runtime and the proxy, also run by digest. Check: the implementation PR lists them, `kubectl get pods -n kagent -n agentgateway-system -o jsonpath` shows the digests, and `mise run lint` passes.
 11. **Footprint.** The PR records the peak memory and CPU of the kind node containers with `docker stats`, during check 5.
 12. **Exposure.** No `LoadBalancer` or `NodePort` Service in `rendered/agentgateway/` or `rendered/kagent/`.
-13. **Repeatable.** `mise run instance:down`, then `mise run instance:up`. Before `secrets:apply`, the Applications `agentgateway` and `kagent` are `Synced` and `Healthy`, and the `ExternalSecret` is not synced. Then the owner runs `mise run secrets:apply kind-local`, and criteria 1 to 16 give the same result as before.
+13. **Repeatable.** `mise run instance:down`, then `mise run instance:up`. Before `secrets:apply`, the Applications `agentgateway` and `kagent` are `Synced` and `Healthy`, and the `Ready` condition of the `ExternalSecret` is `False`. Then the owner runs `mise run secrets:apply kind-local`, and criteria 1 to 16 give the same result as before.
 14. **Gateway network policy.** A pod in `default` cannot reach the proxy. Check: `kubectl run -n default --rm -it probe --image=<pinned curl image> -- curl -m 5 http://agentgateway-proxy.agentgateway-system/v1/chat/completions` times out. The same request from a pod in `kagent` gets an answer.
 15. **kagent network policy.** A pod in `default` cannot reach the kagent API. Check: the same probe to `http://kagent-controller.kagent:8083/` times out.
 16. **No BYO agent.** The Conftest tests of the `Agent` check have a failing case for `type: BYO`, for a `serviceAccountName`, and for `envFrom` with a Secret. After RFC 0007 R5, the `apps` AppProject refuses the groups `kagent.dev` and `agentgateway.dev`, and the destinations `kagent` and `agentgateway-system`. Until R5 merges, this part of the check waits.
@@ -843,7 +845,8 @@ The two criteria of the M1 milestone map to these checks:
 - agentgateway: `rbac.gatewayNamespaces: [agentgateway-system]` gives the rendered `RoleBinding`, and the controller still programs the Gateway.
 - Both, after M2: `kubectl get gatewayclass` shows `agentgateway` only with `controllerName: agentgateway.dev/agentgateway`. A kgateway values comment names a class `agentgateway`, thus kgateway must not make a second one (RFC 0007 R3). If it does, turn off the kgateway class by value. The kgateway source is not on a permitted domain.
 - agentgateway: the xDS client authentication of v1.7.0 (`tokenreviews`), and that the `NetworkPolicy` admits the proxy to the controller on 9978.
-- Argo CD: an `ExternalSecret` with `ignore-healthcheck` that is not synced leaves the `agentgateway` Application `Healthy`.
+- Argo CD: an `ExternalSecret` with `ignore-healthcheck` and the `Ready` condition `False` leaves the `agentgateway` Application `Healthy`.
+- Argo CD: the built-in health check of the `SecretStore` `secrets` gives `Healthy` without the seed, because the store checks its RBAC, not the seed. If it does not, the store also gets `argocd.argoproj.io/ignore-healthcheck: "true"`.
 - Both: the CRD charts accept a sync-wave annotation by value. Else the render step adds it.
 - Both: the list of admission webhooks in `rendered/`.
 - Both: no `gateway.networking.k8s.io` CRD in `rendered/`.
@@ -996,7 +999,7 @@ Recommendation: A for M1. B needs an OIDC provider that M1 does not have. C come
 - **[RFC 0003](0003-repository-structure.md)** (accepted): the layout, the App of Apps and the waves.
 - **[RFC 0004](0004-labels-and-annotations.md)** (accepted): the labels of the two namespaces, and the checks K5, K14 and K15.
 - **[RFC 0005](0005-repository-scope-and-naming.md)** (accepted): no secret resource in local state. The owner creates the Gemini key in the console.
-- **RFC 0006** (draft): the store `secrets` in `agentgateway-system`, the seed namespace `secret-seeds-agentgateway-system` and the seed `gemini-api-key`, the manual step `secrets:apply`, SC7 and SC16, the trusted list of cluster-wide Secret readers of RFC 0006 (for this RFC: the agentgateway controller, and the kagent controller only if it is not scoped), and question 2 on the Gemini tier.
+- **RFC 0006** (draft): the shared template for the `ServiceAccount` `eso-seed-reader` and the `SecretStore` `secrets` (the `agentgateway` component renders both), the consumer list, the seed namespace `secret-seeds-agentgateway-system` that the `external-secrets` component renders, the seed `gemini-api-key` with the data key `value`, the manual step `secrets:apply`, SC7 and SC16, the trusted list of cluster-wide Secret readers of RFC 0006 (for this RFC: the agentgateway controller, and the kagent controller only if it is not scoped), and question 2 on the Gemini tier.
 - **RFC 0007** (draft): the Gateway API version (question 8), kgateway as the OpenChoreo gateway, the cluster agent RBAC and the M3 groundwork.
 - **The zero-trust RFC**: the network policies and the egress of the agent pods.
 - **The agent identity RFC**: the identity of each agent and the authentication of the kagent API.
