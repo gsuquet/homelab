@@ -8,7 +8,7 @@ We need:
 
 - a Mac or a Linux computer with at least 8 GiB of memory;
 - [mise](https://mise.jdx.dev/), activated in our shell;
-- the `docker` command and [Colima](https://github.com/abiosoft/colima), installed but not started;
+- the `docker` command and a Docker runtime (for example [Colima](https://github.com/abiosoft/colima));
 - `kubectl`;
 - a clone of the repository:
 
@@ -49,7 +49,7 @@ Now we start the cluster. The instance name is `kind-local`:
 mise run instance:up kind-local
 ```
 
-The task starts Colima, then Terraform creates the cluster and installs Argo CD. This takes some minutes. The output starts like this:
+If the Docker runtime does not run, the task starts it. Then Terraform creates the cluster and installs Argo CD. This takes some minutes. With Colima, the output starts like this:
 
 ```text
 [INFO] Starting Colima...
@@ -148,7 +148,7 @@ Terraform destroys the cluster, and the task removes the kubectl context. The ou
 [INFO] ✓ Instance is down: kind-local
 ```
 
-Colima continues to run. To stop it, we type `colima stop`.
+The Docker runtime continues to run. With Colima, we stop it with `colima stop`.
 
 ## What we did
 

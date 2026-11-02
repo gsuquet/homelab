@@ -2,11 +2,11 @@
 
 The platform has two kinds of targets. At home, a Talos cluster runs on the Raspberry Pi nodes, which are arm64. In the cloud, demo and long-lived instances run on GKE or AKS. A change to the platform must work on both. A test on these targets is slow, and a mistake there has a real effect.
 
-Thus each change gets its first test on a laptop, on `kind-local`. The local cluster must be fast, so that the loop of change and test stays short. It must also be close enough to the targets that a change that works locally also works there. This page tells why Kind meets these two needs, where it stops, and why the other local tools do not do better.
+Thus a change to the platform can get its first test on a laptop, on `kind-local`. The local cluster must be fast, so that the loop of change and test stays short. It must also be close enough to the targets that a change that works locally also works there. This page tells why Kind meets these two needs, where it stops, and why the other local tools do not do better.
 
 ## Why Kind
 
-`kind-local` is a Kind cluster on Colima. Kind runs each Kubernetes node as a Docker container. A cluster with two nodes starts or stops in about a minute. `mise run instance:down kind-local` removes it with all its contents, so a failed test leaves nothing behind.
+`kind-local` is a Kind cluster on a Docker runtime (for example Colima). Kind runs each Kubernetes node as a Docker container. A cluster with two nodes starts or stops in about a minute. `mise run instance:down kind-local` removes it with all its contents, so a failed test leaves nothing behind.
 
 Kind runs plain upstream Kubernetes, set up with kubeadm. The managed clusters of GKE and AKS also run upstream Kubernetes. Thus the platform layer behaves the same on `kind-local` as on a cloud cluster. Examples of this layer are Cilium, the Gateway API, cert-manager and Argo CD.
 
@@ -20,7 +20,7 @@ The low risk also makes `kind-local` the place for experiments. A spike, a throw
 
 Kind is close to the targets, but it is not the same as them.
 
-A Kind node is a container, so it shares the kernel of the Colima VM. Some kernel settings that Cilium expects do not exist in that kernel. The `cluster-kind` module has a workaround for this gap. Its `kind_bpf_sysctls` resource installs a service in each node. The service mounts a fake `/proc/sys/net/core`, with the values that the Cilium Bandwidth Manager reads. A real node has the real kernel and needs no such workaround. `kind-local` also needs settings that exist only for Kind, for example `cluster_type = "kind"` for Cilium. A test on `kind-local` does not cover these settings for another cluster.
+A Kind node is a container, so it shares the kernel of the Docker VM. Some kernel settings that Cilium expects do not exist in that kernel. The `cluster-kind` module has a workaround for this gap. Its `kind_bpf_sysctls` resource installs a service in each node. The service mounts a fake `/proc/sys/net/core`, with the values that the Cilium Bandwidth Manager reads. A real node has the real kernel and needs no such workaround. `kind-local` also needs settings that exist only for Kind, for example `cluster_type = "kind"` for Cilium. A test on `kind-local` does not cover these settings for another cluster.
 
 Kind does not run Talos. The Talos machine config, the Talos upgrade flow, the read-only OS and the Talos settings for Cilium do not exist on `kind-local`. The plans include a second local instance, `talos-local`, to rehearse this Talos-only behavior.
 
