@@ -9,6 +9,7 @@ Sync the labels when one of these occurs:
 
 ## Before you start
 
+- A person runs this task. An agent does not. Refer to [Work rules](../reference/how-we-work.md).
 - You ran `mise install`. Refer to [Install the tools](install-the-tools.md).
 - Your `gh` login has write access to the issues of `gsuquet/homelab`.
 - The change to `.github/labels.yml` is on `main`.

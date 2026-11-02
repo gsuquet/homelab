@@ -17,22 +17,21 @@ Change a schema when one of these occurs:
 2. Change the fields or the rules.
 3. For each new permitted case, add a fixture in `schemas/tests/<schema>/valid/`.
 4. For each new rule, add a fixture in `schemas/tests/<schema>/invalid/`. Give it the name of the rule that it breaks.
-5. Run the tests:
+5. Start each new fixture with the `# yaml-language-server` line of a fixture next to it.
+6. Run the tests:
 
    ```bash
    mise run schemas:test
    ```
 
-6. Validate the files of the repository:
+7. Validate the files of the repository:
 
    ```bash
    mise run schemas:check
    ```
 
-7. If a file of the repository fails, correct the file or the schema.
-8. Update the tables of the schema in [Schemas](../reference/schemas.md).
-
-Each fixture starts with a `# yaml-language-server` line, with the path to the schema from the fixture. Copy it from a fixture next to the new one.
+8. If a file of the repository fails, correct the file or the schema.
+9. Update the tables of the schema in [Schemas](../reference/schemas.md).
 
 ## Change a check that a schema cannot do
 
@@ -47,13 +46,15 @@ The checks across files are in `.mise/tasks/_base/instance-checks.sh`.
 
 ## Validate a new file in the editor
 
-To get validation and completion in an editor that uses `yaml-language-server`, add this line at the top of the new file. Use the relative path from the file to the schema:
+1. Add the `# yaml-language-server` line at the top of the new file, with the relative path to its schema:
 
-```yaml
-# yaml-language-server: $schema=../../schemas/module.schema.json
-```
+   ```yaml
+   # yaml-language-server: $schema=../../schemas/module.schema.json
+   ```
 
-In VS Code, install the `redhat.vscode-yaml` extension.
+2. In VS Code, install the `redhat.vscode-yaml` extension.
+
+For the files that have this line, refer to [Schemas](../reference/schemas.md#editor-support).
 
 ## Related pages
 
