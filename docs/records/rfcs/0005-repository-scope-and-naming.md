@@ -101,7 +101,7 @@ infra/
 └── ...                        # The rest of the RFC 0003 tree
 ```
 
-The first accounts are `accounts/cloudflare/`, `accounts/aws/`, `accounts/gcp/`, `accounts/azure/` and `accounts/grafana-cloud/`. The folder name is the product name in a DNS-1123 label, as the RFC 0003 naming rules ask. A second account at the same provider gets a suffix, for example `aws-sandbox`. Unresolved [Q2](#q2-the-layout-for-provider-accounts) gives the other layouts.
+The first accounts are `accounts/cloudflare/`, `accounts/aws/`, `accounts/gcp/`, `accounts/azure/` and `accounts/grafana-cloud/`. The folder name is the product name in a DNS-1123 label, as the RFC 0003 naming rules ask. A second account at the same provider gets a suffix, for example `aws-sandbox`. The owner selected this layout ([decision 2](#decisions-of-the-owner)).
 
 ### Which root module owns a resource
 
@@ -112,7 +112,7 @@ The **lifecycle rule**: a resource goes into the root module that has the same l
 
 An instance reads the values of an account (for example the zone ID) through a data source or an input variable, not through `terraform_remote_state`. That data source needs read access to the full state, with its secrets ([HashiCorp: remote state data source](https://developer.hashicorp.com/terraform/language/state/remote-state-data)).
 
-`olympus` has no instance root module now. Thus its tunnel goes into `accounts/cloudflare/` first. Refer to [Q3](#q3-the-owner-of-the-olympus-tunnel).
+`olympus` has no instance root module now. Thus its tunnel goes into `accounts/cloudflare/` first ([decision 3](#decisions-of-the-owner)).
 
 ### What changes for an author
 
@@ -155,7 +155,7 @@ At the start, an account root module holds its resources directly, without child
 
 The import of each account follows the same steps:
 
-1. **Inventory.** The owner lists the resources of the account in the dashboard or the API. For Cloudflare, `cf-terraforming generate` writes Terraform code for the resources of one type in a zone or an account ([Cloudflare: import resources](https://developers.cloudflare.com/terraform/advanced-topics/import-cloudflare-resources/)).
+1. **Inventory.** The owner lists the resources of the account in the dashboard or the API. For Cloudflare, `cf-terraforming generate` writes Terraform code for the resources of one type in a zone or an account ([Cloudflare: import resources](https://developers.cloudflare.com/terraform/advanced-topics/import-cloudflare-resources/)). The Cloudflare inventory also checks that the "apps" of the dashboard are only Zero Trust Access applications ([decision 1](#decisions-of-the-owner)). If it finds another type, the author stops and asks the owner.
 2. **Code.** The author writes an `import` block and a `resource` block for each resource ([HashiCorp: import block](https://developer.hashicorp.com/terraform/language/block/import)). `terraform plan -generate-config-out=<file>` can write the `resource` blocks from the `import` blocks ([HashiCorp: import](https://developer.hashicorp.com/terraform/language/import)).
 3. **Secret review.** The author reads all the generated code before the commit. Refer to the rules below.
 4. **Plan.** The plan must show only imports. Each change or destroy in the plan is a difference between the code and the account. The author corrects the code until the plan has no change.
@@ -174,7 +174,7 @@ Cautions: the `import` blocks are the primary method, and `cf-terraforming` is a
 
 Drift is a change in an account that the code does not have, for example a change in the dashboard. A scheduled `terraform plan -detailed-exitcode` detects it. The exit code is 0 with no change, 1 for an error and 2 when the plan has changes ([HashiCorp: plan](https://developer.hashicorp.com/terraform/cli/commands/plan)). A `terraform plan -refresh-only` shows only the changes outside of Terraform.
 
-A drift check needs the state and a token that can read the account. Thus its place depends on the backend and on the credentials. [Q7](#q7-the-place-of-the-drift-check) gives the options.
+A drift check needs the state and a token that can read the account. Thus its place depends on the backend and on the credentials. The owner selected a weekly mise task first ([decision 7](#decisions-of-the-owner)).
 
 ### Terraform state
 
@@ -191,7 +191,7 @@ This RFC sets the requirements for the state of each root module, in `accounts/`
 
 The repository already has a part of this. `schemas/instance.schema.json` permits the backends `r2`, `hcp-terraform` and `local`, and it refuses `local` for a production or a demo instance. PR #157 added this rule without an RFC. This RFC confirms the rule for instances.
 
-The choice of the backend is a tool choice. Thus the Wave 2 tooling RFC decides it. [Q4](#q4-the-state-backend) gives the options and a recommendation for that RFC.
+The choice of the backend is a tool choice. Thus the Wave 2 tooling RFC makes the final choice. The owner selected the recommendation for that RFC: Cloudflare R2 if a test shows that locking works, else HCP Terraform Free ([decision 4](#decisions-of-the-owner)).
 
 **The exception for accounts.** No remote backend exists now, and the owner wants the accounts as code now. Thus `account.schema.json` permits `local` for a production account, as a stated exception. The exception ends when the PR that adds the remote backend merges. That PR changes the schema to the rule of `instance.schema.json`, and it migrates each local state. While the exception is in force:
 
@@ -213,7 +213,7 @@ Each provider gets scoped credentials. None of them go into the repository.
 | Azure | The login of the owner, from `az login`. | The subscription. |
 | Grafana Cloud | A Cloud access policy token in the provider argument `cloud_access_policy_token`. | Only the scopes of the root module. |
 
-**AWS Organizations caution.** A Free account plan "will automatically upgrade to paid plan if you join AWS Organizations" ([AWS: choosing a plan](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/free-tier-plans.html)). IAM Identity Center usually comes with AWS Organizations. This RFC did not verify if IAM Identity Center works without it. Thus the AWS login method must not join AWS Organizations while the account is on the Free plan. Refer to [Q10](#q10-the-plan-of-each-account).
+**AWS Organizations caution.** A Free account plan "will automatically upgrade to paid plan if you join AWS Organizations" ([AWS: choosing a plan](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/free-tier-plans.html)). IAM Identity Center usually comes with AWS Organizations. This RFC did not verify if IAM Identity Center works without it. Thus the AWS login method must not join AWS Organizations while the account is on the Free plan. Refer to [decision 10](#decisions-of-the-owner).
 
 The secrets RFC (Wave 2) decides where a stored token lives, for example in a SOPS file. This RFC depends on it. Until then, the owner keeps the tokens outside of the repository and gives them to Terraform through environment variables. Two token types for each provider:
 
@@ -227,7 +227,7 @@ The secrets RFC (Wave 2) decides where a stored token lives, for example in a SO
 - The owner reviews each account change and applies it with their own hands.
 - The owner does not keep an edit credential where an agent can read it. For Cloudflare and Grafana Cloud, they create a short-lived token for one apply session and revoke it after.
 - For GCP, Azure and AWS, the owner signs in for one apply session, and signs out after it. The commands are `gcloud auth application-default revoke`, `az logout`, and `aws sso logout` or the equivalent of the selected AWS method. Short-lived impersonation is a valid alternative. No agent session runs during an apply session.
-- [Q5](#q5-the-tokens-of-the-agents) asks if the agents get a read token.
+- For now, the agents get no provider token, and the owner runs `plan` and `apply` ([decision 5](#decisions-of-the-owner)).
 
 Only the agent identity RFC closes this gap.
 
@@ -246,7 +246,7 @@ The guardrails as code:
 | --- | --- | --- |
 | G1 | `accounts/aws/` has an `aws_budgets_budget`, `accounts/gcp/` has a `google_billing_budget`, `accounts/azure/` has an `azurerm_consumption_budget_subscription`. Each has an actual and a forecast threshold, and it sends an email to the owner. | A Conftest policy on `accounts/<provider>/`. |
 | G2 | The budget comes in the first PR of the account, before any other resource. | The review of the owner. |
-| G3 | The owner decides each paid plan, each removal of a spending limit and each paid product. A budget must exist first, where the provider has one. | The review of the owner. [Q10](#q10-the-plan-of-each-account) asks the plan of each account. |
+| G3 | The owner decides each paid plan, each removal of a spending limit and each paid product. A budget must exist first, where the provider has one. | The review of the owner. The owner selects the plan of each account ([decision 10](#decisions-of-the-owner)). |
 | G4 | Long-lived resources, for example the state backend, do not go on a plan that ends and deletes its resources. | Requirement S5. |
 
 Cloudflare and Grafana Cloud get no budget resource. Their Terraform providers (5.28.1 and 4.53.0) have no resource with "budget", "billing", "spend" or "usage" in its title. For them, G3 is the guardrail: the owner decides each upgrade or paid product.
@@ -269,7 +269,7 @@ One word, `infra`, has these uses:
 
 **Grafana Cloud.** A `grafana_cloud_stack` has `labels`. This RFC proposes the cloud key of RFC 0004 here too, for one form in all the providers.
 
-[Q8](#q8-the-tag-form-on-cloudflare-and-grafana-cloud) gives the other options. [Q6](#q6-the-gitops-group-infrastructure) asks about the GitOps group `infrastructure` of RFC 0003, which is near to `infra`.
+The owner selected the cloud key form of RFC 0004 for all the providers ([decision 8](#decisions-of-the-owner)). The GitOps group `infrastructure` of RFC 0003 keeps its name, although it is near to `infra` ([decision 6](#decisions-of-the-owner)).
 
 ### The rename
 
@@ -313,15 +313,59 @@ sequenceDiagram
 
 In text: the owner rehearses the rename on `kind-local`, records `olympus`, backs up its data and freezes other changes. Two PRs merge before the rename: the new URLs in the AppProjects, and the safety settings. The owner renames the repository and merges the prepared `repoURL` PR at once. The owner syncs by hand and checks the UIDs. The other references and the clean up follow.
 
+### Decisions of the owner
+
+The owner answered the open questions of this RFC in chat on 2026-11-02. Each item records the selected option. "Rationale and alternatives" gives the options that the owner did not select.
+
+#### 1. The Cloudflare "apps"
+
+Decision: the "apps" are Zero Trust Access applications (`cloudflare_zero_trust_access_application`) (owner, in chat, 2026-11-02). The inventory of the import still checks that the dashboard holds only Access applications. If it finds another type, the author stops and asks the owner.
+
+#### 2. The layout for provider accounts
+
+Decision: `accounts/<account>/`, with one root module for each account (owner, in chat, 2026-11-02). Refer to "Provider accounts".
+
+#### 3. The owner of the `olympus` tunnel
+
+Decision: the tunnel and its DNS records go into `accounts/cloudflare/` now, and they do not wait for `instances/olympus/` (owner, in chat, 2026-11-02). The tunnel holds a secret, thus its import waits for the remote backend (rollout step 4.5). After the migration, they move to `instances/olympus/`. First import them into `instances/olympus/`. Then add a `removed` block with `lifecycle { destroy = false }` in `accounts/cloudflare/`. A `removed` block without `destroy = false` deletes the tunnel.
+
+#### 4. The state backend
+
+Decision: the recommendation for the tooling RFC is Cloudflare R2, through the `s3` backend, if a test shows that locking works on R2. Else HCP Terraform Free (owner, in chat, 2026-11-02). The tooling RFC makes the final choice. Until then, the exception for accounts in "Terraform state" applies.
+
+#### 5. The tokens of the agents
+
+Decision, "for now": the agents get no provider token. They write the code and the import blocks. The owner runs `plan` and `apply`, and posts the plan in the PR (owner, in chat, 2026-11-02). The agent identity RFC revisits this decision.
+
+#### 6. The GitOps group `infrastructure`
+
+Decision: keep `infrastructure` (owner, in chat, 2026-11-02). The words have different roles: `infra` is a name, `infrastructure` is a group of components. RFC 0003 decision 3 stays in force.
+
+#### 7. The place of the drift check
+
+Decision: a mise task, for example `accounts:drift`, that the owner runs each week on their machine (owner, in chat, 2026-11-02). A scheduled workflow comes only after the remote backend, the secrets RFC and the agent identity RFC.
+
+#### 8. The tag form on Cloudflare and Grafana Cloud
+
+Decision: the cloud key form of RFC 0004 on all the providers, for example `instance_infra_gsuquet_com_name` (owner, in chat, 2026-11-02). One rule and one check.
+
+#### 9. The order of the ADRs with RFC 0003
+
+Decision: the ADR from this RFC adds `accounts/` and supersedes the structure ADR of RFC 0003 completely, with a restatement (owner, in chat, 2026-11-02). RFC 0003 stays closed. This follows ADR 0005, which has no partial supersede.
+
+#### 10. The plan of each account
+
+Decision: a mix (owner, in chat, 2026-11-02). Free plans for experiments. Paid plans with budgets from the first commit for long-lived items. The owner selects the plan of each account. Nothing long-lived goes on a plan that ends (G4). The AWS caution applies: joining AWS Organizations upgrades the Free plan to the Paid plan.
+
 ## Security considerations
 
 - **DNS controls email and trust.** The zone `gsuquet.com` holds the MX records of `contact@gsuquet.com`, the security contact of RFC 0003. A wrong or hostile DNS change can take the email, the password resets and the certificates of the domain. Only the owner applies account changes.
-- **The Cloudflare account holds the registrar and the DNS**, and maybe the state (Q4). The account needs multi-factor authentication. Its recovery email must not be an address on `gsuquet.com`: else a loss of the DNS also stops the recovery of the account. The owner checks the registrar lock and the auto-renewal of `gsuquet.com` by hand, because Terraform does not manage them. An expired domain loses the DNS and the email. The same rules apply to the other provider accounts.
-- **The agent identity gap.** The agents run as the owner. Each token and each cached cloud login on the machine of the owner is a credential of the agents. The owner keeps edit credentials short-lived and signs out after each apply. Refer to "Credentials" and Q5.
+- **The Cloudflare account holds the registrar and the DNS**, and maybe the state ([decision 4](#decisions-of-the-owner)). The account needs multi-factor authentication. Its recovery email must not be an address on `gsuquet.com`: else a loss of the DNS also stops the recovery of the account. The owner checks the registrar lock and the auto-renewal of `gsuquet.com` by hand, because Terraform does not manage them. An expired domain loses the DNS and the email. The same rules apply to the other provider accounts.
+- **The agent identity gap.** The agents run as the owner. Each token and each cached cloud login on the machine of the owner is a credential of the agents. The owner keeps edit credentials short-lived and signs out after each apply. Refer to "Credentials" and [decision 5](#decisions-of-the-owner).
 - **Secrets in the state.** Terraform writes sensitive values into the state in plain text. A Conftest policy keeps the resources with secrets out of local state. The state backend and the drift check are new places that hold secrets.
 - **Generated code.** Import tools write code from the live account. The author removes the secrets before the commit, because the repository is public.
 - **No `terraform_remote_state` between root modules.** It needs read access to the full state of the other root module, with its secrets.
-- **A read token can read secrets.** The Cloudflare provider has the data source `cloudflare_zero_trust_tunnel_cloudflared_token`. This RFC did not verify which permission reads a tunnel token. Thus a read token can be a secret too. Q5 handles this.
+- **A read token can read secrets.** The Cloudflare provider has the data source `cloudflare_zero_trust_tunnel_cloudflared_token`. This RFC did not verify which permission reads a tunnel token. Thus a read token can be a secret too. For now, the agents get no token ([decision 5](#decisions-of-the-owner)).
 - **The rename and production.** The Git directory generators can delete all the Applications of `olympus` and their data. The plan turns off the finalizers and the automated sync first, sets each PV to `Retain`, backs up the data, and checks the UIDs. Agents can re-create the old name with the token of the owner. No agent session runs during the change.
 - **Budgets do not stop a charge.** They alert with a delay. A leaked credential can create costs before the alert. Scoped tokens and the free plans with a spending limit reduce this risk.
 - **The repository is public.** Account IDs, zone IDs and budget amounts become public. They are not secrets, but they help an attacker to target the accounts. Tokens, tunnel secrets and state never go into Git.
@@ -372,7 +416,7 @@ In text: the owner rehearses the rename on `kind-local`, records `olympus`, back
    3. `accounts/aws/`, `accounts/gcp/`, `accounts/azure/`: the budget first (G2), then the other resources that hold no secret. IAM access keys and service account keys wait for step 4.5.
    4. `accounts/grafana-cloud/`: the stack and the access policies. The access policy tokens wait for step 4.5.
    5. After the tooling RFC selects a backend: move each state with `terraform init -migrate-state`, and end the exception for accounts. Then import the resources with secrets: the tunnels, the Access applications, the Worker and the tokens.
-   6. Add the drift check (Q7).
+   6. Add the drift check, a weekly mise task ([decision 7](#decisions-of-the-owner)).
 5. Rewrite `docs/how-to/configure-cloudflare.md` for the code. Record the manual items, for example the registration of the domain.
 
 To go back on the accounts: the account root modules are new code. `terraform state rm`, or a `removed` block with `lifecycle { destroy = false }`, takes a resource out of Terraform without a destroy. A `removed` block without it destroys the resource ([HashiCorp: removed block](https://developer.hashicorp.com/terraform/language/block/removed)).
@@ -421,7 +465,15 @@ To go back on the accounts: the account root modules are new code. `terraform st
 - **Other names.** `platform` fits a later internal developer platform, but it is a new word. `gsuquet.com` without a middle word gives the shortest keys, but other projects of the owner can use the same domain. RFC 0004 compares them for the prefix.
 - **Manage the accounts by hand, with documentation.** No import work. But no review and no history of the changes, and no drift detection.
 - **Click-ops for the budgets.** Fast. But a budget that is not code can go away without a review.
-- The layout options are in Q2, the backend options in Q4.
+- The layout alternatives (decision 2). Extend `instances/` with a `purpose` or a `kind` for accounts: one folder for all root modules, but RFC 0003 makes an instance a cluster, and `instance.schema.json` requires the `cluster` and `bootstrap` layers. One root module `accounts/` for all the providers: one state, but a failure affects all accounts, and each apply needs all the credentials. One root module for each product, for example `accounts/cloudflare-dns/`: small states, but many folders.
+- The `olympus` tunnel (decision 3). Wait until `instances/olympus/` exists: no move later, but no review of the tunnel until then. Keep all tunnels in `accounts/cloudflare/` always: simple, but an exception to the lifecycle rule.
+- The backend alternatives (decision 4). Google Cloud Storage: native locking and versioning, but the always-free 5 GB is only in US regions and needs a billing account, and an ended Free Trial deletes the bucket. Azure Blob Storage: lease lock and encryption at rest, but its free credit ends, and it is not in the enum. Amazon S3: the reference for the `s3` backend, but the Free account plan ends after six months, then AWS closes the account. Local state with an encrypted backup: no new service, but it fails S2 and S4.
+- The tokens of the agents (decision 5). A read token for the agents: faster loops, but a read token can read secrets, and the agents share the machine of the owner. A `plan` in CI with a read token: the agents see the plan, but the state and a token go to GitHub runners. The agent identity RFC can select one of them later.
+- The GitOps group (decision 6). `platform`: no near word, and cheap now, because only `kind-local` uses the group. But it needs an ADR that supersedes RFC 0003 decision 3. `system`, as in the legacy tree: near to `kube-system`.
+- The drift check (decision 7). A scheduled GitHub Actions workflow: no manual step, but it needs the remote state and a token on GitHub runners. HCP Terraform drift detection: only if the tooling RFC selects HCP Terraform, and not verified on the Free plan.
+- The tag form (decision 8). The Kubernetes key where the provider permits it, for example on Grafana stacks: a shorter path from Kubernetes, but two forms. No tags on Cloudflare and Grafana Cloud: no work, but no query across the providers.
+- The order of the ADRs (decision 9). Wait for this RFC, then derive the RFC 0003 ADRs with `accounts/`: one ADR less, but an ADR must come from its own RFC.
+- The plans (decision 10). Only free plans: no charge for most uses, but they end, and AWS and GCP delete the resources. Only paid plans: the resources stay, but a charge is possible above the free limits.
 
 ## Prior art
 
@@ -431,101 +483,7 @@ The author did not read these sources. The `cf-terraforming` repository is on a 
 
 ## Unresolved questions
 
-### Q1: The Cloudflare "apps"
-
-The owner named "apps" in the Cloudflare account. The word has more than one meaning:
-
-- **A.** Zero Trust Access applications (`cloudflare_zero_trust_access_application`).
-- **B.** Pages projects (`cloudflare_pages_project`).
-- **C.** Workers other than the known Worker (`cloudflare_workers_script`).
-- **D.** Something else, for example an app from the old Cloudflare Apps marketplace.
-
-Recommendation: the owner names the items in the dashboard before the import. The author does not guess. A is the most likely, because the account has tunnels.
-
-### Q2: The layout for provider accounts
-
-- **A.** `accounts/<account>/`, a new top-level folder with one root module for each account. It is parallel to `instances/`, it uses the RFC 0003 file names, and it has one state for each account.
-- **B.** Extend `instances/` with a `purpose` or a `kind` for accounts. One folder for all root modules. But RFC 0003 makes an instance a cluster with `gitops/clusters/<name>/`, and `instance.schema.json` requires the `cluster` and `bootstrap` layers.
-- **C.** One root module `accounts/` for all the providers. One state and one apply. But a failure affects all accounts, and each apply needs all the credentials.
-- **D.** One root module for each product, for example `accounts/cloudflare-dns/` and `accounts/cloudflare-tunnels/`. Small states. But many folders for a small account, and the lifecycle rule already splits the resources.
-
-Recommendation: A. It follows the HashiCorp rule of one state for each environment, and the RFC 0003 pattern of one folder for each root module.
-
-### Q3: The owner of the `olympus` tunnel
-
-The lifecycle rule puts a tunnel for one cluster into its instance. `olympus` has no instance root module now.
-
-- **A.** Put the tunnel and its DNS records into `accounts/cloudflare/` after the remote backend exists. Move them to `instances/olympus/` after the migration. First import them into `instances/olympus/`. Then add a `removed` block with `lifecycle { destroy = false }` in `accounts/cloudflare/`. A `removed` block without `destroy = false` deletes the tunnel.
-- **B.** Wait. Import the tunnel only when `instances/olympus/` exists.
-- **C.** Keep all tunnels in `accounts/cloudflare/` always, as an exception to the lifecycle rule.
-
-Recommendation: A. The tunnel gets a review sooner, and the move later is a plan without a change in the account.
-
-### Q4: The state backend
-
-The tooling RFC decides. This RFC gives the options for that RFC.
-
-| Option | For | Against |
-| --- | --- | --- |
-| **A.** Cloudflare R2, through the `s3` backend | Already in the `state.backend` enum. A free tier that does not end. The Cloudflare account exists. | HashiCorp supports S3-compatible services as "best effort". The author did not verify that `use_lockfile` works on R2. Encryption at rest on R2 is not verified here. The Cloudflare state then sits in Cloudflare. |
-| **B.** HCP Terraform Free | Already in the enum. Encryption at rest, locking and versions. Remote runs. | Up to 500 managed resources, one run at a time. The page does not list the state storage in the Free features in so many words. A new vendor and a new credential. |
-| **C.** Google Cloud Storage | Native locking, versioning and keys, documented by HashiCorp. | The always-free 5 GB is only in US regions, and it needs a billing account. A Free Trial that ends deletes the bucket (S5). |
-| **D.** Azure Blob Storage | Lease lock and encryption at rest. | The free account has a credit that ends. Not in the enum. Free limits not verified. |
-| **E.** Amazon S3 | The reference for the `s3` backend. | The Free account plan ends after six months, then AWS closes the account. Free limits of S3 not verified. |
-| **F.** Local, with an encrypted backup | No new service. | Fails S2 and S4. Not permitted for production instances now. |
-
-Recommendation for the tooling RFC: A, if a test shows that locking works on R2. Else B. Both are in the enum, and both meet S5. Until then, the exception for accounts in "Terraform state" applies.
-
-### Q5: The tokens of the agents
-
-- **A.** The agents get no provider token. They write the code and the import blocks. The owner runs `plan` and `apply`, and posts the plan in the PR.
-- **B.** The agents get a read token for `plan`. Faster loops. But a read token can read secrets, for example a tunnel token. Also, the agents share the machine of the owner.
-- **C.** CI runs `plan` with a read token in GitHub Actions secrets. The agents see the plan in the PR. But the state and a token then go to GitHub runners.
-
-Recommendation: A until the agent identity RFC. Then B or C, with a read token that has no secret permission.
-
-### Q6: The GitOps group `infrastructure`
-
-RFC 0003 (decision 3) keeps `gitops/infrastructure/` and the AppProject `infrastructure`. The repository becomes `infra`. The two words are near, and a path reads `infra/gitops/infrastructure/`.
-
-- **A.** Keep `infrastructure`. No work. The words have different roles: `infra` is a name, `infrastructure` is a group of components.
-- **B.** Rename to `platform`. No near-collision. Only `kind-local` uses the group now, thus the change is cheap now and expensive later. It needs an ADR that supersedes the decision 3 ADR of RFC 0003.
-- **C.** Rename to `system`, as in the legacy `kubernetes/system/`. But it is near to `kube-system`.
-
-Recommendation: A. The owner selected `infrastructure` on 2026-11-01, the AppProjects use it, and the two words do not mean the same scope. If the owner wants no near word, B is the cheapest time to change.
-
-### Q7: The place of the drift check
-
-- **A.** A mise task, for example `accounts:drift`, that the owner runs each week on their machine.
-- **B.** A scheduled GitHub Actions workflow with a read token and the remote state.
-- **C.** HCP Terraform drift detection, if the tooling RFC selects HCP Terraform. The author did not verify this feature on the Free plan.
-
-Recommendation: A first. B after the remote backend, the secrets RFC and the agent identity RFC.
-
-### Q8: The tag form on Cloudflare and Grafana Cloud
-
-- **A.** The cloud key of RFC 0004 on both, for example `instance_infra_gsuquet_com_name`. One form on all the providers.
-- **B.** The Kubernetes key where the provider permits it. Grafana stack labels permit `/` and `.`, thus `instance.infra.gsuquet.com/name` fits. Shorter path from Kubernetes, but two forms.
-- **C.** No tags on Cloudflare and Grafana Cloud. The code and the folder already tell the owner. Grafana permits only 10 labels.
-
-Recommendation: A. One rule and one check, as RFC 0004 recommends for its clouds.
-
-### Q9: The order of the ADRs with RFC 0003
-
-RFC 0003 is ready to merge, and it does not have `accounts/`. ADR 0005 has no partial supersede.
-
-- **A.** The ADRs of RFC 0003 use "the root of the repository", not `homelab/`. The ADR from this RFC adds `accounts/` as a new top-level group, in a separate decision. If the RFC 0003 structure ADR lists a closed set of folders, the ADR from this RFC restates it with `accounts/` and supersedes it completely.
-- **B.** Wait for this RFC, then derive the RFC 0003 ADRs with `accounts/`. But an ADR must come from its own RFC, and RFC 0003 does not have `accounts/`.
-
-Recommendation: A. It follows ADR 0005, and RFC 0003 stays closed.
-
-### Q10: The plan of each account
-
-- **A.** The free plans: the AWS Free account plan, the GCP Free Trial, the Azure free account with its spending limit. They stop most charges, but not all: Azure says that "a spending limit doesn't prevent all charges". They also end. AWS closes the account and deletes it after 90 days. GCP deletes the resources of an ended trial after 30 days. Joining AWS Organizations upgrades the AWS Free plan to the Paid plan.
-- **B.** Paid plans with budgets from the first commit. The always-free limits stay, and the resources stay. But a charge is possible above the limits.
-- **C.** A mix: A for experiments, B for long-lived items.
-
-Recommendation: C. Nothing long-lived goes on a plan that ends (G4). The owner selects the plan for each account.
+None. The owner answered all the questions of this RFC in chat on 2026-11-02. Refer to [Decisions of the owner](#decisions-of-the-owner).
 
 ### Dependencies on other RFCs
 
@@ -543,7 +501,7 @@ Recommendation: C. Nothing long-lived goes on a plan that ends (G4). The owner s
 | RFC 0001 (accepted) | The same sentence | None. An accepted RFC does not change (ADR 0005). |
 | RFC template | "the security of the homelab, the repository and the supply chain" | Optional. The ADR from this RFC can change it to "the infrastructure". |
 | RFC 0002 (review) | `config.yml` link to `gsuquet/homelab/security/advisories/new`, the script `gh api repos/gsuquet/homelab/rulesets`, "the homelab" for this repository | The ADRs of RFC 0002 say "this repository". The implementation PRs use `gsuquet/infra`. No change to the RFC. |
-| RFC 0003 (review) | `homelab/` as the root of the tree, "homelab issue forms", PR links | Refer to Q9. No change to the RFC. The PR links redirect. |
+| RFC 0003 (review) | `homelab/` as the root of the tree, "homelab issue forms", PR links | Refer to [decision 9](#decisions-of-the-owner). No change to the RFC. The PR links redirect. |
 | RFC 0004 (review) | The rejected prefix `homelab.gsuquet.com` | RFC 0004 links to this RFC for the decision. |
 | `schemas/` (`apiVersion`) | None. It is already `infra.gsuquet.com`. | None. |
 
