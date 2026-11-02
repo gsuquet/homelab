@@ -15,7 +15,7 @@ flowchart LR
     I -->|keep the docs true| D
 ```
 
-1. **Spike (optional).** A spike is a throwaway experiment on `kind-local`. It answers one open question. It uses a `spike/<topic>` branch, and the branch never merges. The findings go in a comment on the issue.
+1. **Spike (optional).** A spike is a throwaway experiment on `kind-local`. It answers one open question. It uses a `spike/<topic>` branch, and the branch never merges. The findings go in a comment on the issue. Then I delete the branch, because agents do not delete remote branches. A spike stays on `kind-local`, so that it cannot change the homelab or a cloud account.
 2. **Docs first.** For a new subject, an agent writes the docs of the thing to build before the code. The docs use the [Diátaxis](https://diataxis.fr/) sections:
    - An explanation page holds the design, the decisions and their reasons, with the alternatives.
    - A reference page holds the exact specifications, checks and names.
@@ -66,7 +66,7 @@ The cost is more PRs to review. I accept it, because a mixed PR is harder to rev
 
 A different agent reviews each PR. The agent that wrote a change does not review it. A new reviewing agent does not trust an earlier review.
 
-One review round is the default. A second round occurs only after a HIGH finding. A NIT never blocks a PR. Before, the review loop continued until a review found no open finding. That loop cost much time and many tokens, and many rounds found only small points. One round finds the important problems. The second round makes sure that each HIGH finding is correct.
+One review round is the default. A second round occurs only after a HIGH finding. A FIX finding gets a fix or a reason, with no new round. A NIT never blocks a PR. Before, the review loop continued until a review found no open finding. That loop cost much time and many tokens, and many rounds found only small points. One round finds the important problems. The second round makes sure that the fix of each HIGH finding is correct.
 
 When the implementing agent and the reviewer do not agree, I decide. Thus the review always ends.
 
@@ -74,7 +74,7 @@ I merge each PR. The only exception is a small set of Renovate PRs.
 
 ## Commits and the merge
 
-Each commit has a signature that GitHub can verify. Until the agents have their own identity, Git signs the agent commits with my GPG key. A signature thus proves that a process on my machine made the commit. It does not tell my commits from the commits of an agent. I accept this gap until a later design gives the agents their own identity.
+Each commit has a signature that GitHub can verify. Until the agents have their own identity, Git signs the agent commits with my GPG key. A signature thus proves that a process on my machine made the commit. It does not tell my commits from the commits of an agent. Also, a commit that a stolen key signed stays verified after I remove the key. I accept this gap until a later design gives the agents their own identity.
 
 I did not select these alternatives:
 
@@ -94,8 +94,8 @@ Separate credentials for the agents come later, when the agents run as a separat
 
 Known gaps:
 
-- My `gh` token has the `repo` scope, and I am an administrator. An agent with this token can change a ruleset, turn on auto-merge or merge a PR. The rulesets stop a mistake, not an agent that ignores the rules.
-- The deletion ruleset lets administrators bypass it, so an agent can delete a branch. The `pre-push` script and the guard hook of [gsuquet/dotfiles#9](https://github.com/gsuquet/dotfiles/pull/9) make the risk smaller. An agent identity closes the gap.
+- My `gh` token has the `repo` scope, and I am an administrator. An agent with this token can change or turn off a ruleset, permit rebase merges, turn on auto-merge or merge a PR. The rulesets stop a mistake, not an agent that ignores the rules.
+- The deletion ruleset lets administrators bypass it, so an agent can delete a branch, and delete and create it again. The `pre-push` script and the guard hook of [gsuquet/dotfiles#9](https://github.com/gsuquet/dotfiles/pull/9) make the risk smaller. An agent identity closes the gap.
 - `git push --no-verify` skips the Git hooks.
 
 ## Renovate automerge

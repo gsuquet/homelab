@@ -26,7 +26,7 @@ The full rules are in [How we work (reference)](docs/reference/how-we-work.md). 
 2. Create a branch from `main`, with the format `<prefix>/<issue number>-<short-title>`, for example `feat/42-sops-age-key`.
 3. Make the change. A PR closes one issue and has one subject.
 4. Run `mise run lint`. Correct each problem that it shows.
-5. Commit with a signed [Conventional Commits](https://www.conventionalcommits.org/) message, for example `fix(cilium): set the API server port`.
+5. Make a signed commit with a [Conventional Commits](https://www.conventionalcommits.org/) message, for example `fix(cilium): set the API server port`.
 6. Open a draft pull request (PR) with `Closes #N` in its description. Fill in the PR template.
 
 ## Checks

@@ -6,7 +6,7 @@ This page lists the rules for the work items, the PRs, the review, the commits a
 
 | Step | Branch | Content | Merges |
 | --- | --- | --- | --- |
-| Spike (optional) | `spike/<topic>` | A throwaway experiment on `kind-local` that answers one open question. The findings go in a comment on the issue. | Never |
+| Spike (optional) | `spike/<topic>` | A throwaway experiment on `kind-local` that answers one open question. The findings go in a comment on the issue. After the findings, the branch is deleted by hand, because agents do not delete remote branches. | Never |
 | Docs | `docs/<issue>-<short-title>` | The explanation, reference and how-to pages of the thing to build. | Yes. The merge approves the design. |
 | Implement | The prefix of the change, for example `feat/` | The interface specification, the tests and the code. For example a JSON schema in `schemas/`, a `values.schema.json`, the Conftest test data, or an OpenAPI document. | Yes |
 
@@ -41,7 +41,7 @@ The GitHub Project "Perso" (`gh project ... 2 --owner gsuquet`) is the board of 
 | Agent | Text | The agent that works on the item. |
 | Start date, End date | Dates | The roadmap view. |
 
-The diagram shows the states of an item. In text: an item starts in `Backlog`. It goes to `Ready` when it has a milestone. It goes to `In progress` when an agent takes it, and to `Agent review` when its draft PR is open. A HIGH finding sends it back to `In progress`. After the review, it goes to `Final review`. A disagreement also sends it to `Final review`, with `state/needs-decision`. After a decision or a change request, it goes back to `In progress`. The merge or the closure moves it to `Done`.
+The diagram shows the states of an item. In text: an item starts in `Backlog`. It goes to `Ready` after the refinement, when it has a milestone and an acceptance check. It goes to `In progress` when an agent takes it, and to `Agent review` when its draft PR is open. A HIGH finding sends it back to `In progress`. After the review, it goes to `Final review`. A disagreement also sends it to `Final review`, with `state/needs-decision`. After a decision or a change request, it goes back to `In progress`. The merge or the closure moves it to `Done`.
 
 ```mermaid
 stateDiagram-v2
@@ -49,7 +49,7 @@ stateDiagram-v2
     state "Agent review" as AgentReview
     state "Final review" as FinalReview
     [*] --> Backlog
-    Backlog --> Ready: in a milestone
+    Backlog --> Ready: refined, in a milestone, with a check
     Ready --> InProgress: an agent takes it
     InProgress --> AgentReview: draft PR open
     AgentReview --> InProgress: HIGH finding to fix
@@ -74,11 +74,11 @@ Views:
 
 Automation:
 
-- The project uses the built-in workflows only. Auto-add adds the new items. New items get `Backlog`. Closed and merged items get `Done`. Auto-archive removes `Done` items after 14 days.
+- The project uses the built-in workflows only. Auto-add adds the new items, also for the people without write access to the project. Auto-add does not add the items that exist before it starts. New items get `Backlog`. Closed and merged items get `Done`. Auto-archive removes `Done` items after 14 days.
 - The built-in workflows cannot set `Agent review` or `Final review`. The agents move their items with `gh project item-edit`.
 - Projects has no OR filter across fields. Thus an agent that adds `state/needs-decision` to an item also sets its Status to `Final review`.
 - The `kind/` labels do the work of issue types, because issue types are an organization feature.
-- The agents need a classic token with the `project` scope. A fine-grained token cannot access a user project.
+- The agents need a classic token with the `project` scope. A fine-grained token cannot access a project of a personal account.
 
 ## Atomic PRs
 
@@ -154,7 +154,7 @@ The PR template has these lines:
 
 | Role | Can do | Must not do |
 | --- | --- | --- |
-| `gsuquet` (me) | Merge PRs. Change settings and rulesets. Apply cloud accounts. Close milestones. | |
+| `gsuquet` (the account of the repository) | Merge PRs. Change settings and rulesets. Apply cloud accounts. Close milestones. | |
 | Orchestrator (an agent) | Split a milestone into issues. Give an issue to an implementing agent. Start a reviewing agent. Move items on the board. | Merge. Change settings or rulesets. Review a PR that it implemented. |
 | Implementing agent | Push a branch. Open a draft PR. Edit the description of its PR. Fix review findings. Mark its PR ready after the review. | Merge. Push to `main`. Push tags. Force-push. Delete a remote branch or tag. Change settings or rulesets. Review its own work. |
 | Reviewing agent | Read the PR, run the checks, write findings. | Change the branch. Merge. |
@@ -167,10 +167,17 @@ The PR template has these lines:
 
 - A reviewer is a person or an agent that is not the author of the change.
 - The orchestrator starts a new reviewing agent for each round. The agent gets a brief: the PR, the issue, the linked docs, and the findings of the earlier round with their answers. It does not get the conversation of the implementing agent.
-- The reviewer gives each finding a category and a severity. The categories, in order: security, correctness, performance, readability, style. The implementing agent fixes each HIGH finding before the merge. A NIT never blocks the PR.
-- One review round is the default. A second round occurs only after a HIGH finding. It checks the fix of each HIGH finding.
-- The implementing agent answers each finding that is not a NIT with a change or with a reason in the PR.
-- When the reviewer and the implementing agent do not agree on a HIGH finding, the implementing agent adds `state/needs-decision` and sets the Status to `Final review`. The decision closes the finding. The agent applies it and removes `state/needs-decision`.
+- The reviewer gives each finding a category and a severity. The categories, in order: security, correctness, performance, readability, style.
+- The severities:
+
+  | Severity | Before the merge | New round |
+  | --- | --- | --- |
+  | HIGH | The implementing agent fixes it. | Yes. A second round checks the fix of each HIGH finding. |
+  | FIX | The implementing agent fixes it, or answers it with a reason in the PR. | No |
+  | NIT | Nothing. It never blocks the PR, and it needs no answer. | No |
+
+- One review round is the default. A second round occurs only after a HIGH finding. A new HIGH finding in the second round sends the PR to `Final review` with `state/needs-decision`. It does not start a third round.
+- When the reviewer and the implementing agent do not agree on a HIGH or a FIX finding, the implementing agent adds `state/needs-decision` and sets the Status to `Final review`. The decision closes the finding. The agent applies it and removes `state/needs-decision`.
 - The PR stays a draft during the review. "Ready for review" means "ready for the final review and the merge".
 - Comments on the ready PR get an answer: a change or a reason. A PR does not merge while a comment has no answer.
 - The PR description names the implementing agent and each reviewing agent.
@@ -186,14 +193,15 @@ The PR template has these lines:
 
 ## Push and merge limits of the agents
 
-- Push a branch, never `main`. Each PR goes into `main` only through a manual merge.
+- Push only branch refs, and only to remotes under `github.com/gsuquet/`. Never push to `main` or to another default branch. Each PR goes into `main` only through a manual merge.
+- Open a PR only when the base repository is under `github.com/gsuquet/`.
 - Never push a tag.
 - Never force-push, in any form: `--force`, `-f`, `--force-with-lease` or a `+` reference.
-- Never delete a remote branch or tag.
-- Never merge a PR, also not with auto-merge.
-- Never change the settings, the rulesets or the projects of a repository, unless the request names one specific change.
-- Open a PR only when the base repository is under `github.com/gsuquet/`.
+- Never delete a remote branch or tag (`--delete`, `:branch`). Never use `--mirror` or `--all`.
+- Never merge a PR (`gh pr merge`), also not with auto-merge (`--auto`).
+- Never change the settings, the rulesets or the projects of a repository, unless the request names one specific change. To add an item to the board and to move items on it is permitted.
 - Never use `--no-verify`.
+- When a hook, a ruleset, a guard or a check refuses an action, stop and report it. Do not find another way to do the action, for example `--no-verify`, the API, a deletion and a new creation, or a `gh api` write to the refs.
 
 ## Controls
 
@@ -208,14 +216,14 @@ Agent hooks, for example the hooks of Claude Code, are a convenience. They are n
 
 ### Rulesets and settings
 
-These changes are manual. Agents do not change settings or rulesets.
+This is the target state. Today, the ruleset `main` has no required status check (#201). These changes are manual. Agents do not change settings or rulesets.
 
 - Ruleset `main`:
   - "Require status checks to pass" with the check `Run every linter and check` and the PR title check.
   - The source of each required check is the GitHub Actions app (`integration_id`). Without a source, a token with `repo` access can set a commit status with the same name.
   - The PR rule permits only the squash merge.
   - Its own deletion rule, with an empty bypass list.
-  - No "Require review from Code Owners". The repository has no `.github/CODEOWNERS` file.
+  - Remove "Require review from Code Owners" after #196 removes `.github/CODEOWNERS`.
 - A branch ruleset for `~ALL`, with no exclusion and an empty bypass list: "Require signed commits" only.
 - A branch ruleset for `~ALL`, with no exclusion, and the Renovate App (`renovate-gsuquet[bot]`) as the only bypass actor: "Block force pushes" only. Renovate force-pushes its branches when it rebases them.
 - A branch ruleset for `~ALL`, with no exclusion, and the administrator role and the Renovate App as bypass actors: "Restrict deletions" only. Renovate deletes the branches of closed PRs. "Automatically delete head branches" stays on.
@@ -235,7 +243,7 @@ These changes are manual. Agents do not change settings or rulesets.
 
 ## Renovate automerge
 
-Renovate merges a PR without a manual merge only in these cases, and only after the required status checks of `main` exist:
+Renovate merges a PR without a manual merge only in these cases, and only after the required status checks of `main` exist (#201):
 
 - A dev tool PR, when all these conditions apply:
   - The files are `.mise/config.toml`, `.pre-commit-config.yaml` or `.github/workflows/**`.
@@ -259,7 +267,7 @@ Until the checks of [Open work](#open-work) exist, the reviewer of each change o
 - `gsuquet/.github` also holds the reusable workflows. `gsuquet/workflows` goes away.
 - A caller uses `gsuquet/.github/.github/workflows/<file>.yml@<sha>`, with a commit SHA. `gsuquet/.github` keeps release tags, so that the semver comments and the SHA pins of the callers still resolve.
 - Archive `gsuquet/workflows` only after all the callers move.
-- This plan does not depend on workflow templates. The GitHub docs do not tell if a personal account gets them.
+- Nothing depends on workflow templates. The GitHub docs do not tell if a personal account gets them.
 
 ## Public text and sources
 
