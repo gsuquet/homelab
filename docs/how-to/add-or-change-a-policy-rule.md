@@ -7,7 +7,7 @@ Add or change a rule when one of these occurs:
 - a review finds a file problem that a check can find each time;
 - a rule refuses a file that the repository permits, or permits a file that it refuses.
 
-For a label or annotation check, change `policy/data/labels.yaml` first. Refer to [Label a GitOps component](label-a-gitops-component.md).
+For a K check of the labels and annotations, change `policy/data/labels.yaml` first. Refer to [Labels and annotations](../reference/labels-and-annotations.md#checks). To give a component the labels that a check asks for, refer to [Label a GitOps component](label-a-gitops-component.md).
 
 ## Before you start
 
@@ -18,7 +18,7 @@ For a label or annotation check, change `policy/data/labels.yaml` first. Refer t
 
 1. Open `policy/<namespace>/<namespace>.rego`.
 2. Add or change the rule. Use `deny` for an error, or `warn` for a warning.
-3. Start the message with the path of the file, as the other rules do.
+3. In a namespace that uses `--combine`, start the message with the file path.
 4. Open `policy/<namespace>/<namespace>_test.rego`.
 5. Add a test for each case that the rule permits.
 6. Add a test for each case that the rule refuses.
@@ -42,7 +42,7 @@ For a label or annotation check, change `policy/data/labels.yaml` first. Refer t
 1. Create `policy/<namespace>/<namespace>.rego` with `package <namespace>`.
 2. Create `policy/<namespace>/<namespace>_test.rego` with `package <namespace>_test`.
 3. In `.mise/tasks/lint/policy.sh`, add a `conftest_files <namespace> ... -- <pathspec>` line.
-4. In `.pre-commit-config.yaml`, add the input files to the `files` pattern of the `lint-policy` hook.
+4. If the `files` pattern of the `lint-policy` hook in `.pre-commit-config.yaml` does not match the input files, add them.
 5. Run `mise run lint:policy`.
 6. Add a section for the namespace to [Policies](../reference/policies.md).
 

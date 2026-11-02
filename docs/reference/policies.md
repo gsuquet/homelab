@@ -53,7 +53,7 @@ All the rules in this section are `deny`. A rendered file is a file with `/manif
 
 | Input | Rule |
 | --- | --- |
-| Each container and init container of a `Pod`, `Deployment`, `StatefulSet`, `DaemonSet`, `Job`, `ReplicaSet` or `CronJob` | The image has an explicit tag, and the tag is not `latest`. |
+| Each container and init container of a `Pod`, `Deployment`, `StatefulSet`, `DaemonSet`, `Job`, `ReplicaSet` or `CronJob`, in a file with one document only | The image has an explicit tag, and the tag is not `latest`. |
 | The same images, in a file that is not rendered | The image ends with a `sha256` digest: `@sha256:<64 hex digits>`. |
 | Each `Application` in `gitops/` | `spec.source.targetRevision` is `main`. |
 | Each `Application` in `gitops/` | `spec.syncPolicy.syncOptions` has no `CreateNamespace=true`. |

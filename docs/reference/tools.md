@@ -31,7 +31,7 @@ The `mise` policy makes sure that each version is exact and that the lock file s
 | `typos` | 1.51.1 | Spell checker for source code. | No task. The `typos` pre-commit hook uses its hook repository at `v1.51.1`. |
 | `uv` | 0.13.3 | Python package installer. mise uses it to install the `pipx:` tools ([mise: pypi backend](https://mise.jdx.dev/dev-tools/backends/pypi.html)). | `pipx:check-jsonschema` |
 | `vale` | 3.25.1 | Prose linter. It checks the Markdown files against the styles in `.vale/styles/`. | `lint:docs` |
-| `yq` | 4.54.1 | YAML processor. | `manifests:render`, `schemas:check`, `schemas:test`, `labels:sync` |
+| `yq` | 4.54.1 | YAML processor. | The instance tasks, `manifests:render` and `manifests:check` through it, `schemas:check`, `schemas:test`, `labels:sync` |
 | `zizmor` | 1.31.1 | Security linter for GitHub Actions workflows. | `lint:actions` |
 
 ## Tools in CI

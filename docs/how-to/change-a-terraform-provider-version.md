@@ -2,10 +2,7 @@
 
 This guide shows how to change the version of a Terraform provider and update the lock files.
 
-Change a provider version when one of these occurs:
-
-- a module needs a feature or a fix of a newer provider;
-- a provider version has a problem, and an older version does not have it.
+Change a provider version by hand when Renovate did not propose the version that you need. For example, a module needs a fix of a newer provider, or a provider version has a problem. Refer to [Automated updates](../explanation/automated-updates.md).
 
 ## Before you start
 
@@ -41,3 +38,4 @@ The `terraform` policy refuses a version range or a provider without a `source`.
 
 - [Mise tasks](../reference/mise-tasks.md#tflock): the `tf:lock` task and its platforms.
 - [Policies](../reference/policies.md#terraform): the rules of `required_providers`.
+- [Automated updates](../explanation/automated-updates.md)

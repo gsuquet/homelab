@@ -66,7 +66,7 @@ The `generate-docs` pre-commit hook runs the task on a commit that changes a fil
 
 ### `doc:check`
 
-The task runs `doc:generate`. Then it fails if `git diff` shows a change in `docs/reference/terraform-modules` or `modules`. It prints the changed files.
+The task runs `doc:generate`. Then it fails if `git diff` shows a change to a tracked file in `docs/reference/terraform-modules` or `modules`. A new file that Git does not track does not fail the check. It prints the changed files.
 
 | Status | Condition |
 | --- | --- |
@@ -123,8 +123,7 @@ The `Lint` workflow runs `mise run lint` on each pull request and on each push t
 
 ### `lint:actions`
 
-1. Run `actionlint`.
-2. Run `zizmor --offline --no-progress .github/workflows`.
+The task runs `actionlint`, then `zizmor --offline --no-progress .github/workflows`.
 
 The `lint-actions` pre-commit hook runs the task on a change in `.github/workflows/`.
 
@@ -164,15 +163,13 @@ The task puts a fake `git` first in `PATH`. The fake `git` exits with `1`, `0`, 
 
 ### `lint:shell`
 
-1. Run `shellcheck` on each `.sh` file that Git tracks. `.shellcheckrc` holds the settings.
-2. Run `shfmt -d` on the same files. shfmt reads its style from `.editorconfig`.
+The task runs `shellcheck` on each `.sh` file that Git tracks, then `shfmt -d` on the same files. `.shellcheckrc` holds the ShellCheck settings. shfmt reads its style from `.editorconfig`.
 
 The `lint-shell` pre-commit hook runs the task on a change to a shell script.
 
 ### `lint:terraform`
 
-1. Run `terraform fmt -check -recursive -diff`.
-2. For each folder that has a `.tf` file that Git tracks, run `tflint --chdir=<folder> --config=.tflint.hcl --format compact`.
+The task runs `terraform fmt -check -recursive -diff`. Then, for each folder that has a `.tf` file that Git tracks, it runs `tflint --chdir=<folder> --config=.tflint.hcl --format compact`.
 
 `.tflint.hcl` enables the bundled `terraform` ruleset with the `all` preset, and sets `call_module_type = "local"`. The task runs TFLint in all the folders, then fails if one of them has an issue.
 
@@ -206,14 +203,14 @@ First, `helm repo update`. A failure prints a warning, and the task continues.
 | Status | Condition |
 | --- | --- |
 | `0` | No error, or no chart at all. With no chart, the task prints a warning. |
+| `1` | `helm is not installed. Please install helm first.` |
 | `1` and more | The number of charts that failed. A chart fails on a missing file or a failed `helm` command. It also fails on two resources with the same kind and name, or on a resource without a `# Source:` comment. |
 
 The `render-manifests` pre-commit hook runs the task on a change to `kubernetes/**/sources/*.yaml`, `gitops/**/sources/**`, `gitops/**/values/**` or `gitops/clusters/<cluster>/cluster.yaml`. The hook then stages `kubernetes/` and `gitops/**/rendered/**`.
 
 ### `manifests:check`
 
-1. Run `manifests:render`.
-2. Fail if `kubernetes/**/manifests/**` or `gitops/**/rendered/**` has a change or a new file that Git does not ignore. The task prints `git status --short` and `git diff` of these paths.
+The task runs `manifests:render`. It fails if `kubernetes/**/manifests/**` or `gitops/**/rendered/**` then has a change or a new file that Git does not ignore. It prints `git status --short` and `git diff` of these paths.
 
 | Status | Condition |
 | --- | --- |
@@ -270,5 +267,6 @@ The task skips the `.terraform/` folders and `modules/_template/`. It writes the
 - [Render manifests](../how-to/render-manifests.md)
 - [Sync the GitHub labels](../how-to/sync-the-github-labels.md)
 - [Change a Terraform provider version](../how-to/change-a-terraform-provider-version.md)
-- [Update the Terraform module docs](../how-to/update-the-terraform-module-docs.md)
+- [Add or change a policy rule](../how-to/add-or-change-a-policy-rule.md)
+- [Change a schema](../how-to/change-a-schema.md)
 - [Rendered manifests pattern](../explanation/rendered-manifests-pattern.md)

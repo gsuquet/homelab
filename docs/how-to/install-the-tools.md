@@ -10,19 +10,13 @@ Install the tools when one of these occurs:
 
 ## Before you start
 
-- You have mise. Refer to [mise: getting started](https://mise.jdx.dev/getting-started.html).
+- mise is activated in your shell. Refer to [mise: activate mise](https://mise.jdx.dev/getting-started.html#activate-mise).
 - You have Git.
 
 ## Install the tools
 
 1. Go to the root of the repository.
-2. Trust the mise configuration of the repository:
-
-   ```bash
-   mise trust
-   ```
-
-3. Install the pinned tools:
+2. Install the pinned tools:
 
    ```bash
    mise install
