@@ -2,7 +2,7 @@
 rfc: "0007"
 status: draft
 start-date: 2026-11-02
-pr: null
+pr: 179
 ---
 
 # RFC 0007: OpenChoreo platform
