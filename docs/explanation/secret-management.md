@@ -1,5 +1,7 @@
 # Explanation: Secret Management
 
+> **Legacy.** This page covers only Sealed Secrets in the legacy tree `kubernetes/` on `olympus`. For the new tree (SOPS and External Secrets), refer to [Secrets management](secrets-management.md) and [Secrets (reference)](../reference/secrets.md).
+
 This document explains why plain Kubernetes Secrets cannot be committed to Git, and how this project uses Sealed Secrets to solve that problem.
 
 ---

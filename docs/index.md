@@ -45,6 +45,12 @@ Task-oriented recipes that solve a specific problem. Assumes familiarity with th
 | [Resize the Colima VM](how-to/resize-the-colima-vm.md) | Fix a `TLS handshake timeout` during the apply of a Kind instance |
 | [Rename the Repository](how-to/rename-the-repository.md) | Rename `gsuquet/homelab` to `gsuquet/infra` without a loss on `olympus` |
 | [Import Provider Resources](how-to/import-provider-resources.md) | Bring the resources of a provider account under Terraform |
+| [Apply Secrets](how-to/apply-secrets.md) | Apply the seed secrets of a cluster with `mise run secrets:apply` |
+| [Add a Secret Consumer](how-to/add-a-secret-consumer.md) | Give a new component access to a secret |
+| [Roll Out OpenChoreo](how-to/roll-out-openchoreo.md) | Install the OpenChoreo planes on `kind-local`, and roll back |
+| [Generate the Vertex JWKS](how-to/generate-vertex-jwks.md) | Write and check the JWKS files of the Vertex AI federation |
+| [Roll Out kagent and agentgateway](how-to/roll-out-kagent-and-agentgateway.md) | Install kagent and agentgateway on `kind-local` |
+| [Roll Back kagent and agentgateway](how-to/roll-back-kagent-and-agentgateway.md) | Remove kagent and agentgateway, and the Vertex AI access |
 
 ---
 
@@ -63,6 +69,9 @@ Information-oriented documentation for looking up technical details.
 | [How We Work](reference/how-we-work.md) | The rules for issues, PRs, labels, the review, commits and the merge |
 | [Labels and Annotations](reference/labels-and-annotations.md) | The Kubernetes and cloud label keys, and their checks |
 | [Provider Accounts](reference/provider-accounts.md) | The scope rule, `accounts/`, state, credentials, budgets and naming |
+| [Secrets](reference/secrets.md) | The secret stores, consumers, checks SC0 to SC16 and the age keys |
+| [OpenChoreo Platform](reference/openchoreo-platform.md) | The OpenChoreo components, AppProject rules, admission policies and done criteria |
+| [kagent and agentgateway](reference/kagent-and-agentgateway.md) | The objects, NetworkPolicies, JWKS files, checks and done criteria |
 
 ---
 
@@ -82,6 +91,9 @@ Understanding-oriented documents that explain how the system works, and why. Eac
 | [Repository Structure](explanation/repository-structure.md) | Why the tree, the layouts and the naming rules have their form |
 | [Labels and Annotations](explanation/labels-and-annotations.md) | Why the key prefix, the sub-groups and the checks have their form |
 | [Repository Scope](explanation/repository-scope.md) | What belongs in the repository, the provider accounts and the name `infra` |
+| [Secrets Management](explanation/secrets-management.md) | The SOPS and External Secrets design, and why |
+| [OpenChoreo Platform](explanation/openchoreo-platform.md) | The planes, namespaces and tenant limits of OpenChoreo, and why |
+| [kagent and agentgateway](explanation/kagent-and-agentgateway.md) | The agent request path, the Vertex AI federation, cost and exposure |
 
 ---
 

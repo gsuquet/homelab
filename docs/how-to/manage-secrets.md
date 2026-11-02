@@ -1,5 +1,7 @@
 # How to Manage Secrets
 
+> **Legacy.** This page covers only Sealed Secrets in the legacy tree `kubernetes/` on `olympus`. For the new tree (SOPS and External Secrets), refer to [Apply the secrets](apply-secrets.md) and [Add a secret consumer](add-a-secret-consumer.md).
+
 Plain Kubernetes `Secret` objects must not be committed to Git because their `data` fields are only base64-encoded, not encrypted. This project uses [Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets) to encrypt secrets with a cluster-specific key so they can be safely stored in the repository.
 
 ---
