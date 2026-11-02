@@ -31,8 +31,7 @@ This guide shows how to upgrade Argo CD, or change its settings, on all the clus
 5. Examine the diff of `gitops/clusters/*/rendered/argocd/`. Look for removed resources, changed selectors and changed CRDs.
 6. Run `mise run lint`.
 7. Commit the change with the rendered files, and open a pull request.
-8. Optional: test the branch on `kind-local` before the merge. Refer to [Test a branch on Kind](test-a-branch-on-kind.md).
-9. Merge the pull request.
+8. Merge the pull request.
 
 The `argocd` Application syncs the new manifests within about 3 minutes, and Argo CD upgrades itself. To start the sync at once, refer to [Force a sync](force-a-sync.md).
 

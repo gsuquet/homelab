@@ -95,6 +95,5 @@ The same reason protects Argo CD itself. Argo CD does not prune its own CRDs, be
 - [Rendered manifests pattern](rendered-manifests-pattern.md): why the repository commits the output of Helm.
 - [Add a GitOps component](../how-to/add-gitops-component.md)
 - [Upgrade Argo CD](../how-to/upgrade-argo-cd.md)
-- [Test a branch on Kind](../how-to/test-a-branch-on-kind.md)
 - [Force a sync](../how-to/force-a-sync.md)
 - [Open the Argo CD UI](../how-to/open-argocd-ui.md)
