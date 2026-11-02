@@ -18,6 +18,8 @@ This RFC tells where each secret of the repository lives, how it gets to its con
 - **2026-10-30 (owner, in chat):** secrets use SOPS and ESO. The repository drops Sealed Secrets. The legacy tree `kubernetes/` on `olympus`, the production Raspberry Pi, keeps Sealed Secrets until the migration of the Pi.
 - **2026-11-02 (owner, in chat):** milestone M1 installs kagent and agentgateway on `kind-local`, with Google Gemini as the model provider. [RFC 0008](https://github.com/gsuquet/homelab/pull/181) puts the key in agentgateway, and the agent pods hold no key.
 - **2026-11-02 (owner, in chat):** a trusted list of platform controllers that read each Secret, with a check that refuses each other reader. The residual risk is accepted on `kind-local`. Upstream patches are follow-ups. The owner also added Argo CD and the cert-manager controller to the list ("Yes, add both").
+- **2026-11-02 (owner, in chat):** the OpenChoreo control plane readers (controller manager, API, cluster gateway) join the trusted list ("Yes, add them"), and their narrowing waits for RFC 0007.
+- **2026-11-02 (owner, in chat):** one store for each consumer.
 - **2026-11-02 (owner, in chat):** `kind-local` moves to a Kubernetes 1.37 node image, so that ESO 2.14 runs on a version that it lists.
 - **[RFC 0002](0002-how-we-work.md)** gives the four controls that enforce a rule: rulesets, Git hooks, CI checks and Conftest policies. Its review policy (ADR 0010 in PR #177) makes the owner the reviewer of a module and of CI.
 - **[RFC 0003](0003-repository-structure.md)** gives the tree, and says: "The secrets RFC tells where the values come from." It removes `CODEOWNERS` (ADR 0022 in PR #177). Thus this RFC uses no `CODEOWNERS` rule.
@@ -223,7 +225,7 @@ The rules:
 - **The instance root module never reads the SOPS file.** Thus an agent, a new clone, or a later agent sandbox without the age key runs `mise run instance:up kind-local` as before. That apply does not touch the seeds, because they are in a different state.
 - **The seed namespaces come before the seeds.** The `external-secrets` component creates them from its consumer list, with the `Role` and `RoleBinding` of each store. Thus Argo CD syncs the same objects with and without the seeds. Without the seeds, each `ExternalSecret` waits, and its consumer has no key.
 - **The preconditions of `secrets:apply`.** The cluster is up, its kubeconfig passes the checks above, and the seed namespace of each consumer in the seed map exists. Else the task stops with a clear message.
-- **After `instance:down` and `instance:up`.** The new cluster has no seeds, but the secrets state still lists them. The owner runs `secrets:apply`. The refresh finds no Secret, and the plan creates each seed again with `data_wo`. When an agent re-creates `kind-local`, the failing `ExternalSecret` objects are the signal, and the agent tells the owner.
+- **After `instance:down` and `instance:up`.** The new cluster has no seeds, but the secrets state still lists them. The owner runs `secrets:apply`. The refresh finds no Secret, and the plan creates each seed again with `data_wo`. When an agent re-creates `kind-local`, the signal is the `Ready` condition of each `ExternalSecret`, not the health of its Application, because RFC 0008 sets `ignore-healthcheck` on it. The agent tells the owner.
 - **Drift.** Terraform cannot see a change of a write-only value. Thus it does not detect a hand edit of a seed. `secrets:apply` replaces each seed on each run, so each run corrects a hand edit.
 
 ### Bootstrap
@@ -279,6 +281,8 @@ The design: one seed namespace and one `SecretStore` `secrets` for each consumer
 
 **Each seed has one data key, `value`.** A seed is a Secret named after its remote key, for example `gemini-api-key`, with the one data key `value`. Each `ExternalSecret` sets `remoteRef.property: value`. Without `property`, the `kubernetes` provider will "json encode all key/value pairs" ([ESO: Kubernetes provider](https://external-secrets.io/latest/provider/kubernetes/)), and the consumer gets JSON, not the key.
 
+**Each consumer entry comes with its component.** A PR adds a consumer to the consumer list only together with the component of that consumer. SC9 checks both directions, so `main` stays green.
+
 **Who renders what.** The `external-secrets` component renders only the objects in the seed namespaces: the seed `Namespace`, the `Role`, and the `RoleBinding` to `<consumer>/eso-seed-reader`. A binding to a ServiceAccount that does not exist yet is valid. It also renders the cluster-scoped `oc-*` stores and the admission policy. The component of each consumer renders its own ServiceAccount `eso-seed-reader` and its store `secrets`, from a shared template. Thus each store comes with the namespace of its consumer, and no component writes into a namespace that another component creates. SC9 checks that both sides agree. The ADR of this RFC amends K15 of RFC 0004: the `external-secrets` component may own `Namespace` objects that match `^secret-seeds-`. Their `tenant` label is `platform`, as K5 requires for an `infrastructure` component.
 
 The consumers now: `agentgateway-system` (the Gemini key) and `cert-manager` (the Cloudflare token, when an instance uses the DNS-01 solver). The OpenChoreo platform components, for example Backstage, ThunderID and the OAuth clients, are also consumers with a namespaced store each (RFC 0007). `kagent` is not a consumer in M1: it gets no store, because its controller can write in `kagent` (refer to "Requirements on kagent").
@@ -303,7 +307,7 @@ ESO copies Secrets, so it must read them. Some other platform controllers also r
 | ESO controller | `get`, `list`, `watch`, `create`, `update`, `patch`, `delete` on `secrets` in all namespaces | None in the chart, except `scopedRBAC`, which turns off the cluster stores of question 7 |
 | agentgateway controller (v1.7.0) | Reads Secrets in all namespaces | `rbac.gatewayNamespaces` limits only its writes |
 | OpenChoreo cluster agent | `*` on `secrets`, `clustersecretstores` and RBAC kinds (upstream) | RFC 0007 question 13 B |
-| OpenChoreo control plane: controller manager, API, cluster gateway (upstream 1.3.3) | `get` and `list` on `secrets` in all namespaces; the controller manager also `watch` | Pending: the owner added them ("Yes, add them", owner, in chat, 2026-11-02). Narrow them where their charts permit. They come with RFC 0007. |
+| OpenChoreo control plane: controller manager, API, cluster gateway (upstream 1.3.3) | `get` and `list` on `secrets` in all namespaces; the controller manager also `watch` | Decided by the owner ("Yes, add them", owner, in chat, 2026-11-02). The narrowing, where their charts permit, waits for RFC 0007. |
 | kagent controller | Reads all core resources in all namespaces (chart 0.10.4) | Only if it stays cluster-wide: RFC 0008 question 5 recommends `rbac.namespaces: [kagent]`, which removes it from the list |
 | Argo CD application controller and `argocd-server` | Their default cluster-wide roles. `argocd-server` has `get`, `patch` and `delete` on all resources (chart 10.11.6, on `main`). | Narrow them where their chart permits |
 | cert-manager controller, when an instance installs it | Reads and writes the Secrets of certificates in the namespaces that it serves | Narrow it where its chart permits |
@@ -350,7 +354,7 @@ agentgateway calls Gemini, and kagent sends its model calls to agentgateway with
 | 1 | Owner | Create the key in the console, with the API restriction. |
 | 2 | Owner, no agent session | `mise run secrets:edit kind-local`: add `gemini-api-key`. Commit the ciphertext. |
 | 3 | Agent or owner, the owner reviews | Add `gemini-api-key` under `agentgateway-system` in the seed map of the secrets root module. |
-| 4 | Agent or owner | Add `agentgateway-system` to the consumer list of `external-secrets`. The agentgateway component of RFC 0008 renders `eso-seed-reader` and the store `secrets`. |
+| 4 | Agent or owner, in RFC 0008 R2 | Add `agentgateway-system` to the consumer list of `external-secrets`, in the same PR as the agentgateway component, which renders `eso-seed-reader` and the store `secrets`. |
 | 5 | Agent or owner, in the agentgateway component of RFC 0008 | `ExternalSecret` `google-secret`: store `secrets`, remote key `gemini-api-key`, property `value`, target Secret `google-secret`, key `Authorization`. |
 | 6 | Owner only | `mise run secrets:apply kind-local`. |
 | 7 | ESO, then agentgateway | ESO writes `agentgateway-system/google-secret`. An `AgentgatewayBackend` reads it through `policies.auth.secretRef`. |
@@ -402,7 +406,7 @@ RFC 0002 enforces a rule with rulesets, Git hooks, CI checks and Conftest polici
 | SC4 | SOPS file encrypted | `lint:secrets` | `sops filestatus` gives `{"encrypted":true}` for each `*.sops.yaml`. | Fail |
 | SC5 | SOPS recipients | `lint:secrets` | The recipients of each file equal its rule in `.sops.yaml`. | Fail |
 | SC6 | `.sops.yaml` shape | Conftest `sops` | Anchored `path_regex`, the recovery key, no rule without `path_regex`. | Fail |
-| SC7 | No Secret data in `gitops/` | Conftest `kubernetes` | No values in `data` or `stringData`, also when encrypted. `kubernetes/` keeps the current rule. One exception, only if the owner selects RFC 0008 question 9 A: in `rendered/kagent/`, the `Secret` `kagent-postgresql` with the one key `POSTGRES_PASSWORD` and the value `a2FnZW50`, the base64 form of the chart constant `kagent`. `policy/data/secrets.yaml` lists it, and the check compares the exact value. | Fail |
+| SC7 | No Secret data in `gitops/` | Conftest `kubernetes` | No values in `data` or `stringData`, also when encrypted. `kubernetes/` keeps the current rule. One exception, only if the owner selects RFC 0008 question 9 A: in `gitops/clusters/kind-local/rendered/kagent/`, the `Secret` `kagent-postgresql` with the one key `POSTGRES_PASSWORD` and the value `a2FnZW50`, the base64 form of the chart constant `kagent`. `policy/data/secrets.yaml` lists it with that path, and the check compares the exact value. | Fail |
 | SC8 | No Sealed Secrets in `gitops/` | Conftest `kubernetes` | No `kind: SealedSecret`. | Fail |
 | SC9 | ESO objects | Conftest `kubernetes` | An `ExternalSecret` refers to `SecretStore` `secrets`, or to `ClusterSecretStore` `oc-<tenant>` from a cell of that tenant. Each `remoteRef` has `property: value`. No `dataFrom.find`. A `SecretStore` sets `remoteNamespace` to the seed namespace of its own namespace. A `ClusterSecretStore` has the name `oc-<tenant>`, `remoteNamespace` and `auth.serviceAccount.namespace` equal to `secret-seeds-oc-<tenant>`, and exactly one condition `namespaceRegexes: ["^dp-<tenant>-"]`. No `ClusterExternalSecret`, `PushSecret` or `ClusterPushSecret`. A `RoleBinding` in `secret-seeds-<c>` binds only the store ServiceAccount of `<c>`. Each consumer in the consumer list has a store `secrets` and a ServiceAccount `eso-seed-reader` in its own component, and each store has a consumer. | Fail |
 | SC9a | `ClusterSecretStore` in the cluster | `ValidatingAdmissionPolicy` | The SC9 rules for `ClusterSecretStore`, at admission. | Deny |
@@ -473,10 +477,10 @@ Each step keeps `main` green.
 3. **Kind PR, a prerequisite.** Move `kind-local` to a Kubernetes 1.37 `kindest/node` image with a digest, and the matching `kind` version. If no such image exists, stop and ask the owner.
 4. **Tooling PR.** Pin `sops` and `age`. Add `.sops.yaml` with public keys only. The owner makes the recovery key and the `kind-local` scope key. Add `secrets:edit`, with the editor settings, `secrets:apply` with its clean environment and preconditions, and `secrets:rotate`.
 5. **`bootstrap-cert-manager` PR.** Remove the token variable and `secret.tf`. The module takes the name of a Secret that ESO writes in `cert-manager`. After it, no file on `main` breaks SC10 or SC12.
-6. **Enforcement and ESO PR, before any secret.** Add SC1, SC3 to SC13, SC15 and SC16 with tests, `policy/data/secrets.yaml` and `.gitleaks.toml`. Create the RFC 0005 policy for SC11 if it is not on `main`. Run SC1a. Add `gitops/infrastructure/external-secrets/` with the admission policy (SC9a), and `agentgateway-system` in the consumer list, and add it to `cluster.yaml`. Update `docs/reference/policies.md` and rule 4 of `AGENTS.md`. Check: the ESO pods are ready, and `secret-seeds-agentgateway-system` exists.
+6. **Enforcement and ESO PR, before any secret.** Add SC1, SC3 to SC13, SC15 and SC16 with tests, `policy/data/secrets.yaml` and `.gitleaks.toml`. Create the RFC 0005 policy for SC11 if it is not on `main`. Run SC1a. Add `gitops/infrastructure/external-secrets/` with the admission policy (SC9a) and an empty consumer list, and add it to `cluster.yaml`. Update `docs/reference/policies.md` and rule 4 of `AGENTS.md`. Check: the ESO pods are ready.
 7. **Secrets root module PR.** Add `modules/bootstrap-secret-seeds/` and `instances/kind-local/secrets/` with a **dummy** value, and extend `instance-checks.sh`. The owner runs `secrets:apply`, then the dummy test of the verify list. Only after it passes does the owner put the real key in. If it fails, the real key does not go into Terraform: refer to the fallback in the verify list.
-8. **M1 (RFC 0008 R2 and R3).** RFC 0008 owns these PRs and their split. The gate of this RFC: SC16 passes on the rendered agentgateway and kagent components. Check: `kubectl -n agentgateway-system get secretstore secrets` shows a valid store, the `ExternalSecret` is in sync, and an agent answers with Gemini.
-9. **M2 secrets (RFC 0007 R1).** RFC 0007 owns the step that adds the tenant `sandbox` (its `oc-sandbox` store and `secret-seeds-oc-sandbox`), the OpenChoreo platform consumers, and their seeds, with a `secrets:apply` of the owner. This RFC defines only the mechanism.
+8. **M1 (RFC 0008 R2 and R3).** RFC 0008 owns these PRs and their split. R2 adds `agentgateway-system` to the consumer list, with the agentgateway component. The gate of this RFC: SC16 passes on the rendered agentgateway and kagent components. Check: `kubectl -n agentgateway-system get secretstore secrets` shows a valid store, the `ExternalSecret` is in sync, and an agent answers with Gemini.
+9. **M2 secrets (RFC 0007 R1).** RFC 0007 owns these steps. Its R1 adds the tenant `sandbox` (its `oc-sandbox` store and `secret-seeds-oc-sandbox`). Its R3 and R4 add the consumers `thunder` and `openchoreo-control-plane`, each with its component. The owner adds their seeds and runs `secrets:apply`. This RFC defines only the mechanism.
 10. **Documentation PR.** Rewrite `docs/explanation/secret-management.md` and `docs/how-to/manage-secrets.md`, or mark them as legacy for `kubernetes/`. Add "Add a secret" and "Rotate a secret".
 
 Milestone acceptance criteria, in the format of RFC 0002:
@@ -567,7 +571,7 @@ The owner decides these questions in the review of this RFC.
 ### 1. The ESO backend
 
 - (a) Seed namespaces now, on each cluster. Free and offline.
-- (b) GCP Secret Manager now, also on `kind-local`. Excluded on `kind-local` by the decision of 2026-10-30 (SOPS and ESO, one store for each consumer).
+- (b) GCP Secret Manager now, also on `kind-local`. Excluded on `kind-local` by the decisions of 2026-10-30 (SOPS and ESO) and 2026-11-02 (one store for each consumer).
 - (c) (a) now, and (b) for each cloud instance, behind the same store name.
 
 Recommendation: **(c)**.
@@ -628,8 +632,8 @@ Recommendation: **(A)**. It answers RFC 0007 question 3, but only together with 
 - **[RFC 0003](0003-repository-structure.md)**: the tree. This RFC adds `instances/<instance>/secrets/`, `.sops.yaml`, `modules/bootstrap-secret-seeds/` and `gitops/infrastructure/external-secrets/`. Its ADR amends RFC 0003 "Instances" and ADR 0017 for the secrets root module. No `CODEOWNERS`.
 - **[RFC 0004](0004-labels-and-annotations.md)**: the required keys on the seed namespaces and ESO objects.
 - **[RFC 0005](0005-repository-scope-and-naming.md)**: the state rules and decision 5. This RFC adds `google_apikeys_key` to its list.
-- **RFC 0007 (OpenChoreo)**, in draft: the `oc-<tenant>` stores of question 7 answer its question 3. Its question 13 B is a prerequisite before a second tenant. Its platform components are consumers with namespaced stores. Its R1 adds the tenant `sandbox`, the platform consumers and their seeds.
-- **RFC 0008 (kagent and agentgateway)**, in draft: the Gemini key in `agentgateway-system`, the requirements on kagent, SC16, its question 5 on the scope of the kagent controller, its question 9 on the PostgreSQL Secret (SC7), its R2 and R3, and the auth mode of the controller.
+- **RFC 0007 (OpenChoreo)**, in draft: the `oc-<tenant>` stores of question 7 answer its question 3. Its question 13 B is a prerequisite before a second tenant. Its platform components are consumers with namespaced stores. Its R1 adds the tenant `sandbox`, and its R3 and R4 add the consumers `thunder` and `openchoreo-control-plane`, each in the PR of its component. Question 7 of this RFC owns the options for the OpenChoreo stores; its question 3 refers to it.
+- **RFC 0008 (kagent and agentgateway)**, in draft: the Gemini key in `agentgateway-system`, the requirements on kagent, SC16, its question 5 on the scope of the kagent controller, its question 9 on the PostgreSQL Secret (SC7), its R2 and R3, with R2 adding `agentgateway-system` to the consumer list, and the auth mode of the controller.
 - **The tooling RFC**: the remote backend.
 - **The agent identity RFC**: closes the agent gap.
 
