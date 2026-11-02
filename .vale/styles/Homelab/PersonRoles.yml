@@ -7,6 +7,8 @@ message: "Remove '%s'. Do not name a person as an owner or a maintainer. State t
 level: error
 ignorecase: true
 raw:
-  # "Code Owners" is the name of a GitHub setting, and an "owner reference" is
-  # a Kubernetes field. Both are not about a person of this repository.
-  - (?<!\b(?:code|file) )\b(?:owner|maintainer)s?\b(?! references?\b)(?!/)
+  # These uses are not about a person of this repository: "Code Owners", the
+  # name of a GitHub setting; "file owner", a field of a file system; and
+  # "owner reference", a Kubernetes field. A repository path, for example
+  # `owner/repo`, is in backticks, and Vale does not check it.
+  - (?<!\b(?:code|file) )\b(?:owner|maintainer)s?\b(?! references?\b)
