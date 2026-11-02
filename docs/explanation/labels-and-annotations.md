@@ -14,7 +14,7 @@ The rule has a direct effect on the scheme. The tenant and the trust zone must b
 
 Kubernetes permits a key without a prefix, but it asks each automated component to use a prefix. Argo CD and the agents are components of this type. A prefix is a DNS subdomain. A domain under the control of the repository prevents a collision with the keys of other parties.
 
-The repository uses `<subgroup>.infra.gsuquet.com`. `infra.gsuquet.com` is already the API group of the metadata files `cluster.yaml`, `instance.yaml` and `module.yaml`. Many projects use the same domain for their API group and for their keys, for example Argo CD with `argoproj.io` and cert-manager with `cert-manager.io`. The keys use the same base, `infra.gsuquet.com`, so the keys and the metadata files share one domain.
+The repository uses `<subgroup>.infra.gsuquet.com`. `infra.gsuquet.com` is already the API group of the metadata files `cluster.yaml`, `instance.yaml` and `module.yaml`. Many projects use the same domain for their API group and for their keys, for example Argo CD with `argoproj.io` and cert-manager with `cert-manager.io`. The reasons for the word `infra` are in [Repository scope](repository-scope.md#the-name-infra).
 
 The other options have problems:
 
@@ -50,7 +50,7 @@ The `instance` and `cost` keys are for cloud resources, never for a Kubernetes o
 
 Many upstream charts cannot add labels to all their objects. A strict check of the labels on all the rendered objects would block each pull request until each chart changes. Thus two rules are lenient on upstream objects. K3 refuses a key without a prefix on a hand-written object, and K3w only warns on an upstream object. K6 reads the required `app.kubernetes.io/*` labels of each hand-written object, and K7 reads them on each upstream object, as a warning. A check on the `Namespace` objects only would be lenient too, but it does not cover the `app.kubernetes.io/*` labels of the hand-written charts.
 
-K1, K4, K8 and K10 apply to all objects. They refuse a wrong key, value, selector or sync option, also on an upstream object. K4 and K10 have allowlists for the exceptions of upstream objects.
+K1, K4, K8 and K10 apply to all the objects in `gitops/`, also the upstream objects. They refuse a wrong key, value, selector or sync option. K4 and K10 have allowlists for the exceptions of upstream objects.
 
 K5 and K6 also warn on hand-written objects, because the objects of the `argocd` component do not have their keys. K9 warns because the `argocd-cm` ConfigMap does not set the tracking method. A check that fails on the existing files blocks each pull request, so a check starts as a warning when the existing files fail it.
 

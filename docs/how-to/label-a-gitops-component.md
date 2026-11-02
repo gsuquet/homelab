@@ -65,7 +65,7 @@ The guide uses `<component>` for the name of the component.
    app.kubernetes.io/managed-by: {{ .Release.Service }}
    ```
 
-2. In the pod template of each workload, set these labels:
+2. Set these labels in `spec.template.metadata.labels`, or `spec.jobTemplate.spec.template.metadata.labels` for a CronJob:
 
    ```yaml
    app.kubernetes.io/name: {{ .Chart.Name }}
