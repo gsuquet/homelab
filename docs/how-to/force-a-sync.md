@@ -42,3 +42,5 @@ Argo CD tries a failed sync up to 5 times. After that, the automated sync does n
 
 - [GitOps layout](../reference/gitops-layout.md#applications): the sync policy and the retry settings.
 - [GitOps with Argo CD](../explanation/gitops-with-argocd.md)
+- [Run your first local cluster](../tutorials/run-your-first-local-cluster.md): Argo CD repairs a deleted resource.
+- [Instance tasks](../reference/instance-tasks.md#kubeconfig): the kubectl context of a Kind instance.

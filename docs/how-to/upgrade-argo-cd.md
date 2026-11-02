@@ -2,7 +2,7 @@
 
 This guide shows how to upgrade Argo CD, or change its settings, on all the clusters. Argo CD manages itself: a merged pull request upgrades it.
 
-## Prerequisites
+## Before you start
 
 - You ran `mise install`.
 - You know the target version of the `argo-cd` chart. The releases are in [argoproj/argo-helm](https://github.com/argoproj/argo-helm/releases). The chart version is not the Argo CD version.

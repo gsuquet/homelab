@@ -20,7 +20,7 @@ gitops/
 
 | Folder | Content | AppProject |
 | --- | --- | --- |
-| `gitops/infrastructure/<component>/` | A component that can change cluster-scoped resources, for example Argo CD or cert-manager. | `infrastructure` |
+| `gitops/infrastructure/<component>/` | A component that can change cluster-scoped resources, for example Argo CD. A component for cert-manager is another example. | `infrastructure` |
 | `gitops/apps/<app>/` | An application. | `apps` |
 | `gitops/clusters/<cluster>/` | The files of one cluster. The name is equal to the Terraform instance in `instances/<cluster>/`. | Not applicable |
 
@@ -114,31 +114,31 @@ Argo CD applies the resources of one Application in waves.
 | `-2` | `Namespace` |
 | `-1` | `CustomResourceDefinition` |
 | `0` | All other resources (default) |
-| `1` or more | The Applications, in `rendered/argocd/`. Also the resources that need the custom resources of the same component, for example a `ClusterIssuer` after cert-manager. |
+| `1` or more | The Applications, in `rendered/argocd/`. Also the resources that need the custom resources of the same component, for example a `ClusterIssuer` in a component for cert-manager. |
 
 The wave of an Application is `1` without `dependsOn`. Else it is the wave of its deepest dependency plus 1. The render fails when `dependsOn` names a component that is not in the cluster, or when it makes a cycle.
 
 ## Argo CD settings
 
-The values are in `gitops/infrastructure/argocd/sources/values.yaml`.
+The values are in `gitops/infrastructure/argocd/sources/values.yaml`. The reasons are in [GitOps with Argo CD](../explanation/gitops-with-argocd.md#why-these-argo-cd-settings).
 
-| Setting | Value | Reason |
-| --- | --- | --- |
-| Chart | `argo-cd` from `https://argoproj.github.io/argo-helm`, exact version in `Chart.yaml` | The upstream chart. |
-| Diff | Server-side (`controller.diff.server.side: true`) | It goes with server-side apply. Defaulted fields do not show as `OutOfSync`. |
-| TLS | Off on the server (`server.insecure: true`) | TLS stops at the gateway or at `kubectl port-forward`. |
-| Default role | `role:readonly` | A logged-in user without a role can look, but not change. |
-| Admin user | On (`admin.enabled: true`) | The login to the UI. There is no SSO. |
-| Exec | Off (`exec.enabled: false`) | No shell into pods from the UI. |
-| Application health | A custom health check for `argoproj.io/Application` | The sync waves between components wait for each component. The `argocd` Application is always `Healthy`. |
-| Sync timeout | 15 minutes (`controller.sync.timeout.seconds: "900"`) | A component that is not `Healthy` does not stop the syncs of the `argocd` Application. |
-| Reconciliation | The chart default: `timeout.reconciliation: 120s`, `timeout.reconciliation.jitter: 60s` | Argo CD reads Git about every 2 to 3 minutes. |
-| Resource exclusions | The chart defaults | The chart already excludes noisy resources. |
-| Dex, notifications | Off (`dex.enabled: false`, `notifications.enabled: false`) | The platform does not configure them. |
-| Resources | Memory request equal to the limit, a CPU request, no CPU limit | The cluster resource policy. Sized for a Raspberry Pi 4 with 8 GiB. |
-| CRDs | `Prune=false`, sync wave `-1` | A deleted CRD deletes all the Applications. |
-| `argocd` namespace | `Prune=false,Delete=false`, sync wave `-2` | Argo CD does not delete its own namespace. |
-| `argocd-secret` | Rendered with no data, `Prune=false,Delete=false` | `argocd-server` does not start without this `Secret`. At its start, it adds its keys and makes `argocd-initial-admin-secret`. |
+| Setting | Value |
+| --- | --- |
+| Chart | `argo-cd` from `https://argoproj.github.io/argo-helm`, exact version in `Chart.yaml` |
+| Diff | Server-side (`controller.diff.server.side: true`) |
+| TLS | Off on the server (`server.insecure: true`) |
+| Default role | `role:readonly` |
+| Admin user | On (`admin.enabled: true`) |
+| Exec | Off (`exec.enabled: false`) |
+| Application health | A custom health check for `argoproj.io/Application`: the health of its resources. The `argocd` Application is always `Healthy`. |
+| Sync timeout | 15 minutes (`controller.sync.timeout.seconds: "900"`) |
+| Reconciliation | The chart default: `timeout.reconciliation: 120s`, `timeout.reconciliation.jitter: 60s`. Argo CD reads Git about every 2 to 3 minutes. |
+| Resource exclusions | The chart defaults |
+| Dex, notifications | Off (`dex.enabled: false`, `notifications.enabled: false`) |
+| Resources | Memory request equal to the limit, a CPU request, no CPU limit. Sized for a Raspberry Pi 4 with 8 GiB. |
+| CRDs | `ServerSideApply=true,Prune=false`, sync wave `-1` |
+| `argocd` namespace | `Prune=false,Delete=false`, sync wave `-2` |
+| `argocd-secret` | Rendered with no data, `Prune=false,Delete=false`. At its start, `argocd-server` adds its keys and makes `argocd-initial-admin-secret`. |
 
 ## AppProjects
 
@@ -173,6 +173,7 @@ The `bootstrap-argocd` Terraform module installs Argo CD one time from `gitops/c
 | Each folder in `gitops/infrastructure/` and `gitops/apps/` has `sources/Chart.yaml` and `sources/templates/namespace.yaml`. | `mise run schemas:check` |
 | Each dependency in `sources/Chart.yaml` has a `repository` that starts with `https://` or `oci://`. Git tracks no file in `sources/charts/`. | `mise run schemas:check` |
 | Each file in `values/` names a component of the cluster. | `mise run schemas:check` |
+| No two components of a cluster have the same namespace. | Conftest (K15) |
 | Each `Namespace` has the Pod Security labels `enforce`, `audit` and `warn`. | Conftest, `mise run lint:policy` |
 | A `Namespace` has the sync wave `-2`. A `CustomResourceDefinition` has the sync wave `-1`. | Conftest |
 | Each Application syncs `main`. | Conftest |

@@ -2,10 +2,10 @@
 
 This guide shows how to open the Argo CD UI of an instance from your computer.
 
-## Prerequisites
+## Before you start
 
 - The instance is up, for example after `mise run instance:up kind-local`.
-- Your kubectl context points to the instance. For a Kind instance, `instance:up` sets the context `kind-<cluster>`.
+- Your kubectl context points to the instance. For a Kind instance, `instance:up` sets the context `kind-<cluster>`. Refer to [Instance tasks](../reference/instance-tasks.md#kubeconfig).
 
 ## Open the UI
 
@@ -39,6 +39,7 @@ The `argocd` Application must show `Synced` and `Healthy`. Each component of `gi
 
 ## Related pages
 
+- [Run your first local cluster](../tutorials/run-your-first-local-cluster.md): the same steps, as a first lesson.
 - [Force a sync](force-a-sync.md)
 - [GitOps layout](../reference/gitops-layout.md#argo-cd-settings): the settings of the server and of the roles.
 - [GitOps with Argo CD](../explanation/gitops-with-argocd.md)

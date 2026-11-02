@@ -84,6 +84,18 @@ This makes a mistake in `cluster.yaml` cheap. A line removed by error does not d
 
 The same reason protects Argo CD itself. Argo CD does not prune its own CRDs, because a deleted CRD deletes all the Applications. It does not prune or delete the `argocd` namespace or `argocd-secret`, also when the `argocd` Application goes away.
 
+## Why these Argo CD settings
+
+Most settings of Argo CD follow from the design above. The others follow from the size of the home cluster and from a small attack surface.
+
+- **Server-side diff.** The Applications use server-side apply. With a server-side diff, the API server computes the diff the same way. Fields that the API server sets by default do not show as `OutOfSync`.
+- **No TLS on the server.** TLS stops at the gateway or at the `kubectl port-forward` tunnel. Thus the server does not manage a certificate of its own.
+- **Read-only by default.** A user who logs in without a role can look, but cannot change. Changes go through Git, not through the UI.
+- **Admin user on.** The platform has no SSO, so the `admin` user is the only login.
+- **No exec.** The UI cannot open a shell in a pod. A shell in a pod is a change outside Git, and it is a path to the cluster for a stolen session.
+- **Dex and notifications off.** Dex is the SSO component of Argo CD. The platform uses neither. A component that does not run uses no memory and has no vulnerabilities to patch.
+- **Small, fixed resources.** Each pod has a memory request equal to its limit, a CPU request and no CPU limit. This is the resource rule of the cluster: the scheduler places a pod only where its memory exists, and CPU stays free to share. The sizes fit a Raspberry Pi 4 with 8 GiB.
+
 ## Alternatives
 
 - **ApplicationSets with a Git generator.** An ApplicationSet can make one Application for each folder in Git. This removes the list in `cluster.yaml`. But the Applications then exist only in the cluster, not in Git, and a review does not show them. The rendered Applications in `rendered/argocd/` show each Application, with its sync wave, in the diff of the pull request.
@@ -97,3 +109,5 @@ The same reason protects Argo CD itself. Argo CD does not prune its own CRDs, be
 - [Upgrade Argo CD](../how-to/upgrade-argo-cd.md)
 - [Force a sync](../how-to/force-a-sync.md)
 - [Open the Argo CD UI](../how-to/open-argocd-ui.md)
+- [Run your first local cluster](../tutorials/run-your-first-local-cluster.md): a first look at Argo CD on `kind-local`.
+- [Instance tasks](../reference/instance-tasks.md): the tasks that create the cluster and install Argo CD.

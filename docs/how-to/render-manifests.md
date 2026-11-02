@@ -25,7 +25,7 @@ Render after a change to one of these files:
 
 3. Commit the sources and the rendered files together, and open a pull request.
 
-The `render-manifests` pre-commit hook does steps 1 and 3 for you: on a commit that changes one of these files, it renders and stages `gitops/**/rendered/`. Run the task yourself to examine the output before the commit.
+The `render-manifests` pre-commit hook does step 1 for you. On a commit that changes one of these files, it renders and stages `gitops/**/rendered/`. It does not commit for you or open a pull request. Run the task yourself to examine the output before the commit.
 
 ## Check that the manifests are current
 
