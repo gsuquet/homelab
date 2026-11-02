@@ -2,7 +2,7 @@
 #MISE description="Create or update an instance"
 #USAGE arg "<instance>" help="Instance name: a folder in instances/"
 
-# Environment (for an instance that uses cluster-kind; see docs/reference/mise-tasks.md):
+# Environment (for an instance that uses cluster-kind; see docs/reference/instance-tasks.md):
 #   COLIMA_CPU      CPUs of the Colima VM when the task starts Colima. Default: 4.
 #   COLIMA_MEMORY   Memory of the Colima VM in GiB. Default: 8, lowered to the host memory minus 4 GiB.
 #   COLIMA_DISK     Disk of the Colima VM in GiB. Default: not set (Colima keeps its own size).
