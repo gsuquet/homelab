@@ -44,7 +44,7 @@ Status moves:
 
 | Event | Status |
 | --- | --- |
-| A new item | `Backlog` |
+| A new item | `Backlog`, set by hand. No project workflow sets it. |
 | The branch of the item exists | `In progress` |
 | The PR is ready for review | `In review` |
 | The reviewer and the implementing agent do not agree | `In review`, with `state/needs-decision` |

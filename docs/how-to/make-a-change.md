@@ -20,10 +20,12 @@ For a small, reversible change, for example a bug fix or a change to the tooling
    ```bash
    gh issue create --repo gsuquet/homelab --title "<type>(<scope>): <task>" \
      --body-file <file> --label kind/<kind> --label area/<area>
-   gh project item-add 2 --owner gsuquet --url <issue-url>
+   item=$(gh project item-add 2 --owner gsuquet --url <issue-url> --format json --jq .id)
    ```
 
-5. Create a branch from the current `main`, and set the Status of the item to `In progress`:
+   Set the Status of the item to `Backlog`. No project workflow sets it. Refer to [Set the Status of an item](#set-the-status-of-an-item).
+
+5. Create a branch from the current `main`, and set the Status of the item to `In progress`. Refer to [Set the Status of an item](#set-the-status-of-an-item).
 
    ```bash
    git fetch origin
@@ -54,9 +56,41 @@ For a small, reversible change, for example a bug fix or a change to the tooling
 10. Ask a different agent to review the PR. Give it the PR, the issue and the linked docs.
 11. Fix each HIGH finding. Fix each FIX finding, or answer it with a reason in the PR. Push each fix as a new commit.
 12. After a HIGH finding, ask a new agent for a second review round. Without a HIGH finding, there is no second round.
-13. If the agents do not agree on a finding, add the label `state/needs-decision`, and set the Status of the item to `In review`.
-14. Mark the PR ready for review, and set the Status of the item to `In review`.
+13. If the agents do not agree on a finding, add the label `state/needs-decision`, and set the Status of the item to `In review`. Refer to [Set the Status of an item](#set-the-status-of-an-item).
+14. Mark the PR ready for review, and set the Status of the item to `In review`. Refer to [Set the Status of an item](#set-the-status-of-an-item).
 15. A person merges the PR with a squash merge. GitHub closes the issue, and the Status becomes `Done`.
+
+## Set the Status of an item
+
+Run `gh project item-edit` with the ID of the project, the ID of the Status field and the ID of the option:
+
+```bash
+gh project item-edit --project-id PVT_kwHOBXeIis4AhG9T --id "$item" \
+  --field-id PVTSSF_lAHOBXeIis4AhG9TzgZ1Q1Q --single-select-option-id <option-id>
+```
+
+| Status | `<option-id>` |
+| --- | --- |
+| `Backlog` | `f75ad846` |
+| `Ready` | `61e4505c` |
+| `In progress` | `47fc9ee4` |
+| `In review` | `df73e18b` |
+| `Done` | `98236657` |
+
+If a command fails with an unknown ID, read the current IDs:
+
+```bash
+gh project view 2 --owner gsuquet --format json --jq .id
+gh project field-list 2 --owner gsuquet --format json \
+  --jq '.fields[] | select(.name == "Status")'
+```
+
+To find the ID of an existing item, list the items:
+
+```bash
+gh project item-list 2 --owner gsuquet --format json \
+  --jq '.items[] | select(.content.number == <issue>) | .id'
+```
 
 ## Related pages
 
