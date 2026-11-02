@@ -9,7 +9,7 @@ pr: 171
 
 ## Summary
 
-This RFC sets the scope of the repository and gives it a new name. The repository stays one repository. Its scope grows: it also manages the provider accounts of the owner as code. These accounts are Cloudflare, AWS, Google Cloud (GCP), Azure and Grafana Cloud, on their free tiers. The RFC gives a rule that tells what belongs in the repository. It also gives a layout for the provider accounts, because [RFC 0003](https://github.com/gsuquet/homelab/pull/168) does not have one. It tells how to import the resources that exist now, which requirements the Terraform state must meet, how the credentials work, and which budgets keep each account free. One word, `infra`, becomes the name of the repository (`gsuquet/infra`), the base of the Kubernetes key prefix (`infra.gsuquet.com`) and the base of the cloud tag keys. The rename occurs now, before the migration of the Raspberry Pi, and the RFC gives the safe steps for the production cluster `olympus`.
+This RFC sets the scope of the repository and gives it a new name. The repository stays one repository. Its scope grows: it also manages the provider accounts of the owner as code. These accounts are Cloudflare, AWS, Google Cloud (GCP), Azure and Grafana Cloud, on their free tiers. The RFC gives a rule that tells what belongs in the repository. It also gives a layout for the provider accounts, because [RFC 0003](0003-repository-structure.md) does not have one. It tells how to import the resources that exist now, which requirements the Terraform state must meet, how the credentials work, and which budgets keep each account free. One word, `infra`, becomes the name of the repository (`gsuquet/infra`), the base of the Kubernetes key prefix (`infra.gsuquet.com`) and the base of the cloud tag keys. The rename occurs now, before the migration of the Raspberry Pi, and the RFC gives the safe steps for the production cluster `olympus`.
 
 ## Motivation
 
@@ -487,9 +487,9 @@ None. The owner answered all the questions of this RFC in chat on 2026-11-02. Re
 
 ### Dependencies on other RFCs
 
-- **RFC 0002** ([PR #167](https://github.com/gsuquet/homelab/pull/167)): the review flow and the agent identity gap. Its links and its rulesets script name `gsuquet/homelab`.
-- **RFC 0003** ([PR #168](https://github.com/gsuquet/homelab/pull/168)): the tree and the naming rules. This RFC adds `accounts/`.
-- **RFC 0004** ([PR #169](https://github.com/gsuquet/homelab/pull/169)): it takes the prefix `infra.gsuquet.com` from this decision, and it links to this RFC for the name. It maps the keys to GCP, Azure and AWS, and it sets the `annotation` tracking method for the new Argo CD in `gitops/`, not for `olympus`.
+- **[RFC 0002](0002-how-we-work.md)** (accepted, [PR #167](https://github.com/gsuquet/homelab/pull/167)): the review flow and the agent identity gap. Its links and its rulesets script name `gsuquet/homelab`.
+- **[RFC 0003](0003-repository-structure.md)** (accepted, [PR #168](https://github.com/gsuquet/homelab/pull/168)): the tree and the naming rules. This RFC adds `accounts/`.
+- **[RFC 0004](0004-labels-and-annotations.md)** (accepted, [PR #169](https://github.com/gsuquet/homelab/pull/169)): it takes the prefix `infra.gsuquet.com` from this decision, and it links to this RFC for the name. It maps the keys to GCP, Azure and AWS, and it sets the `annotation` tracking method for the new Argo CD in `gitops/`, not for `olympus`.
 - **The tooling RFC** decides the state backend. **The secrets RFC** decides where the tokens live. **The agents RFC** decides the place of the agent skills and hooks. **The agent identity RFC** closes the credential gap.
 
 ### Effects on the other records
@@ -500,9 +500,9 @@ None. The owner answered all the questions of this RFC in chat on 2026-11-02. Re
 | ADR 0002 | "A part of the homelab is open to the internet" | None. The Raspberry Pi system stays a homelab. |
 | RFC 0001 (accepted) | The same sentence | None. An accepted RFC does not change (ADR 0005). |
 | RFC template | "the security of the homelab, the repository and the supply chain" | Optional. The ADR from this RFC can change it to "the infrastructure". |
-| RFC 0002 (review) | `config.yml` link to `gsuquet/homelab/security/advisories/new`, the script `gh api repos/gsuquet/homelab/rulesets`, "the homelab" for this repository | The ADRs of RFC 0002 say "this repository". The implementation PRs use `gsuquet/infra`. No change to the RFC. |
-| RFC 0003 (review) | `homelab/` as the root of the tree, "homelab issue forms", PR links | Refer to [decision 9](#decisions-of-the-owner). No change to the RFC. The PR links redirect. |
-| RFC 0004 (review) | The rejected prefix `homelab.gsuquet.com` | RFC 0004 links to this RFC for the decision. |
+| [RFC 0002](0002-how-we-work.md) (accepted) | `config.yml` link to `gsuquet/homelab/security/advisories/new`, the script `gh api repos/gsuquet/homelab/rulesets`, "the homelab" for this repository | The ADRs of RFC 0002 say "this repository". The implementation PRs use `gsuquet/infra`. No change to the RFC. |
+| [RFC 0003](0003-repository-structure.md) (accepted) | `homelab/` as the root of the tree, "homelab issue forms", PR links | Refer to [decision 9](#decisions-of-the-owner). No change to the RFC. The PR links redirect. |
+| [RFC 0004](0004-labels-and-annotations.md) (accepted) | The rejected prefix `homelab.gsuquet.com` | RFC 0004 links to this RFC for the decision. |
 | `schemas/` (`apiVersion`) | None. It is already `infra.gsuquet.com`. | None. |
 
 ## Future possibilities
