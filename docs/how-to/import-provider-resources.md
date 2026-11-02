@@ -24,6 +24,14 @@ The repository is public.
 - Never set `tunnel_secret` in the code. The provider marks it sensitive. A new secret can disconnect `olympus` from its tunnel. A plan that updates or replaces the tunnel of `olympus` blocks the import.
 - Record the manual items in `accounts/<account>/README.md`, for example the registration of `gsuquet.com`.
 
+## Move a resource to another root module
+
+For example, the `olympus` tunnel and its DNS records move from `accounts/cloudflare/` to `instances/olympus/` after the migration.
+
+1. Import the resources into the new root module, with `import` blocks.
+2. In the old root module, add a `removed` block with `lifecycle { destroy = false }` for each resource.
+3. Check that both plans show no destroy. A `removed` block without `destroy = false` deletes the tunnel.
+
 ## Take a resource out of Terraform
 
 Use `terraform state rm`, or a `removed` block with `lifecycle { destroy = false }`. A `removed` block without it destroys the resource ([HashiCorp: removed block](https://developer.hashicorp.com/terraform/language/block/removed)).
