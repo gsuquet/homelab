@@ -73,7 +73,7 @@ The task runs `doc:generate`. Then it fails if `git diff` shows a change in `doc
 | `0` | `[INFO] ✓ Documentation is up to date.` |
 | `1` | `Documentation is out of date! Run 'mise run doc:generate' and commit the changes.` |
 
-No hook or workflow runs this task.
+The `Lint` workflow runs the task on each pull request and on each push to `main`. No hook runs it.
 
 ## `instance`
 

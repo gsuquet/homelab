@@ -145,7 +145,7 @@ The agents use the GitHub account of the repository, so GitHub cannot enforce th
 | --- | --- |
 | Ruleset `main` | On `main`: no deletion, no force push, no creation, signed commits, linear history, and a PR for each change with the squash merge only. A PR merges only when each review thread has the state resolved. The bypass list is empty. |
 | pre-commit hooks | `no-commit-to-branch` refuses a commit on `main`. `commitlint` checks the commit message. `gitleaks` and `detect-private-key` refuse secrets. The `lint-*` hooks run the same checks as `mise run lint`. |
-| CI workflows | `Lint` runs `mise run lint`. `Validate Schemas` and `Validate Kubernetes Manifests` run on the changes to their files. `Pull Request Labeler` adds labels to the PRs. |
+| CI workflows | `Lint` runs `mise run lint` and `mise run doc:check`. `Validate Schemas` and `Validate Kubernetes Manifests` run on the changes to their files. `Pull Request Labeler` adds labels to the PRs. |
 | Conftest policies | The rules on the files, for example pinned versions and no secrets. Refer to [Policies](policies.md). |
 
 Agent hooks, for example the hooks of Claude Code, are a convenience. They are not the controls.
