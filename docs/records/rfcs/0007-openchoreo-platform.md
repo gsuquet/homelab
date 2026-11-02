@@ -270,9 +270,10 @@ A tenant names the key in its `SecretReference` or its `Workload`, and the agent
 
 The proposal: **the per-tenant `ClusterSecretStore` of RFC 0006**. RFC 0006 permits one named exception to its rule of namespaced stores: one `ClusterSecretStore` `oc-<tenant>` for each OpenChoreo tenant. Each store reads only `secret-seeds-oc-<tenant>`. It sets this namespace explicitly as `remoteNamespace`, and it sets `auth.serviceAccount.namespace` explicitly. Thus ESO never uses referent authentication into a cell. SC9 of RFC 0006 checks these rules in Git, and SC9a, a `ValidatingAdmissionPolicy` on `ClusterSecretStore` objects, enforces them in the cluster. The OpenChoreo namespace of a tenant has the tenant name ([question 5](#5-the-openchoreo-namespace-of-a-tenant) B), thus the templates can derive the store name from the namespace. Refer to [question 3](#3-the-secret-store-of-openchoreo) and the matching question of RFC 0006.
 
-- **Conditions.** ESO accepts a namespace when any one of the conditions of a store matches ([ESO: ClusterSecretStore](https://external-secrets.io/latest/api/clustersecretstore/)). A label condition is thus weak: outside `dp-*`, nothing protects the `tenant` label. Each store therefore has exactly one condition, the regex `namespaceRegexes: ["^dp-<tenant>-"]`. Only the agent can create a `dp-*` namespace (tenant limit 3).
+- **Conditions.** ESO accepts a namespace when any one of the conditions of a store matches ([ESO: ClusterSecretStore](https://external-secrets.io/latest/api/clustersecretstore/)). A label condition is thus weak: outside `dp-*`, nothing protects the `tenant` label. Each store therefore has exactly one condition, the regex `namespaceRegexes: ["^dp-<tenant>-"]`. Only the OpenChoreo ServiceAccount that creates the cells can create a `dp-*` namespace (tenant limit 3). The verify list confirms which one it is.
 - **The tenant naming rule.** A tenant name is a DNS label without `-`. Else the cell `dp-a-b-x-...` of tenant `a`, project `b-x`, matches the regex of a tenant `a-b`. A schema or Conftest check enforces the rule on the OpenChoreo namespaces in `gitops/apps/`.
 - **Templates.** The `ClusterDataPlane` leaves `secretStoreRef` unset. Each platform template names the store explicitly: `oc-${metadata.componentNamespace}` in a `ClusterComponentType` or `ClusterTrait`, `oc-${metadata.resourceNamespace}` in a `ClusterResourceType`, `oc-${metadata.projectNamespace}` in a `ClusterProjectType`. A Conftest check refuses `${dataplane.secretStore}` in `rendered/`. Thus no template falls back to the store of one tenant.
+- **The data key.** Each seed has one data key, `value` (RFC 0006). In OpenChoreo, `SecretReference.data[].remoteRef.property` is optional ([SecretReference](https://openchoreo.dev/docs/reference/api/platform/secretreference/)). Without it, the cell gets the seed as JSON. A Conftest check on `gitops/apps/` requires `property: value` in each `remoteRef` of a `SecretReference`. The same check applies to each `ExternalSecret` in the platform templates. The cell `ExternalSecret` objects are not in Git, thus SC9 of RFC 0006 does not see them.
 
 The platform components of OpenChoreo use their own stores from RFC 0006.
 
@@ -368,7 +369,12 @@ The upstream sample writes `oc_merge(metadata.labels, environmentConfigs.namespa
 - The value of `tenant.infra.gsuquet.com/name` agrees with the name: the name starts with `dp-<tenant>-`. The template does not control the name.
 - The owner label and the Pod Security labels are present.
 
-It refuses the namespace if a rule fails. A second policy limits the writes of the cluster agent. The agent, also with the role of question 13 B, has `*` on Pods, Secrets, NetworkPolicies, HTTPRoutes and ReferenceGrants in each namespace. A `ClusterRole` cannot limit this to some namespaces. The second policy matches each namespaced request from the agent ServiceAccount. It permits only namespaces whose name matches `^dp-`, and `openchoreo-data-plane`. Thus the agent cannot change the M1 controls in `kagent` and `agentgateway-system`, or mount a seed. Both policies go in the `openchoreo-control-plane` component. The verify list has their CEL.
+It refuses the namespace if a rule fails. A second policy limits the writes of the cluster agent. The agent, also with the role of question 13 B, has `*` on Pods, Secrets, NetworkPolicies, HTTPRoutes and ReferenceGrants in each namespace. A `ClusterRole` cannot limit this to some namespaces. The second policy matches each request from the agent ServiceAccount, by `request.userInfo.username`. It has two rules:
+
+- A namespaced write goes only to a namespace whose name matches `^dp-`, or to `openchoreo-data-plane`.
+- No write on `rbac.authorization.k8s.io`, on `admissionregistration.k8s.io` or on `clustersecretstores`. These are cluster-scoped or escalation kinds. With the upstream role of question 13 A, the agent can otherwise bind a ServiceAccount in a `dp-*` namespace to `cluster-admin`, and then act from a pod in the cell.
+
+The agent does not need these writes in M2. The OpenChoreo v1.3.3 samples render no `Role`, `ClusterRole`, binding, webhook or `ClusterSecretStore`. The controller lists `ClusterRole` and `ClusterRoleBinding` in its clean-up list of known kinds ([`renderedrelease/controller.go`](https://github.com/openchoreo/openchoreo/blob/v1.3.3/internal/controller/renderedrelease/controller.go)). That is a read. Thus the policy gives the effect of question 13 B at admission, also under A. The agent cannot change the M1 controls in `kagent` and `agentgateway-system`, mount a seed, or change the two policies. Both policies go in the `openchoreo-control-plane` component. The verify list has their CEL.
 
 **4. The `apps` AppProject permits only the namespaces of the `apps` components.** The `argocd` chart renders the destinations from `apps[].namespace` in `cluster.yaml`. Thus no tenant can deploy into `agentgateway-system`, `kagent`, `secret-seeds-*`, `external-secrets`, `cert-manager`, a plane or a cell. The present AppProject refuses only `kube-system` and `argocd`. Argo CD does not apply the destination check to a cluster-scoped object, and a `Namespace` is cluster-scoped. Thus a tenant can still ship a `Namespace` with the name `dp-sandbox-...` or `openchoreo-data-plane`. The `clusterResourceWhitelist` entry for `Namespace` stays without a name. A `clusterResourceBlacklist` refuses `Namespace` objects with these names: `dp-*`, `openchoreo-*`, `secret-seeds-*`, `agentgateway-system`, `kagent`, `thunder`, `kgateway-system`, `cert-manager`, `external-secrets`, `kube-*`, `argocd` and `default`. The blacklist wins over the whitelist. The repository runs Argo CD v3.5.6 (chart 10.11.6), and its rendered `AppProject` CRD has the `name` field with glob patterns.
 
@@ -394,6 +400,7 @@ M2 must get these points right, so that M3 is possible:
 - **One Gateway API version that kgateway and agentgateway both accept.** RFC 0008 pins agentgateway. The two RFCs check the same Gateway API version.
 - **The namespace of M1 stays.** The community module puts agentgateway into `openchoreo-data-plane`. The M3 traits refer to the `Gateway` of M1 by name and namespace instead. M2 does not put third-party controllers into the plane namespaces.
 - **Cluster agent RBAC extensions as separate objects in Git.** Each extension is its own `ClusterRole` and `ClusterRoleBinding` in the data plane component, with only the kinds and verbs that it needs.
+- **Objects in the M1 namespaces come from Argo CD.** The second admission policy refuses each agent write into `kagent` and `agentgateway-system`. Thus a `ReferenceGrant` that M3 needs there comes from the RFC 0008 components through Argo CD, never from the agent.
 - **No model keys in the cells.** The community traits read the LLM API keys into the cell of each component through an `ExternalSecret`. M3 does not do this. Its traits route each component to the shared agentgateway backend of M1, and only that backend holds the keys.
 - **The `proxy` workload type.** M3 needs it for a kagent `Agent`. M2 does not use it.
 
@@ -410,6 +417,7 @@ Positive criteria:
 3. The sample component `go-greeter-service` from [`samples/from-image/`](https://github.com/openchoreo/openchoreo/tree/v1.3.3/samples/from-image/go-greeter-service) is in the `sandbox` tenant. Its `ReleaseBinding` for `development` is ready.
 4. An HTTP request through `kubectl port-forward` to the data plane Gateway, with the host of the `HTTPRoute`, returns status 200 from the sample.
 5. The cell namespace of the sample has `tenant.infra.gsuquet.com/name: sandbox`, `ownership.infra.gsuquet.com/owner: gsuquet` and a Pod Security `enforce` label.
+6. A `SecretReference` of the sample to a test seed in `secret-seeds-oc-sandbox` gives a cell Secret whose value is equal to the seed value, not a JSON object. A `SecretReference` without `property: value` makes `mise run lint` fail.
 
 Negative criteria:
 
@@ -478,12 +486,12 @@ The ADRs of this RFC come after its acceptance, in their own PR ([ADR 0005](../a
 
 The implementation steps. Each step is one PR, after the ADRs:
 
-1. **R1 Secrets.** RFC 0006 delivers External Secrets Operator. This RFC owns the rest, with the mechanism of RFC 0006: it adds the tenant `sandbox` (the store `oc-sandbox` and `secret-seeds-oc-sandbox`), the platform consumers `thunder` and `openchoreo-control-plane`, and their seeds in the SOPS file. The owner runs `mise run secrets:apply kind-local`.
+1. **R1 Dependency.** RFC 0006 delivers External Secrets Operator. The rule for RFCs 0006 to 0008: each consumer entry joins the consumer list in the same PR that adds its component. Each consumer component renders its own ServiceAccount `eso-seed-reader` and store `secrets` from the template of RFC 0006. The owner runs `mise run secrets:apply kind-local` after each PR that adds a seed.
 2. **R2 Terraform.** The LB pool and the CoreDNS change, from the data of the `kind` network.
-3. **R3 cert-manager, kgateway and ThunderID.** Add the three components. Check that kgateway accepts Gateway API v1.6.2.
-4. **R4 Control plane.** Add the component with the CA issuer, the cluster-scoped platform definitions and the admission policy for the cells. Add the Conftest check for the `ClusterProjectType` labels.
+3. **R3 cert-manager, kgateway and ThunderID.** Add the three components. `thunder` joins the consumer list, with its seeds and its `eso-seed-reader` and store `secrets`. Check that kgateway accepts Gateway API v1.6.2.
+4. **R4 Control plane.** Add the component with the CA issuer, the cluster-scoped platform definitions and the admission policy for the cells. Add the Conftest checks for the `ClusterProjectType` labels and for `property: value`. `openchoreo-control-plane` joins the consumer list, with its seeds and its `eso-seed-reader` and store `secrets`.
 5. **R5 Data plane.** Add the component with the `ClusterDataPlane` and the agent role of [question 13](#13-the-cluster-agent-role). Change the `apps` AppProject once, for this RFC and RFC 0008: the blacklist of the platform kinds and of the `external-secrets.io`, `agentgateway.dev` and `kagent.dev` groups, the `Namespace` name blacklist, and the destinations from `cluster.yaml`. Add the second admission policy.
-6. **R6 Sample tenant.** Add `choreo-sandbox` with its Environments, its DeploymentPipeline and the sample. Check all done criteria.
+6. **R6 Sample tenant.** Add `choreo-sandbox` with its Environments, its DeploymentPipeline and the sample. Add the tenant `sandbox` in the same PR, with the mechanism of RFC 0006: the store `oc-sandbox`, `secret-seeds-oc-sandbox` and the test seed. Check all done criteria.
 7. **R7 Documentation.** A how-to page for an OpenChoreo component, and a reference page for the namespaces.
 
 ### Rollback
@@ -520,6 +528,7 @@ A removal from `cluster.yaml` alone deletes nothing in the cluster, because the 
 - **Data plane registration.** `ClusterDataPlane.spec.clusterAgent.clientCA.secretKeyRef` refers to `cluster-agent-tls`. One CA `ClusterIssuer` signs the cluster gateway and the agent certificates, thus the agent can read the server CA from its own Secret and no copy of `cluster-gateway-ca` is necessary.
 - **Tenant limits.** A namespaced `ComponentType` can emit a `ClusterRoleBinding` through the agent with the upstream role. This shows the need of the blacklist. The CEL of the `ValidatingAdmissionPolicy`.
 - **SC16 and the gateway charts.** The roles of kgateway v2.3.11 and ThunderID against SC16 of RFC 0006. kgateway can read Secrets in all namespaces for TLS.
+- **Events.** The agent writes events about cluster-scoped objects, for example a cell `Namespace`, into `default`. The second admission policy refuses them. Check that this only adds log noise, or permit `events` in `default`.
 - **Who creates cells.** In the single-cluster mode, the controller manager or the agent creates the `dp-*` namespaces. The controller manager also has `create` on `namespaces`. Rule 1 of the cell policy names the correct ServiceAccount.
 - **Agent role.** OpenChoreo works with `clusterAgent.rbac.create: false` and a repository role without the RBAC kinds and `clustersecretstores`. The flag turns off both the `ClusterRole` and the `ClusterRoleBinding`, thus the repository owns both. Record the name of the agent ServiceAccount for the binding.
 - **Labels.** The charts accept `global.commonLabels` for the RFC 0004 labels.
@@ -583,13 +592,9 @@ Recommendation: A. The control plane chart uses kgateway kinds, and no OpenChore
 
 ### 3. The secret store of OpenChoreo
 
-OpenChoreo needs a `ClusterSecretStore`. RFC 0006 has the matching question for its exception to the rule of namespaced stores.
+Question 7 of RFC 0006 holds the options and the mechanism. This RFC depends on its answer. OpenChoreo needs a `ClusterSecretStore`.
 
-- A: the per-tenant `ClusterSecretStore` of RFC 0006: one store `oc-<tenant>` for each OpenChoreo tenant. It reads only `secret-seeds-oc-<tenant>`. Its one condition is the regex `^dp-<tenant>-`. The templates name it from the namespace, for example `oc-${metadata.componentNamespace}`.
-- B: OpenBao in dev mode, as upstream.
-- C: one `ClusterSecretStore` that the platform components and the tenants share.
-
-Recommendation: A. B adds a component that the repository removes later, and its dev mode has a fixed root token. C lets each tenant read the platform secrets. Two other designs fail too: one store for all tenants lets a tenant read the keys of another, and RFC 0006 refuses it. A `DataPlane` for each tenant conflicts with question 6 A and K15.
+Recommendation: option A of RFC 0006 question 7, one `ClusterSecretStore` `oc-<tenant>` for each OpenChoreo tenant, with the regex condition `^dp-<tenant>-`. The body of this RFC uses it until the owner decides. It also needs question 5 B.
 
 ### 4. The identity provider
 
