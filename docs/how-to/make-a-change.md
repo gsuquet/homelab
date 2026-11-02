@@ -27,7 +27,7 @@ For a small, reversible change, for example a bug fix or a change to the tooling
 
    ```bash
    git fetch origin
-   git switch -c <prefix>/<issue number>-<short-title> origin/main
+   git switch -c <prefix>/<short-title> origin/main
    ```
 
 6. Make the change:

@@ -37,6 +37,7 @@ The fields of "Perso":
 | Status | `Backlog`, `Ready`, `In progress`, `In review`, `Done` |
 | Priority | `P0`, `P1`, `P2` |
 | Size | `XS`, `S`, `M`, `L`, `XL` |
+| Estimate | A number |
 | Start date, End date | Dates |
 
 Status moves:
@@ -53,7 +54,7 @@ Status moves:
 
 | Branch | Format | Example |
 | --- | --- | --- |
-| Work | `<prefix>/<issue number>-<short-title>` | `feat/42-sops-age-key` |
+| Work | `<prefix>/<short-title>` | `feat/sops-age-key` |
 | Spike | `spike/<topic>` | `spike/kind-1.37` |
 | Renovate | `renovate/<topic>` | Set by Renovate |
 
@@ -61,7 +62,7 @@ The prefix is a [Conventional Commits](https://www.conventionalcommits.org/en/v1
 
 ## Labels
 
-`.github/labels.yml` holds the name, the color and the description of each label. `mise run labels:sync` makes the labels of the repository equal to the file. It changes the repository, so a person runs it, not an agent.
+`.github/labels.yml` holds the name, the color and the description of each label. `mise run labels:sync` creates each label of the file that the repository does not have, and updates each label that differs from the file. With `--prune`, it also deletes each repository label that is not in the file. With `--dry-run`, it only prints the commands. It changes the repository, so a person runs it, not an agent.
 
 | Label | Meaning |
 | --- | --- |

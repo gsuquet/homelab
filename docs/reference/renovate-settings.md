@@ -10,7 +10,7 @@
 | `rangeStrategy` | `pin` | Each version is exact. |
 | `minimumReleaseAge` | `3 days` | A release must be 3 days old before Renovate proposes it. |
 | `internalChecksFilter` | `strict` | Renovate opens no branch for a release that is younger than `minimumReleaseAge`. |
-| `schedule` | `* 0-6 * * 1` | Renovate opens PRs on Monday, from 00:00 to 06:59. |
+| `schedule` | `* 0-6 * * 1` | Renovate opens PRs on Monday, from 00:00 to 06:59 UTC. `timezone` has no value, so the schedule uses UTC. |
 | `branchPrefix` | `renovate/` | The prefix of each Renovate branch. |
 | `labels` | `renovate` | The label of each Renovate PR. |
 | `prConcurrentLimit` | `10` | At most 10 open Renovate PRs. |
@@ -39,10 +39,10 @@ The comment of the second custom manager can also set `versioning=<versioning>`.
 | Rule | Match | Settings |
 | --- | --- | --- |
 | Major updates | `matchUpdateTypes: major` | `dependencyDashboardApproval: true`: the PR opens only after an approval on the Dependency Dashboard. |
-| Dev tools | The files `.mise/config.toml`, `.pre-commit-config.yaml` and `.github/workflows/**`. The managers `mise`, `pre-commit`, `github-actions` and `custom.regex`. The update types `minor`, `patch`, `digest`, `pin` and `pinDigest`. | One group, `dev tools`. Automerge. Commit scope `tools`. |
+| Dev tools | One rule. An update must match all three: one of the files `.mise/config.toml`, `.pre-commit-config.yaml` and `.github/workflows/**`, one of the managers `mise`, `pre-commit`, `github-actions` and `custom.regex`, and one of the update types `minor`, `patch`, `digest`, `pin` and `pinDigest`. | One group, `dev tools`. Automerge. Commit scope `tools`. |
 | Terraform providers | `matchManagers: terraform` | One group, `terraform providers`. Commit scope `terraform`. |
 | Charts and images | The files `gitops/**` and `kubernetes/**` | Commit scope `kubernetes`. |
-| Ansible | The files `ansible/**`, and the packages `ansible` and `ansible-creator` | `enabled: false`: no updates. |
+| Ansible | Two rules. Each one turns the updates off alone: one for the files `ansible/**`, one for the packages `ansible` and `ansible-creator`. | `enabled: false`: no updates. |
 | Lock file maintenance | `matchUpdateTypes: lockFileMaintenance` | Commit scope `lock`. |
 
 The other updates use the commit scope `deps`.
