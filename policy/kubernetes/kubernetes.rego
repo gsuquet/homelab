@@ -161,8 +161,8 @@ deny contains msg if {
 }
 
 # ---------------------------------------------------------------------------
-# Label and annotation keys: checks K1 to K10, K14 and K15 of RFC 0004
-# ("Enforcement") and ADR 0029. The rules, the allowlists and the required keys
+# Label and annotation keys: checks K1 to K10, K14 and K15. K11 to K13 (cloud
+# labels) come with the first cloud instance. The rules, the allowlists and the required keys
 # come from data.labels, in policy/data/labels.yaml. Each message has the ID
 # of its check.
 #
@@ -339,7 +339,8 @@ object_keys contains {"path": path, "obj": obj, "where": block.where, "kind": bl
 
 subject(e) := sprintf("%s %q, %s", [e.obj.kind, object_name(e.obj), e.where])
 
-# Syntax rules: RFC 0004 ("Syntax rules"), Kubernetes labels, annotations and names.
+# Syntax rules of the Kubernetes labels, annotations and names:
+# https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
 dns_subdomain := `^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
 
 key_name_pattern := `^[A-Za-z0-9]([-A-Za-z0-9_.]*[A-Za-z0-9])?$`
@@ -347,7 +348,8 @@ key_name_pattern := `^[A-Za-z0-9]([-A-Za-z0-9_.]*[A-Za-z0-9])?$`
 label_value_pattern := `^([A-Za-z0-9]([-A-Za-z0-9_.]*[A-Za-z0-9])?)?$`
 
 # The repository adds: lowercase letters, digits and - only, in the name of its
-# keys and in the values of its labels (ADR 0024).
+# keys and in the values of its labels. Thus the cloud form of a key has no
+# collision, and the values are valid Google Cloud label values.
 repository_name_pattern := `^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`
 
 repository_value_pattern := `^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$`
@@ -560,8 +562,8 @@ deny contains msg if {
 }
 
 # K5 Required keys: each Namespace in gitops/.
-# TODO(RFC 0004 step 3 follow-up): change to deny. The argocd Namespace fails it
-# until RFC 0004 step 5 adds its labels.
+# TODO(follow-up PR): change to deny. The argocd Namespace fails it until a
+# later PR adds its tenant and ownership labels.
 gitops_namespaces contains [path, obj] if {
 	some [path, obj] in k8s_objects
 	is_gitops(path)
@@ -584,8 +586,8 @@ deny contains msg if {
 
 # K6 Required keys of workloads: hand-written objects in gitops/.
 # K7: upstream objects (warn).
-# TODO(RFC 0004 step 3 follow-up): change K6 to deny. The hand-written objects
-# of the argocd component fail it until RFC 0004 step 5 adds their labels.
+# TODO(follow-up PR): change K6 to deny. The hand-written objects of the argocd
+# component fail it until a later PR adds their labels.
 required_by_block := {
 	"metadata": data.labels.required.object.labels,
 	"pod template": data.labels.required.pod_template.labels,
@@ -640,7 +642,7 @@ deny contains msg if {
 }
 
 # K9 Argo CD tracking: the rendered argocd-cm ConfigMap.
-# TODO(RFC 0004 step 3 follow-up): change to deny after RFC 0004 step 6 sets
+# TODO(follow-up PR): change to deny after a later PR sets
 # application.resourceTrackingMethod in the values of the argocd component.
 warn contains msg if {
 	some [path, obj] in k8s_objects

@@ -98,7 +98,7 @@ split_manifest_by_source() {
 # A resource from an upstream chart gets the prefix upstream--: the second
 # segment of its "# Source:" path is charts, for example
 # argocd/charts/argo-cd/templates/argocd-cm.yaml. The Conftest policies read the
-# origin from the file name, because Conftest drops comments (RFC 0004).
+# origin from the file name, because Conftest drops comments.
 split_manifest_by_resource() {
     local manifest_file="$1"
     local output_dir="$2"

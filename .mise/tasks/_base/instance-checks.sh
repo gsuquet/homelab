@@ -149,7 +149,7 @@ check_gitops_tree() {
 
         # manifests:render tells an upstream object from the "charts" segment
         # of its source path. A chart copied into sources/charts/ would pass as
-        # upstream, so each dependency comes from a chart repository (RFC 0004).
+        # upstream, so each dependency comes from a chart repository.
         [ -f "${component}sources/Chart.yaml" ] || continue
         while IFS= read -r repository; do
             case "$repository" in

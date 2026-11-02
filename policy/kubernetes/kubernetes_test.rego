@@ -334,7 +334,7 @@ test_configmap_with_data_is_allowed if {
 }
 
 # ---------------------------------------------------------------------------
-# Label and annotation keys: K1 to K10, K14 and K15 (RFC 0004).
+# Label and annotation keys: K1 to K10, K14 and K15.
 
 # The messages of one check.
 check(messages, id) := {m | some m in messages; contains(m, sprintf(": %s: ", [id]))}
@@ -635,7 +635,7 @@ test_k4_contact_address_is_allowed if {
 }
 
 test_k4_contact_with_a_space_is_denied if {
-	count(check(kubernetes.deny, "K4")) == 1 with input as argocd_namespace_with({}, {"ownership.infra.gsuquet.com/contact": "the owner"})
+	count(check(kubernetes.deny, "K4")) == 1 with input as argocd_namespace_with({}, {"ownership.infra.gsuquet.com/contact": "a person"})
 }
 
 test_k4_unknown_subgroup_is_denied if {

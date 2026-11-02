@@ -1,22 +1,21 @@
 # The reference table of the label and annotation keys: the single source of
-# the checks. RFC 0004 ("Reference table", "Enforcement"), ADRs 0023 to 0029.
-# `conftest --data policy/data` loads this file, and the policies read it as
+# the checks K1 to K15. `conftest --data policy/data` loads this file, and the policies read it as
 # data.labels. Change a rule here, not in the Rego code.
 labels:
-  # The prefix of the repository (ADR 0023). A key is <subgroup>.<prefix>/<name>.
+  # The prefix of the repository. A key is <subgroup>.<prefix>/<name>.
   prefix: infra.gsuquet.com
 
-  # The reserved tenant of the infrastructure components (ADR 0026).
+  # The reserved tenant of the infrastructure components.
   platform_tenant: platform
 
-  # The six sub-groups (ADR 0025). For each key:
+  # The six sub-groups. For each key:
   # - type: label or annotation.
   # - kinds: the Kubernetes kinds that can have the key. "Pod" is a pod
   #   template. An empty list: no Kubernetes object can have the key.
   # - cloud: true if the key goes on cloud resources (checks K11 to K13).
   # - The permitted values, one of:
-  #   - values: a list. An empty list permits no value yet: the RFC that gives
-  #     the values adds them.
+  #   - values: a list. An empty list permits no value yet: the change that
+  #     defines the values adds them.
   #   - pattern: a regular expression.
   #   - values_from: tenant or network. The values of the component in
   #     components below.
@@ -52,7 +51,7 @@ labels:
           cloud: true
           pattern: "^[1-9][0-9]*[hd]$"
         type:
-          # TODO(K13, RFC 0004 step 7): K13 computes the set from the
+          # TODO(K13, first cloud instance): K13 computes the set from the
           # cluster-* modules in modules/. Until then, the syntax only.
           type: label
           kinds: []
@@ -70,7 +69,7 @@ labels:
           kinds: [Namespace]
           pattern: "^(https://[^[:space:]]+|[^@[:space:]]+@[^@[:space:]]+)$"
     network:
-      # The zero-trust RFC gives the values, in components below.
+      # The zero-trust network design gives the values, in components below.
       keys:
         zone:
           type: label
@@ -81,7 +80,7 @@ labels:
           kinds: [Namespace]
           values_from: network
     backup:
-      # A later backup RFC gives the values.
+      # The backup design gives the values.
       keys:
         policy:
           type: label
@@ -92,7 +91,7 @@ labels:
           kinds: [Namespace, PersistentVolumeClaim]
           values: []
     cost:
-      # The RFC that adds a cost field to instance.yaml gives the values.
+      # The change that adds a cost field to instance.yaml gives the values.
       keys:
         center:
           type: label
@@ -100,8 +99,8 @@ labels:
           cloud: true
           pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
 
-  # The required keys of each kind (ADR 0026). The network, backup and cost
-  # keys become required in the PR of the RFC that gives their values. The Pod
+  # The required keys of each kind. The network, backup and cost keys become
+  # required in the PR that gives their values. The Pod
   # Security labels and the sync waves have their own checks.
   required:
     # K5: each Namespace in gitops/.
@@ -121,7 +120,7 @@ labels:
         - app.kubernetes.io/name
         - app.kubernetes.io/instance
         - app.kubernetes.io/managed-by
-    # K13 (RFC 0004 step 7): the cloud form of these keys on each cloud resource.
+    # K13 (with the first cloud instance): the cloud form of these keys on each cloud resource.
     cloud:
       labels:
         - instance.infra.gsuquet.com/name

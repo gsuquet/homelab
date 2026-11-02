@@ -23,7 +23,7 @@ gitops/
     └── rendered/<component>/   # Generated manifests. Do not edit.
 ```
 
-`mise run manifests:render` renders each component in `cluster.yaml` to `clusters/<cluster>/rendered/<component>/`. It writes one file for each resource, with the name `<kind>-<name>.yaml`. A resource from an upstream chart gets the prefix `upstream--`, for example `upstream--configmap-argocd-cm.yaml`. A resource is from an upstream chart when the second segment of its `# Source:` path is `charts`. The Conftest policies read the origin from the file name. Two resources with the same kind and name stop the task. Refer to [RFC 0004](../docs/records/rfcs/0004-labels-and-annotations.md) ("Enforcement").
+`mise run manifests:render` renders each component in `cluster.yaml` to `clusters/<cluster>/rendered/<component>/`. It writes one file for each resource, with the name `<kind>-<name>.yaml`. A resource from an upstream chart gets the prefix `upstream--`, for example `upstream--configmap-argocd-cm.yaml`. A resource is from an upstream chart when the second segment of its `# Source:` path is `charts`. The Conftest policies read the origin from the file name. Two resources with the same kind and name stop the task.
 
 Git does not track files in `sources/charts/`. Each dependency in `sources/Chart.yaml` has a `repository` that starts with `https://` or `oci://`. `mise run schemas:check` checks this. Else a chart that you copy into `sources/charts/` gets the prefix `upstream--`.
 
