@@ -4,12 +4,12 @@ This page shows the target tree of the repository and the legacy folders. [ADR 0
 
 ## Status of the tree
 
-The target tree is not complete yet. This page marks each part that does not exist in the repository. The mark is `[not yet]`. Other pull requests (PRs) add these parts, as RFC 0003 ("Rollout") plans.
+The target tree is not complete yet. This page marks each part that does not exist in the repository. The mark is [not yet]. Other pull requests (PRs) add these parts, as RFC 0003 ("Rollout") plans.
 
 This page shows the tree as if two changes are complete:
 
-- The PR that deletes `modules/bootstrap-agent-sandbox/` is merged. RFC 0003 ("Rollout", step 3.2) plans it.
-- The PR that renames `LICENSE.md` to `LICENSE` is merged. [ADR 0021](../records/adrs/0021-use-the-community-health-files-and-the-mit-license.md) decides it.
+- RFC 0003 ("Rollout", step 3.2) plans the PR that deletes `modules/bootstrap-agent-sandbox/`. This page shows the tree after that PR.
+- [ADR 0021](../records/adrs/0021-use-the-community-health-files-and-the-mit-license.md) decides the rename of `LICENSE.md` to `LICENSE`. This page shows the tree after the rename.
 
 RFC 0005 adds a folder `accounts/<account>/` for the provider accounts. Its ADRs are not merged yet, so this page does not show the folder. Refer to [RFC 0005](../records/rfcs/0005-repository-scope-and-naming.md).
 
@@ -67,18 +67,22 @@ Notes on the tree:
 - `ansible/`, `kubernetes/` and `scripts/` are legacy folders. Refer to [Legacy folders](#legacy-folders).
 - The agents RFC decides the place of the agent files. [ADR 0016](../records/adrs/0016-use-the-target-repository-structure.md) leaves them out of the target tree.
 - The tooling RFC decides the choice of tools, their versions and their pins.
+- A script that is not a mise task has no place in the target tree. A shared shell function goes in `.mise/tasks/_base/`.
+- Each tool reads its configuration from the default location of the tool. The repository does not use a flag to change that location.
+- Modules have no `examples/` folder. The instances are the examples.
+- There is no `FUNDING.yml`, here or in `gsuquet/.github`.
 - `.github/CODEOWNERS` exists now. [ADR 0022](../records/adrs/0022-use-rfcs-and-adrs-to-record-decisions-without-codeowners.md) removes it.
 
 ### Items that do not exist yet
 
 | Item | Decided in | Plan |
 | --- | --- | --- |
-| Issue forms and `config.yml` in `.github/` | [ADR 0012](../records/adrs/0012-use-the-label-taxonomy-the-issue-forms-and-the-pr-template.md), [ADR 0021](../records/adrs/0021-use-the-community-health-files-and-the-mit-license.md) | Not in the repository. |
+| Issue forms and `config.yml` in `.github/` | [ADR 0012](../records/adrs/0012-use-the-label-taxonomy-the-issue-forms-and-the-pr-template.md), [ADR 0021](../records/adrs/0021-use-the-community-health-files-and-the-mit-license.md) | No PR plans it yet. [ADR 0016](../records/adrs/0016-use-the-target-repository-structure.md) shows `.github/ISSUE_TEMPLATE/` in this repository. RFC 0002 step 11 plans generic forms in `gsuquet/.github`. |
 | `README.md` and `CONTRIBUTING.md` in the Good Docs Project form | [ADR 0021](../records/adrs/0021-use-the-community-health-files-and-the-mit-license.md) | RFC 0003, "Rollout", step 3.4. |
-| Removal of `CODE_OF_CONDUCT.md` and `SECURITY.md` from the root | [ADR 0021](../records/adrs/0021-use-the-community-health-files-and-the-mit-license.md) | The files move to `gsuquet/.github`. RFC 0003, "Rollout", step 3.4. |
+| Move of `CODE_OF_CONDUCT.md` and `SECURITY.md` out of the root, and a new `SUPPORT.md` | [ADR 0021](../records/adrs/0021-use-the-community-health-files-and-the-mit-license.md) | The files go to `gsuquet/.github`, and this repository keeps no copy. RFC 0003, "Rollout", step 3.4. |
 | Removal of `.github/CODEOWNERS` | [ADR 0022](../records/adrs/0022-use-rfcs-and-adrs-to-record-decisions-without-codeowners.md) | RFC 0003, "Rollout", step 3.6. |
 | Check for the folders at the root | [ADR 0016](../records/adrs/0016-use-the-target-repository-structure.md) | No check exists. The reviewer checks the tree. |
-| Check for the Terraform file names and the other names marked "None yet" | [ADR 0017](../records/adrs/0017-use-the-terraform-module-and-instance-layout.md), [ADR 0019](../records/adrs/0019-use-the-naming-rules.md) | RFC 0003, "Rollout", step 3.7. |
+| Check for the Terraform file names and the other names with "None yet" in the naming table | [ADR 0017](../records/adrs/0017-use-the-terraform-module-and-instance-layout.md), [ADR 0019](../records/adrs/0019-use-the-naming-rules.md) | RFC 0003, "Rollout", step 3.7. |
 
 ## Terraform modules and instances
 
@@ -102,6 +106,7 @@ Notes on the tree:
 | `charts/<chart>/` | No | A copy of an upstream chart, without change. |
 
 - A module has no `providers.tf` and no `backend.tf`. The instance configures the providers and the state.
+- A module has no `examples/` folder.
 - A copy of upstream content keeps the license of its source. The folder of the copy holds the license file of the source. `README.md` of the module names the source, the version and the license.
 
 ### Files of an instance
@@ -137,7 +142,7 @@ gitops/
 └── clusters/<cluster>/
     ├── cluster.yaml                      # Entry point: the components of the cluster
     ├── values/<component>.yaml           # Optional. Values for this cluster only
-    └── rendered/<component>/             # Generated manifests. Do not edit.
+    └── rendered/<component>/             # Generated manifests. The render task writes them.
 ```
 
 - A cluster selects its components in `cluster.yaml`. It can override values in `values/`.
@@ -150,28 +155,28 @@ gitops/
 
 [ADR 0019](../records/adrs/0019-use-the-naming-rules.md) decides the names. The general rule: the base of a folder or file name uses lowercase letters, digits and hyphens. It starts and ends with a letter or a digit. It has a maximum of 63 characters.
 
-| Item | Rule | Example |
-| --- | --- | --- |
-| Module folder | `<layer>-<component>`. Layer is `substrate`, `cluster` or `bootstrap`. Maximum 63 characters. | `bootstrap-cilium` |
-| Instance folder | DNS-1123 label. Maximum 40 characters. | `kind-local` |
-| GitOps cluster folder | Equal to the instance name. Maximum 40 characters. | `gitops/clusters/kind-local/` |
-| GitOps component folder | DNS-1123 label. Equal to the Application name. Unique in a cluster. Maximum 53 characters. | `cert-manager` |
-| Namespace of a component | DNS-1123 label. Maximum 63 characters. | `cert-manager` |
-| Rendered manifest file | `<kind>-<name>.yaml`, lowercase | `configmap-argocd-cm.yaml` |
-| Terraform identifiers | Snake case. No resource type in the name. `this` for a single resource. | `api_server_address` |
-| Terraform files | `terraform.tf`, `providers.tf`, `main.tf`, `variables.tf`, `outputs.tf`, `locals.tf`, `backend.tf`, `<topic>.tf` | `cluster-issuers.tf` |
-| Template files | `<name>.<extension>.tftpl` | `cilium-values.yaml.tftpl` |
-| Helm values | Camel case | `targetRevision` |
-| Rego files | `<input>.rego` and `<input>_test.rego`. The package is `<input>`. The package of the test is `<input>_test`. | `kubernetes_test.rego` |
-| Schemas | `<kind>.schema.json`. `kind` is the kebab-case form of the `kind` field. | `gitops-cluster.schema.json` |
-| Records | `NNNN-short-title.md` | `0003-repository-structure.md` |
-| Documentation pages | DNS-1123 label, with `.md` | `add-gitops-component.md` |
+| Item | Rule | Example | Check |
+| --- | --- | --- | --- |
+| Module folder | `<layer>-<component>`. Layer is `substrate`, `cluster` or `bootstrap`. Maximum 63 characters. | `bootstrap-cilium` | `module.schema.json`. The folder name equals `name`. |
+| Instance folder | DNS-1123 label. Maximum 40 characters. | `kind-local` | `instance.schema.json` |
+| GitOps cluster folder | Equal to the instance name. Maximum 40 characters. | `gitops/clusters/kind-local/` | `gitops-cluster.schema.json`, `instance-checks.sh` |
+| GitOps component folder | DNS-1123 label. Equal to the Application name. Unique in a cluster. Maximum 53 characters, the limit of a Helm release name. | `cert-manager` | `gitops-cluster.schema.json`, `instance-checks.sh` |
+| Namespace of a component | DNS-1123 label. Maximum 63 characters. | `cert-manager` | `gitops-cluster.schema.json` |
+| Rendered manifest file | `<kind>-<name>.yaml`, lowercase | `configmap-argocd-cm.yaml` | `manifests:render` writes it |
+| Terraform identifiers | Snake case. No resource type in the name. `this` for a single resource. | `api_server_address` | TFLint |
+| Terraform files | `terraform.tf`, `providers.tf`, `main.tf`, `variables.tf`, `outputs.tf`, `locals.tf`, `backend.tf`, `<topic>.tf` | `cluster-issuers.tf` | None yet |
+| Template files | `<name>.<extension>.tftpl` | `cilium-values.yaml.tftpl` | None yet |
+| Helm values | Camel case | `targetRevision` | None yet |
+| Rego files | `<input>.rego` and `<input>_test.rego`. The package is `<input>`. The package of the test is `<input>_test`. | `kubernetes_test.rego` | None yet |
+| Schemas | `<kind>.schema.json`. `kind` is the kebab-case form of the `kind` field. | `gitops-cluster.schema.json` | None yet |
+| Records | `NNNN-short-title.md` | `0003-repository-structure.md` | None yet |
+| Documentation pages | DNS-1123 label, with `.md` | `add-gitops-component.md` | None yet |
 
 Exceptions:
 
 - Names that a tool or GitHub requires keep their form. Examples: `README.md`, `SECURITY.md`, `Chart.yaml`, `LICENSE` and `.terraform.lock.hcl`.
 - Names that start with `_` are not items. Examples: `modules/_template/` and `.mise/tasks/_base/`.
-- Rego file names use underscores.
+- Rego file names use underscores, because a Rego package name cannot have a hyphen.
 - A file extension can have more than one part, for example `.schema.json`.
 - A rendered manifest file can have dots, for example `customresourcedefinition-applications.argoproj.io.yaml`.
 - `schemas/tests/gitops-tree/` and `schemas/tests/instance-terraform/` name a tree, not a `kind`.
@@ -182,16 +187,16 @@ The production cluster `olympus` still runs from `ansible/`, `kubernetes/` and `
 
 | Folder | Content now | Rule |
 | --- | --- | --- |
-| `ansible/` | `ansible.cfg`, `inventory/`, `playbooks/`, `roles/` | Deprecated. Do not add files. |
-| `kubernetes/` | `applications/`, `bootstrap/`, `projects/`, `system/` | Deprecated. Do not add files. Do not move, rename or delete a folder: the production Argo CD reads these paths. |
-| `scripts/` | `generate-ansible-docs.sh` | Deprecated. Do not add files. |
+| `ansible/` | `ansible.cfg`, `inventory/`, `playbooks/`, `roles/` | Deprecated. The rule: no new files. |
+| `kubernetes/` | `applications/`, `bootstrap/`, `projects/`, `system/` | Deprecated. The rule: no new files. A move, a rename or a deletion of a folder deletes the production workloads, because the production Argo CD reads these paths. |
+| `scripts/` | `generate-ansible-docs.sh` | Deprecated. The rule: no new files. |
 
 The rules of the "deprecated" state (ADR 0020):
 
-- Each legacy folder has a `README.md`. Its first heading contains "Deprecated". It gives the reason and a link to RFC 0003. **[not yet]**
-- The mise task `lint:legacy` fails when a change adds a file in a legacy folder. A move into a legacy folder counts as an added file. A change to an existing file stays possible. **[not yet]**
-- The task ignores only `kubernetes/bootstrap/argo-cd/manifests/*.yaml`. **[not yet]**
-- The file `.mise/tasks/lint/legacy-allowlist.txt` lists the paths that a migration fix can add. **[not yet]**
+- Each legacy folder has a `README.md`. Its first heading contains "Deprecated". It gives the reason and a link to RFC 0003. [not yet] (RFC 0003, "Rollout", step 3.1)
+- The mise task `lint:legacy` fails when a change adds a file in a legacy folder. A move into a legacy folder counts as an added file. A change to an existing file stays possible. [not yet] (step 3.1)
+- The task ignores only `kubernetes/bootstrap/argo-cd/manifests/*.yaml`. [not yet] (step 3.1)
+- The file `.mise/tasks/lint/legacy-allowlist.txt` lists the paths that a migration fix can add. [not yet] (step 3.1)
 - The Vale, Renovate, pre-commit and render rules for these folders stay.
 
 Removal: after `olympus` runs from `instances/` and `gitops/clusters/`, one PR removes the legacy folders, their rules, `lint:legacy`, its allowlist and this section.

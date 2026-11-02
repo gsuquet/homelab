@@ -1,10 +1,10 @@
 ---
 adr: "0001"
-status: accepted
-date: 2026-10-31
+status: superseded
+date: 2026-11-02
 rfc: "0001"
 supersedes: []
-superseded-by: null
+superseded-by: "0022"
 ---
 
 # ADR 0001: Use RFCs and ADRs to record decisions
