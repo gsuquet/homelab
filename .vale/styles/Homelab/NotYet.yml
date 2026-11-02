@@ -1,0 +1,9 @@
+# A page describes the system as built. It has no "[not yet]" markers.
+# Refer to docs/reference/writing-rules.md.
+extends: existence
+message: "Remove '%s'. Describe the system as built, in the present tense."
+level: error
+ignorecase: true
+nonword: true
+tokens:
+  - \[not yet\]

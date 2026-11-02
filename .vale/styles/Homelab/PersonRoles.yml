@@ -1,0 +1,14 @@
+# The documentation does not name a person by a role. It names the agents, or
+# it states the rule with no person. "Owner" in a label key or a CLI flag is
+# code: write it in backticks, and Vale does not check it.
+# Refer to docs/reference/writing-rules.md.
+extends: existence
+message: "Remove '%s'. Do not name a person as an owner or a maintainer. State the rule, or name the agents."
+level: error
+ignorecase: true
+raw:
+  # These uses are not about a person of this repository: "Code Owners", the
+  # name of a GitHub setting; "file owner", a field of a file system; and
+  # "owner reference", a Kubernetes field. A repository path, for example
+  # `owner/repo`, is in backticks, and Vale does not check it.
+  - (?<!\b(?:code|file) )\b(?:owner|maintainer)s?\b(?! references?\b)
