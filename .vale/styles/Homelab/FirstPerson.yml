@@ -1,0 +1,14 @@
+# The documentation has no author voice. A page uses the language of its
+# Diátaxis type: "we" in a tutorial, the imperative in a how-to guide, and
+# neutral statements in reference and explanation pages.
+# Refer to docs/reference/writing-rules.md.
+extends: existence
+message: "Remove '%s'. Do not write in the first person singular. Use the language of the page type."
+level: error
+ignorecase: false
+# Vale joins the items of "raw" into one expression, so the alternatives are
+# in one item. "I" matches as a word, but not the "I" of "I/O" or the roman
+# numeral of "Part I", "Section I" and "Type I". The other words match in all
+# cases.
+raw:
+  - \b(?:(?<!\b(?:Part|Section|Type) )I(?!/)|(?i:my|me|mine|myself))\b

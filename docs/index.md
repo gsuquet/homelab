@@ -21,8 +21,6 @@ Learning-oriented guides that walk you through end-to-end tasks. Start here if y
 
 | Guide | Description |
 | ----- | ----------- |
-| [Getting Started](tutorials/01-getting-started.md) | Provision `olympus.local` from scratch — Ansible, K3S, ArgoCD |
-| [Add Your First Application](tutorials/02-add-first-application.md) | Deploy a new self-hosted app to the cluster via GitOps |
 | [Run Your First Local Cluster](tutorials/run-your-first-local-cluster.md) | Start `kind-local`, watch Argo CD sync it from Git, and remove it |
 
 ---
@@ -33,11 +31,6 @@ Task-oriented recipes that solve a specific problem. Assumes familiarity with th
 
 | Guide | Description |
 | ----- | ----------- |
-| [Provision a New Server](how-to/provision-new-server.md) | Add a new node or reprovision an existing one |
-| [Upgrade K3S](how-to/upgrade-k3s.md) | Upgrade the Kubernetes distribution to a new version |
-| [Update ArgoCD](how-to/update-argocd.md) | Bump the ArgoCD Helm chart version |
-| [Manage Secrets](how-to/manage-secrets.md) | Create and commit encrypted secrets with Sealed Secrets |
-| [Add a Zigbee Device](how-to/add-zigbee-device.md) | Pair a new Zigbee device and expose it to Home Assistant |
 | [Render Manifests](how-to/render-manifests.md) | Re-render Helm charts to plain YAML after a config change |
 | [Add a GitOps Component](how-to/add-gitops-component.md) | Deploy an infrastructure component or an app to a cluster with Argo CD |
 | [Open the Argo CD UI](how-to/open-argocd-ui.md) | Log in to Argo CD on an instance with a port-forward |
@@ -56,9 +49,7 @@ Information-oriented documentation for looking up technical details.
 | Document | Description |
 | -------- | ----------- |
 | [Repository Structure](reference/repository-structure.md) | Annotated directory tree of the full repository |
-| [Ansible Roles](reference/ansible-roles/index.md) | All roles with purpose, key variables, and usage |
 | [Terraform Modules](reference/terraform-modules/index.md) | Infrastructure modules for cluster & local dev |
-| [Applications](reference/applications.md) | Deployed apps with versions, ports, and storage |
 | [Mise Tasks](reference/mise-tasks.md) | All `mise run` tasks with descriptions and usage |
 | [Instance Tasks](reference/instance-tasks.md) | `instance:plan`, `instance:up` and `instance:down`: steps, variables and exit status |
 | [Tools](reference/tools.md) | All project tools with versions and install methods |
@@ -77,11 +68,8 @@ Understanding-oriented documents that explain how the system works, and why. Eac
 
 | Document | Description |
 | -------- | ----------- |
-| [Architecture](explanation/architecture.md) | Overall system design and component relationships |
 | [GitOps with ArgoCD](explanation/gitops-with-argocd.md) | How ArgoCD manages the cluster from Git |
 | [Rendered Manifests Pattern](explanation/rendered-manifests-pattern.md) | Why Helm charts are pre-rendered and committed |
-| [Secret Management](explanation/secret-management.md) | How Sealed Secrets enables encrypted GitOps secrets |
-| [Smart Home Stack](explanation/smart-home-stack.md) | How Zigbee2MQTT, Mosquitto, and Home Assistant work together |
 | [Automated Updates](explanation/automated-updates.md) | How Renovate keeps dependencies current |
 | [How We Work](explanation/how-we-work.md) | The doc-first workflow, the review and the merge, and why |
 | [Repository Structure](explanation/repository-structure.md) | Why the tree, the layouts and the naming rules have their form |

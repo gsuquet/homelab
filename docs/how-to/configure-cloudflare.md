@@ -28,7 +28,6 @@ The `TOKEN` is read from a sealed secret named `cloudflared-credentials`.
 
 - A Cloudflare account with a domain configured
 - A tunnel created in the [Cloudflare Zero Trust dashboard](https://one.dash.cloudflare.com/)
-- `kubeseal` installed (see [Manage Secrets](manage-secrets.md))
 
 ---
 
