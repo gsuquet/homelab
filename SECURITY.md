@@ -25,4 +25,4 @@ Instead, please email vulnerability details directly to:
 
 - **Secrets Management**: Sealed Secrets (RSA encrypted) for GitOps secrets.
 - **Host Security**: SSH password authentication disabled, UFW firewall rules enforced via Ansible (`os_hardening`).
-- **Dependency Scanning**: Gitleaks secret detection, Trivy vulnerability scanning, Renovate automated dependency updates.
+- **Dependency Scanning**: Gitleaks secret detection, Renovate automated dependency updates.
