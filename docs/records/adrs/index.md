@@ -47,6 +47,13 @@ The repository keeps all ADRs, also the ADRs with the status `rejected`.
 | [0027](0027-use-the-annotation-tracking-method-of-argo-cd.md) | Use the annotation tracking method of Argo CD | [0004](../rfcs/0004-labels-and-annotations.md) | `proposed` |
 | [0028](0028-map-kubernetes-keys-to-cloud-labels-and-tags-with-one-rule.md) | Map Kubernetes keys to cloud labels and tags with one rule | [0004](../rfcs/0004-labels-and-annotations.md) | `proposed` |
 | [0029](0029-enforce-the-key-rules-with-conftest-checks.md) | Enforce the key rules with Conftest checks | [0004](../rfcs/0004-labels-and-annotations.md) | `proposed` |
+| [0030](0030-keep-one-repository-with-the-scope-rule.md) | Keep one repository with the scope rule | [0005](../rfcs/0005-repository-scope-and-naming.md) | `proposed` |
+| [0031](0031-manage-provider-accounts-in-accounts-account.md) | Manage provider accounts in `accounts/<account>/` | [0005](../rfcs/0005-repository-scope-and-naming.md) | `proposed` |
+| [0032](0032-name-the-repository-the-key-prefix-and-the-cloud-tag-keys-infra.md) | Name the repository, the key prefix and the cloud tag keys `infra` | [0005](../rfcs/0005-repository-scope-and-naming.md) | `proposed` |
+| [0033](0033-import-existing-resources-with-import-blocks.md) | Import existing resources with import blocks | [0005](../rfcs/0005-repository-scope-and-naming.md) | `proposed` |
+| [0034](0034-meet-the-state-requirements-s1-to-s6.md) | Meet the state requirements S1 to S6, with an exception for accounts | [0005](../rfcs/0005-repository-scope-and-naming.md) | `proposed` |
+| [0035](0035-let-only-the-owner-apply-account-changes-with-scoped-credentials.md) | Let only the owner apply account changes, with scoped credentials | [0005](../rfcs/0005-repository-scope-and-naming.md) | `proposed` |
+| [0036](0036-put-a-budget-in-each-aws-gcp-and-azure-account-first.md) | Put a budget in each AWS, GCP and Azure account first | [0005](../rfcs/0005-repository-scope-and-naming.md) | `proposed` |
 
 ## Source of the template
 
