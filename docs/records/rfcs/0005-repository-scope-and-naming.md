@@ -333,6 +333,11 @@ Decision: from now on, the home of the tunnel and its DNS records is `accounts/c
 
 Decision: the recommendation for the tooling RFC is Cloudflare R2, through the `s3` backend, if a test shows that locking works on R2. Else HCP Terraform Free (owner, in chat, 2026-11-02). The tooling RFC makes the final choice. Until then, the exception for accounts in "Terraform state" applies.
 
+The risks of the selected options:
+
+- **R2.** HashiCorp supports S3-compatible services as "best effort" ([S3 backend](https://developer.hashicorp.com/terraform/language/backend/s3)). This RFC did not verify that `use_lockfile` works on R2, or the encryption at rest on R2. The Cloudflare state then sits in Cloudflare.
+- **HCP Terraform Free.** Up to 500 managed resources and one run at a time ([HCP Terraform overview](https://developer.hashicorp.com/terraform/cloud-docs/overview)). The page does not list the state storage in the Free features in so many words. A new vendor and a new credential.
+
 #### 5. The tokens of the agents
 
 Decision, "for now": the agents get no provider token. They write the code and the import blocks. The owner runs `plan` and `apply`, and posts the plan in the PR (owner, in chat, 2026-11-02). The agent identity RFC revisits this decision.
@@ -351,11 +356,13 @@ Decision: the cloud key form of RFC 0004 on all the providers, for example `inst
 
 #### 9. The order of the ADRs with RFC 0003
 
-Decision: the ADR from this RFC adds `accounts/` and supersedes the structure ADR of RFC 0003 completely, with a restatement (owner, in chat, 2026-11-02). RFC 0003 stays closed. This follows ADR 0005, which has no partial supersede.
+Decision: the ADRs of RFC 0003 use "the root of the repository", not `homelab/`. The ADR from this RFC adds `accounts/` and supersedes the structure ADR of RFC 0003 completely, with a restatement (owner, in chat, 2026-11-02). RFC 0003 stays closed. This follows ADR 0005, which has no partial supersede.
 
 #### 10. The plan of each account
 
 Decision: a mix (owner, in chat, 2026-11-02). Free plans for experiments. Paid plans with budgets from the first commit for long-lived items. The owner selects the plan of each account. Nothing long-lived goes on a plan that ends (G4). The AWS caution applies: joining AWS Organizations upgrades the Free plan to the Paid plan.
+
+The free plans end. An ended AWS Free plan closes the account, and AWS deletes it after 90 days ([AWS: choosing a plan](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/free-tier-plans.html)). GCP deletes the resources of an ended Free Trial after 30 days ([Google Cloud: free features](https://docs.cloud.google.com/free/docs/free-cloud-features)). On Azure, "a spending limit doesn't prevent all charges" ([Azure: spending limit](https://learn.microsoft.com/en-us/azure/cost-management-billing/manage/spending-limit)).
 
 ## Security considerations
 
