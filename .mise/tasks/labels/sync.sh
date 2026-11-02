@@ -34,6 +34,10 @@ lower() {
     printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
 }
 
+if [ "$yes" = "true" ] && [ "$prune" != "true" ]; then
+    log_warn "--yes only applies with --prune."
+fi
+
 # Refuse to delete without a way to ask. Do this before any write.
 if [ "$prune" = "true" ] && [ "$dry_run" != "true" ] && [ "$yes" != "true" ] && [ ! -t 0 ]; then
     log_error "--prune needs a terminal for the y/N question, or the --yes flag."
@@ -114,7 +118,8 @@ if [ "$prune" = "true" ]; then
         printf '  %s\n' "${stale[@]}"
         log_warn "Deleting a label removes it from every issue and PR."
         if [ "$dry_run" != "true" ] && [ "$yes" != "true" ]; then
-            read -r -p "Delete these ${#stale[@]} label(s)? [y/N] " answer
+            # EOF (Ctrl-D) counts as "no".
+            read -r -p "Delete these ${#stale[@]} label(s)? [y/N] " answer || answer=""
             if [ "$answer" != "y" ] && [ "$answer" != "Y" ]; then
                 log_info "No label deleted."
                 exit 0

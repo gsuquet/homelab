@@ -254,7 +254,7 @@ The task checks the file first: each label has a name, a color of 6 hex digits a
 
 | Flag | Effect |
 | --- | --- |
-| `--dry-run` | Prints each create, update and delete command. It makes no write call. With `--prune`, it reads the labels of the repository with `gh label list`. |
+| `--dry-run` | Prints each create, update and delete command. It makes no write call. It reads the labels of the repository with `gh label list`, so it needs `gh` authentication and network access. |
 | `--prune` | Prints the labels that are not in the file, then asks `[y/N]`, then deletes them with `gh label delete`. Without a terminal, the task refuses unless you add `--yes`. |
 | `--yes` | With `--prune`, deletes with no question. |
 
