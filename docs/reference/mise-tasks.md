@@ -246,7 +246,7 @@ Run it after you change a provider version. Commit the `.terraform.lock.hcl` fil
 ### `labels:sync`
 
 **Script**: `.mise/tasks/labels/sync.sh`
-**Description**: Make the labels of the repository equal to `.github/labels.yml`. Only the owner runs this task, because it changes the labels of the repository. Refer to [RFC 0002](../records/rfcs/0002-how-we-work.md) ("Labels as code") and [ADR 0012](../records/adrs/0012-use-the-label-taxonomy-the-issue-forms-and-the-pr-template.md).
+**Description**: Make the labels of the repository equal to `.github/labels.yml`. Run this task by hand, because it changes the labels of the repository. Refer to [RFC 0002](../records/rfcs/0002-how-we-work.md) ("Labels as code") and [ADR 0012](../records/adrs/0012-use-the-label-taxonomy-the-issue-forms-and-the-pr-template.md).
 
 The task always targets `gsuquet/homelab`. It does not use the git remotes. The `gh` login needs write access to the issues of the repository.
 

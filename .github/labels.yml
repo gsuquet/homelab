@@ -1,5 +1,5 @@
 # Labels of the repository. RFC 0002 ("Labels as code") and ADR 0012 define them.
-# Apply with `mise run labels:sync`. Only the owner runs it.
+# Apply with `mise run labels:sync`. Run it by hand, because it changes the labels of the repository.
 # color: 6 hex digits, no "#". description: 100 characters or fewer.
 
 # kind/: what is this item?
@@ -52,9 +52,9 @@
 - name: state/blocked
   color: "9A6700"
   description: Another item or an outside event blocks this item. The description tells which.
-- name: state/needs-owner
+- name: state/needs-decision
   color: "9A6700"
-  description: The item waits for a decision of the owner.
+  description: Waiting for a decision before work continues
 
 # No prefix: Renovate sets these.
 - name: renovate

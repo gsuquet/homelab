@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Make the labels of the repository equal to .github/labels.yml (owner only). Flags: --dry-run, --prune, --yes"
+#MISE description="Make the labels of the repository equal to .github/labels.yml (run by hand). Flags: --dry-run, --prune, --yes"
 #USAGE flag "--dry-run" help="Print each create, update and delete command. No write call."
 #USAGE flag "--prune" help="Delete each repository label that is not in labels.yml"
 #USAGE flag "--yes" help="With --prune, delete without the y/N question"
