@@ -130,7 +130,7 @@ Sources: [Kubernetes: recommended labels](https://kubernetes.io/docs/concepts/ov
 
 | Method | Key | Problem |
 | --- | --- | --- |
-| `label` | `app.kubernetes.io/instance`, or the key in `application.instanceLabelKey` | Max. 63 characters. Helm and operators also write `app.kubernetes.io/instance`, thus Argo CD can find the wrong owner. |
+| `label` | `app.kubernetes.io/instance`, or the key in `application.instanceLabelKey` | Max. 63 characters. Helm and operators also write `app.kubernetes.io/instance`, thus Argo CD can find the wrong Application that manages the object. |
 | `annotation` | `argocd.argoproj.io/tracking-id`, value `<app>:<group>/<kind>:<namespace>/<name>` | None of the label problems. |
 | `annotation+label` | Both | The label is for information only. |
 
