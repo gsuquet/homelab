@@ -140,7 +140,6 @@ mise run tf:docs
 
 1. Runs `mise run tf:docs` to auto-generate Terraform module READMEs
 2. Syncs module READMEs to `docs/reference/terraform-modules/<module>/index.md`
-3. Executes `scripts/generate-ansible-docs.sh` to extract tasks and default variables from Ansible roles and inject them into `docs/reference/ansible-roles/<role>/index.md`
 
 **Usage**:
 

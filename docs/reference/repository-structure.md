@@ -188,7 +188,6 @@ The production cluster `olympus` still runs from `ansible/`, `kubernetes/` and `
 | --- | --- | --- |
 | `ansible/` | `ansible.cfg`, `inventory/`, `playbooks/`, `roles/` | Deprecated. The rule: no new files. |
 | `kubernetes/` | `applications/`, `bootstrap/`, `projects/`, `system/` | Deprecated. The rule: no new files. A move, a rename or a deletion of a folder deletes the production workloads, because the production Argo CD reads these paths. |
-| `scripts/` | `generate-ansible-docs.sh` | Deprecated. The rule: no new files. |
 
 The rules of the "deprecated" state:
 
