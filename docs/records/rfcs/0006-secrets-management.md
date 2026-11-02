@@ -428,7 +428,7 @@ The agents run as the user of the owner (RFC 0002, RFC 0005).
 Rules for the agents:
 
 - Never run `sops decrypt`, `sops edit`, `sops exec-env`, `kubectl get secret -o yaml`, `secrets:apply`, or any `terraform` command in `instances/*/secrets/`. Never read `keys.txt` or a `.tfstate` file, and never delete one.
-- Never run `kubectl create token` for the proxy `ServiceAccount` of `agentgateway-system`, and never read its token file. Never run `vertex:jwks` or a `terraform` command in `accounts/`.
+- Never run `kubectl create token` for the proxy `ServiceAccount` of `agentgateway-system`, and never read its token file. Never run a `terraform` command in `accounts/`, never edit `accounts/gcp/jwks/` by hand, and never merge a PR that touches `accounts/`. Agents may run `vertex:jwks`: it writes public keys to a file in a PR (RFC 0008).
 - `mise run instance:up` and `instance:down` stay permitted. After a re-create of a cluster with seeds, tell the owner.
 - No agent session runs while the owner edits a SOPS file or runs `secrets:apply`.
 - Write the code around a secret, never the value. If a value shows in the output of an agent, the owner rotates it.
