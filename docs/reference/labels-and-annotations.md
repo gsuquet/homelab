@@ -5,7 +5,7 @@ This page lists the label and annotation keys of the repository and the checks t
 | File | Content |
 | --- | --- |
 | `policy/data/labels.yaml` | The data of the checks: the prefix, the sub-groups and their keys, the required keys, the tenants of the components and the allowlists. `conftest --data policy/data` loads it as `data.labels`. |
-| `policy/kubernetes/kubernetes.rego` | The checks of the Kubernetes objects, in the `kubernetes` namespace. Each message starts with the ID of its check, for example `K4`. |
+| `policy/kubernetes/kubernetes.rego` | The checks of the Kubernetes objects, in the `kubernetes` namespace. Each message has the path of the file, then the ID of its check, for example `K4`. |
 | `policy/kubernetes/kubernetes_test.rego` | A test for each case that a check permits and each case that it refuses. |
 
 `mise run lint:policy` runs the tests, then the checks. In this page, `<p>` is the prefix of the repository, `infra.gsuquet.com`.
@@ -15,11 +15,11 @@ This page lists the label and annotation keys of the repository and the checks t
 `lint:policy` gives these files to the `kubernetes` policies, in one `conftest --combine` run:
 
 - the files that Git tracks and that match `gitops/*.yaml` or `kubernetes/*.yaml`;
-- except the Helm templates, `gitops/*/sources/templates/*`. They are not YAML before they render.
+- except the Helm templates, `gitops/*/sources/templates/*`.
 
 A file that Git does not track is not an input.
 
-An object with an `apiVersion` in the group `infra.gsuquet.com`, for example `cluster.yaml`, is not a Kubernetes object. The label checks ignore it, but K4, K15 and the tenant rules read `gitops/clusters/<cluster>/cluster.yaml`.
+An object with an `apiVersion` in the group `infra.gsuquet.com`, for example `cluster.yaml`, is not a Kubernetes object. The label checks ignore it, but K4, K14 and K15 read `gitops/clusters/<cluster>/cluster.yaml`.
 
 ### Origin of an object
 
@@ -58,9 +58,9 @@ Kubernetes applies the same key rules to labels and to annotations ([labels](htt
 | Key name | Mandatory. Max. 63 characters. It starts and ends with a letter or a digit. Between them: letters, digits, `-`, `_` and `.`. |
 | Label value | A string of max. 63 characters, or empty. If not empty, it starts and ends with a letter or a digit. Between them: letters, digits, `-`, `_` and `.`. |
 | Annotation value | A string. |
-| Annotation size | The keys and values of the annotations of one block have max. 262144 bytes (256 KiB). |
+| Annotation size | The keys and values of the annotations of one block have max. 262144 characters. |
 
-A number or a boolean is not a string. Quote it in YAML, for example `"-2"` or `"true"`.
+In YAML, a number or a boolean is not a string. `"-2"` and `"true"` are strings.
 
 K1 adds two rules for the keys of the repository, the keys with the prefix `<p>` or `<subgroup>.<p>`:
 
@@ -99,7 +99,7 @@ A key of the repository has the form `<subgroup>.infra.gsuquet.com/<name>`. `dat
 
 - "None" in the column "Kinds" means that no Kubernetes object can have the key. K4 refuses it on each object.
 - "None" in the column "Permitted values" means that the list of values is empty. K4 refuses each value.
-- The `instance` and `cost` keys have `cloud: true` in `data.labels`. They are the keys of the cloud resources. No policy checks the cloud resources.
+- The `instance` and `cost` keys have `cloud: true` in `data.labels`. `cloud: true` marks a key for cloud resources. No policy checks cloud resources.
 
 ### Tenants of the components
 
@@ -128,7 +128,7 @@ components:
 | `Namespace` in `gitops/` | `pod-security.kubernetes.io/enforce`, `audit` and `warn`, each `privileged`, `baseline` or `restricted` | `argocd.argoproj.io/sync-wave: "-2"` | Namespace checks, `deny` |
 | `Namespace` in `gitops/` | `tenant.<p>/name`, `ownership.<p>/owner` | None | K5, `warn` |
 | `CustomResourceDefinition` in `gitops/` | None | `argocd.argoproj.io/sync-wave: "-1"` | Sync wave check, `deny` |
-| The pod template of a workload | `app.kubernetes.io/name`, `app.kubernetes.io/instance`, `app.kubernetes.io/part-of` | None | K6 or K7, `warn` |
+| The pod template of a workload or a `CronJob` | `app.kubernetes.io/name`, `app.kubernetes.io/instance`, `app.kubernetes.io/part-of` | None | K6 or K7, `warn` |
 | The `metadata` block of each object in `gitops/` | `app.kubernetes.io/name`, `app.kubernetes.io/instance`, `app.kubernetes.io/managed-by` | None | K6 or K7, `warn` |
 
 `data.labels.required` holds the lists of K5, K6 and K7. It also holds `required.cloud`: `instance.<p>/name`, `purpose`, `lifecycle` and `type`, and `ttl` for an ephemeral instance. No policy reads `required.cloud`. The tests check that each of its keys is a label with `cloud: true`.
@@ -152,7 +152,7 @@ components:
 | K14 Pod Security of applications | Each `Namespace` of an `apps` component | `pod-security.kubernetes.io/enforce` is in `data.labels.apps_pod_security_levels`: `restricted` or `baseline`. The K14 allowlist permits other levels. | `deny` |
 | K15 Namespace of a component | Each `Namespace` in `rendered/<component>/`, and `cluster.yaml` | The name of the `Namespace` is the `namespace` of the component in `cluster.yaml`. The K15 upstream allowlist permits other names. Two components of one cluster do not have the same namespace. An `apps` component does not use a namespace of the K15 reserved list. | `deny` |
 
-"Workload" is a `Deployment`, a `StatefulSet`, a `DaemonSet`, a `Job` or a `ReplicaSet`. The legacy files in `kubernetes/` get only K1.
+"Workload" is a `Deployment`, a `StatefulSet`, a `DaemonSet`, a `Job` or a `ReplicaSet`. K6 and K7 also read the pod template of a `CronJob`. The legacy files in `kubernetes/` get only K1.
 
 ### Other checks of keys
 
@@ -167,7 +167,7 @@ components:
 
 ### Checks of the data file
 
-These checks are `deny`. They make sure that a check cannot pass in silence.
+These checks are `deny`. They check `policy/data/labels.yaml` itself.
 
 - `data.labels` is not loaded: the message tells to run Conftest with `--data policy/data`.
 - A key of `data.labels` that a check reads is missing or has the wrong type.
@@ -218,6 +218,6 @@ Each `Application` of a component has `ServerSideApply=true` in `spec.syncPolicy
 ## Related pages
 
 - [Label a GitOps component](../how-to/label-a-gitops-component.md)
-- [Labels and annotations (explanation)](../explanation/labels-and-annotations.md)
+- [Why the label scheme has its form](../explanation/labels-and-annotations.md)
 - [Policies](policies.md)
 - [Add a GitOps component](../how-to/add-gitops-component.md)

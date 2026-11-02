@@ -7,7 +7,12 @@ Use this guide when one of these occurs:
 - You add a component to `gitops/infrastructure/` or `gitops/apps/`.
 - `mise run lint:policy` prints a `K1` to `K15` message for the files of a component.
 
-The guide uses `<component>` for the name of the component, and `<namespace>` for its `namespace` in `gitops/clusters/<cluster>/cluster.yaml`.
+The guide uses `<component>` for the name of the component.
+
+## Before you start
+
+- The component has a folder in `gitops/<group>/<component>/sources/` and an entry in `gitops/clusters/<cluster>/cluster.yaml`. Refer to [Add a GitOps component](add-gitops-component.md).
+- You ran `mise install`.
 
 ## Give the component a tenant
 
@@ -46,10 +51,9 @@ The guide uses `<component>` for the name of the component, and `<namespace>` fo
        argocd.argoproj.io/sync-wave: "-2"
    ```
 
-   `.Release.Namespace` is the namespace of the component in `cluster.yaml`. `.Release.Name` is the component name.
-
-3. Set `<tenant>` to `platform` for an `infrastructure` component, or to the tenant of the component in `policy/data/labels.yaml`.
-4. For an `apps` component, use the Pod Security level `restricted` or `baseline`.
+3. Set `<tenant>` to `platform` for an `infrastructure` component.
+4. Set `<tenant>` to the tenant in `policy/data/labels.yaml` for an `apps` component.
+5. For an `apps` component, use the Pod Security level `restricted` or `baseline`.
 
 ## Label the other objects
 
@@ -61,7 +65,7 @@ The guide uses `<component>` for the name of the component, and `<namespace>` fo
    app.kubernetes.io/managed-by: {{ .Release.Service }}
    ```
 
-2. In the pod template of each workload, set these labels in `spec.template.metadata.labels`:
+2. In the pod template of each workload, set these labels:
 
    ```yaml
    app.kubernetes.io/name: {{ .Chart.Name }}
@@ -69,10 +73,10 @@ The guide uses `<component>` for the name of the component, and `<namespace>` fo
    app.kubernetes.io/part-of: <component>
    ```
 
-3. In a selector, use only `app.kubernetes.io/name` and `app.kubernetes.io/instance`. Do not use `app.kubernetes.io/version` or `helm.sh/chart`.
-4. Give each key that you add a prefix. Use only the keys of the repository that `policy/data/labels.yaml` defines.
-
-Do not put secrets, credentials or personal data in a label or an annotation. Each reader of the cluster can see them.
+3. In a selector, use only `app.kubernetes.io/name` and `app.kubernetes.io/instance`.
+4. Give each new key a prefix.
+5. Use only the keys of the repository that `policy/data/labels.yaml` defines.
+6. Do not put secrets, credentials or personal data in a label or an annotation.
 
 ## Check the labels
 
@@ -82,39 +86,34 @@ Do not put secrets, credentials or personal data in a label or an annotation. Ea
    mise run manifests:render
    ```
 
-2. Add the new files to the Git index. The checks read only the files that Git tracks:
+2. Add the new files to the Git index:
 
    ```bash
    git add gitops/ policy/data/labels.yaml
    ```
 
-3. Run the checks:
+3. Run the checks, and keep the messages of the component:
 
    ```bash
-   mise run lint:policy
+   mise run lint:policy 2>&1 | grep -e "rendered/<component>/" -e labels.yaml -e cluster.yaml
    ```
 
-4. Find the messages of the component:
-
-   ```bash
-   mise run lint:policy 2>&1 | grep "rendered/<component>/"
-   ```
-
-5. Correct each `FAIL` line. Each message starts with the ID of its check, for example:
+4. Correct each `FAIL` line. For example:
 
    ```text
    FAIL - Combined - kubernetes - gitops/clusters/kind-local/rendered/demo/namespace-demo.yaml: K4: Namespace "demo", metadata: the value home of the key "tenant.infra.gsuquet.com/name" is not permitted by data.labels
    ```
 
-   This message tells that `policy/data/labels.yaml` has no tenant `home` for the component `demo`.
+   To correct this message, add the tenant `home` to the entry of `demo` in `policy/data/labels.yaml`.
 
-6. Correct each `WARN` line of the component. A `K5` or `K6` warning shows a missing required label. A `K3w` or `K7` warning comes from an upstream chart. If the chart has a value for its labels, set the label there.
-7. Run `mise run lint` before you open a pull request.
+5. Correct each `K5` or `K6` warning: add the missing label.
+6. For a `K3w` or `K7` warning, set the label in the values of the upstream chart, if the chart permits it.
+7. Run `mise run lint`.
 
-For the rule of each check, refer to [Labels and annotations (reference)](../reference/labels-and-annotations.md#checks).
+For the ID after the file path in each message, refer to [Checks](../reference/labels-and-annotations.md#checks).
 
 ## Related pages
 
 - [Labels and annotations (reference)](../reference/labels-and-annotations.md)
-- [Labels and annotations (explanation)](../explanation/labels-and-annotations.md)
+- [Why the label scheme has its form](../explanation/labels-and-annotations.md)
 - [Add a GitOps component](add-gitops-component.md)
