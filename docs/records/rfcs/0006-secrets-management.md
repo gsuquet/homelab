@@ -2,7 +2,7 @@
 rfc: "0006"
 status: draft
 start-date: 2026-11-02
-pr: null
+pr: 178
 ---
 
 # RFC 0006: Secrets management
