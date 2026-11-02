@@ -23,6 +23,7 @@ These steps follow the flow that RFC 0001 proposes.
 | [0003](0003-repository-structure.md) | Repository structure | `accepted` |
 | [0004](0004-labels-and-annotations.md) | Kubernetes labels and annotations reference | `accepted` |
 | [0005](0005-repository-scope-and-naming.md) | Repository scope and naming | `accepted` |
+| [0006](0006-secrets-management.md) | Secrets management | `draft` |
 
 ## Source of the template
 
