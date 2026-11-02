@@ -1,13 +1,13 @@
 # Add a GitOps component
 
-This procedure adds an infrastructure component or an application to a cluster. Argo CD then deploys it from Git. For the design, refer to [GitOps with Argo CD](../explanation/gitops-with-argocd.md).
+This guide shows how to add an infrastructure component or an application to a cluster. Argo CD then deploys it from Git.
 
-## Prerequisites
+## Before you start
 
 - Argo CD runs on the cluster. The `bootstrap-argocd` module installs it.
 - You ran `mise install`.
 
-## Procedure
+## Add a component
 
 1. Make the folder `gitops/infrastructure/<component>/`. For an application, use `gitops/apps/<app>/`. Use `infrastructure/` when the component must change cluster-scoped resources, for example CRDs or webhooks.
 2. Add `sources/Chart.yaml`. Set the upstream chart as a dependency with an exact version.
@@ -34,7 +34,7 @@ This procedure adds an infrastructure component or an application to a cluster. 
 
    The Namespace needs these labels. For an `infrastructure` component, the tenant is `platform`. For an `apps` component, use the tenant of the component in `policy/data/labels.yaml`. Refer to [Labels and annotations](../reference/labels-and-annotations.md#required-keys).
 
-5. If the chart has CRDs, give them the annotation `argocd.argoproj.io/sync-wave: "-1"`. Most charts have a value for CRD annotations. Helm cannot change the files in the `crds/` folder of a chart. If the chart has CRDs only there, ask for a review of the render task before you add the component.
+5. If the chart has CRDs, give them the annotation `argocd.argoproj.io/sync-wave: "-1"` with a value of the chart. Most charts have a value for CRD annotations. Helm does not template the files in the `crds/` folder of a chart. Thus these CRDs get no annotation, and the Conftest policy rejects them. If the chart has a value that renders its CRDs from `templates/`, set it. Else, do not add the chart.
 6. Give each container a memory request equal to its memory limit, and a CPU request. Do not set a CPU limit.
 7. Add the component to `gitops/clusters/<cluster>/cluster.yaml`. Use the list of the group: `infrastructure` or `apps`. Add `dependsOn` if the component needs another component first, for example its CRDs:
 
@@ -50,7 +50,7 @@ This procedure adds an infrastructure component or an application to a cluster. 
 9. Run `mise run manifests:render`.
 10. Make sure that `gitops/clusters/<cluster>/rendered/<component>/` contains the expected manifests, and that `rendered/argocd/` contains the new Application.
 11. Run `mise run lint` and `mise run schemas:check`.
-12. Open a pull request.
+12. Open a pull request. Do not push to `main`.
 
 When the pull request merges, the `argocd` Application makes the new Application in its sync wave. Argo CD then syncs the component.
 
@@ -59,5 +59,13 @@ When the pull request merges, the `argocd` Application makes the new Application
 1. Remove the component from `gitops/clusters/<cluster>/cluster.yaml`.
 2. Remove `gitops/clusters/<cluster>/values/<component>.yaml` if it exists.
 3. Run `mise run manifests:render`.
+4. Open a pull request.
 
-Argo CD deletes the Application. The Application has no resources finalizer, thus the resources stay in the cluster. Delete them with `kubectl` if necessary.
+When the pull request merges, Argo CD deletes the Application. The Application has no resources finalizer, thus the resources stay in the cluster. Delete them with `kubectl` if necessary.
+
+## Related pages
+
+- [GitOps layout](../reference/gitops-layout.md): the fields of `cluster.yaml`, the values order and the sync waves.
+- [Labels and annotations](../reference/labels-and-annotations.md#required-keys): the required labels.
+- [GitOps with Argo CD](../explanation/gitops-with-argocd.md): why each component ships its Namespace, and why a removed component keeps its resources.
+- [Render manifests](render-manifests.md)

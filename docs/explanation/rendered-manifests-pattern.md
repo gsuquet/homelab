@@ -1,84 +1,59 @@
-# Explanation: Rendered Manifests Pattern
+# Rendered manifests pattern
 
-This document explains why Helm charts in this project are pre-rendered to plain YAML and committed to Git, rather than having ArgoCD render them at sync time.
+Each GitOps component is a Helm chart. But Argo CD does not run Helm. A mise task renders each chart to plain manifests, one time for each cluster, and Git keeps the output in `gitops/clusters/<cluster>/rendered/`. Argo CD syncs these files as they are. This page tells why the repository commits the output of Helm, and what this costs.
 
----
+## The problem with Helm at sync time
 
-## The Problem with Helm at Sync Time
+Argo CD can render a Helm chart itself, each time it syncs. This is convenient, but it has three costs:
 
-ArgoCD supports Helm natively — you can point an Application at a Helm chart and ArgoCD will run `helm template` during sync. This is convenient, but introduces dependencies:
+1. **The output is not in Git.** The manifests that reach the cluster exist only in Argo CD. A reviewer of a pull request sees one changed line in `Chart.yaml`, not the changed resources. A chart upgrade that changes a selector or removes a resource looks the same as a harmless one.
+2. **The sync needs the chart repository.** Argo CD must download the chart at each sync. If the repository is not available, the sync fails. This is a serious risk for Argo CD itself: when it must repair its own install, it needs a remote server first.
+3. **The checks cannot see the output.** The Conftest policies, the label checks and kubeconform read files. A chart that Argo CD renders at sync time gives them nothing to read.
 
-1. **Network access at sync time**: ArgoCD must reach the upstream Helm chart repository every time it syncs. If the upstream is unavailable or the chart version is yanked, syncs fail.
-2. **Opacity**: The actual YAML applied to the cluster is not visible in the repository. You cannot `git diff` two versions of ArgoCD and see exactly what changed.
-3. **Reproducibility**: Helm rendering can produce different output depending on the Helm version, plugin availability, and chart repository state.
+## Render in the repository
 
-For self-managing ArgoCD specifically, the problem is acute: if ArgoCD is broken and needs to re-apply its own manifests, it cannot do so if it cannot reach the upstream chart repository.
+`mise run manifests:render` renders each component that a cluster lists in its `cluster.yaml`. It merges the values for all clusters, the content of `cluster.yaml` and the overrides of the cluster. It writes one file for each resource to `gitops/clusters/<cluster>/rendered/<component>/`.
 
----
-
-## The Solution: Render Locally, Commit the Output
-
-This project renders Helm charts locally using `mise run manifests:render` and commits the resulting plain YAML files to Git. ArgoCD then reads these YAML files directly without needing Helm at all.
-
-```ascii
-Developer workstation                Git repository
-┌──────────────────────┐             ┌─────────────────────────┐
-│  sources/Chart.yaml  │             │  manifests/install.yaml  │
-│  sources/values.yaml │  →  render  │  manifests/argocd-*.yaml │
-│  (Helm chart source) │             │  (Plain YAML, committed) │
-└──────────────────────┘             └─────────────────────────┘
-                                               │
-                                               ▼ (ArgoCD reads YAML directly)
-                                     ┌─────────────────────────┐
-                                     │  Kubernetes cluster      │
-                                     └─────────────────────────┘
+```mermaid
+flowchart LR
+    sources["gitops/&lt;group&gt;/&lt;component&gt;/sources/"] --> render["mise run manifests:render"]
+    cluster["gitops/clusters/&lt;cluster&gt;/cluster.yaml and values/"] --> render
+    render --> rendered["gitops/clusters/&lt;cluster&gt;/rendered/&lt;component&gt;/"]
+    rendered --> argocd["Argo CD"]
+    rendered --> terraform["bootstrap-argocd, one time"]
+    rendered --> checks["Conftest, kubeconform"]
 ```
 
-The render step is automated via a pre-commit hook — when `sources/*.yaml` files are staged, the hook runs `mise run manifests:render` and includes the updated `manifests/` files in the same commit.
+The rendered folder is the one place that all the tools read:
 
----
+- Argo CD syncs it from Git, with no Helm and no network access to a chart repository.
+- The `bootstrap-argocd` module applies the same files of the `argocd` component. Thus the first install and the later syncs use the same manifests.
+- The policies and kubeconform check the resources that reach the cluster, not a template.
+- A pull request shows the full diff of each resource, for each cluster.
 
-## How the Render Script Works
+The task writes one file for each resource, with the name `<kind>-<name>.yaml`. The file name does not change when a chart moves a resource to a different template. Thus the diff of an upgrade stays small and readable. The prefix `upstream--` marks the resources that come from an upstream chart. The policies use it to apply strict rules to the hand-written resources, and softer rules to the upstream ones.
 
-`.mise/tasks/manifests/render.sh`:
+## Rendered per cluster
 
-1. Finds all `**/sources/Chart.yaml` files in the repository
-2. Runs `helm dependency update <source_dir>` to download the upstream chart
-3. Runs `helm template <component> <source_dir> -f <source_dir>/values.yaml` to produce `manifests/install.yaml`
-4. Splits `install.yaml` into individual files at `# Source: <filename>` comment boundaries
-5. Each split file is named after its Kubernetes resource (e.g., `argocd-server-deployment.yaml`)
-6. Updates `kustomization.yaml` to list all generated files
+A component renders one time for each cluster that lists it. Thus two clusters with different values have two different folders, and a reviewer sees the effect of a change on each cluster. A value that changes only `kind-local` shows only in `rendered/` of `kind-local`.
 
-ArgoCD uses Kustomize to apply the split files — the `kustomization.yaml` lists them all.
-
----
-
-## The Role of Kustomize
-
-The `kustomization.yaml` file in the manifests directory:
-
-```yaml
-resources:
-  - argocd-application-controller-clusterrole.yaml
-  - argocd-application-controller-clusterrolebinding.yaml
-  - argocd-application-controller-statefulset.yaml
-  # ... (all split files)
-```
-
-ArgoCD is configured to use Kustomize for this directory. Kustomize reads `kustomization.yaml`, assembles all listed resources, and applies them as a single batch. This is why ArgoCD can apply the directory without Helm — Kustomize handles the assembly from plain YAML.
-
----
-
-## Trade-offs
+## Costs
 
 | Property | Rendered manifests | Helm at sync time |
-| -------- | ------------------ | -------------------|
-| Upstream network dependency | None at sync time | Required every sync |
-| Diff visibility | Full YAML diff in Git | Not visible in Git |
-| Reproducibility | Locked to committed output | Depends on Helm version and chart registry |
-| Git churn on upgrades | High (many YAML files change) | Low (one line in Chart.yaml) |
-| Offline sync capability | Yes | No |
+| --- | --- | --- |
+| Diff in a pull request | The full resources, for each cluster | One line in `Chart.yaml` |
+| Chart repository at sync time | Not necessary | Necessary |
+| Checks on the output | Yes | No |
+| Size of an upgrade commit | Large: many files change | Small |
+| Extra step for each change | A render | None |
 
-The main cost is **Git churn**: upgrading ArgoCD from one version to the next produces a large diff in `manifests/` with hundreds of changed lines across many files. This is acceptable here because the benefit — full transparency and offline capability — outweighs the noise in the Git history.
+The main cost is the size of the diffs. An upgrade of Argo CD changes many rendered files. This is acceptable, because each changed line is a change to the cluster that a reviewer must see.
 
-For user application manifests under `kubernetes/applications/`, this pattern does not apply because those apps do not use Helm charts in this project. They are written as plain YAML directly.
+The second cost is the render step. A change to `sources/`, to `values/` or to `cluster.yaml` without a new render leaves stale files. Two guards catch this. The pre-commit hook renders before each commit that changes these files. CI runs `mise run manifests:check` on each pull request. A tool that changes a chart version without the render, for example Renovate, makes a pull request that fails this check until someone renders it.
+
+## Related pages
+
+- [Render manifests](../how-to/render-manifests.md)
+- [GitOps layout](../reference/gitops-layout.md#rendered-files)
+- [Mise tasks](../reference/mise-tasks.md): the details of `manifests:render`, `manifests:check` and `manifests:validate`.
+- [GitOps with Argo CD](gitops-with-argocd.md)
