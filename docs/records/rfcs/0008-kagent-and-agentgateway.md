@@ -313,7 +313,7 @@ apps: []
 
 ### Installation by Helm through Argo CD
 
-`mise run manifests:render` renders each umbrella chart with `helm template --include-crds`, and Argo CD syncs `rendered/<component>/`. This is the existing pattern.
+`mise run manifests:render` renders each umbrella chart with `helm template --include-crds`, and Argo CD syncs `gitops/clusters/<instance>/rendered/<component>/`. This is the existing pattern.
 
 The `agentgateway` values (sketch):
 
@@ -794,7 +794,7 @@ Each item must be true on a `kind-local` cluster that `mise run instance:up` mak
 8. **Least privilege.** Checks with `kubectl auth can-i`:
    - As the tool `ServiceAccount`: `get secrets -A`, `delete pods -A` and `create clusterrolebindings` are `no`. The rendered tool `ClusterRole` has no `*` and no `nonResourceURLs`.
    - As the kagent controller `ServiceAccount`: `get secrets -n agentgateway-system` is `no`. `gitops/clusters/kind-local/rendered/kagent/` has no getter or writer `ClusterRole`.
-   - As `system:serviceaccount:agentgateway-system:agentgateway`: `create deployments -n default` and `create serviceaccounts -n default` are `no`. `rendered/agentgateway/` has no `ClusterRoleBinding` to the deployer role. `get secrets -n default` is `yes`: this is the accepted residual risk of question 12.
+   - As `system:serviceaccount:agentgateway-system:agentgateway`: `create deployments -n default` and `create serviceaccounts -n default` are `no`. `gitops/clusters/kind-local/rendered/agentgateway/` has no `ClusterRoleBinding` to the deployer role. `get secrets -n default` is `yes`: this is the accepted residual risk of question 12.
 9. **No plaintext key.** `mise run lint` passes, with the gitleaks check of RFC 0006. No file in `rendered/` has a `Secret` with `data` or `stringData`, except the Secret `kagent-postgresql` in `gitops/clusters/kind-local/rendered/kagent/`, which the SC7 exception of RFC 0006 permits (question 9 A). The Terraform state has no part of the key (RFC 0006 check).
 10. **Pins.** Each chart has an exact version. Each image that the chart permits has a digest. The images that the controllers make at run time, the agent runtime and the proxy, also run by digest. Check: the implementation PR lists them, `kubectl get pods -n kagent -n agentgateway-system -o jsonpath` shows the digests, and `mise run lint` passes.
 11. **Footprint.** The PR records the peak memory and CPU of the kind node containers with `docker stats`, during check 5.
