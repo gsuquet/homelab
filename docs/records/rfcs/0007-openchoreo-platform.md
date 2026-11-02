@@ -162,7 +162,7 @@ infrastructure:
     dependsOn: [cert-manager]
   - name: thunder
     namespace: thunder
-    dependsOn: [kgateway]
+    dependsOn: [external-secrets, kgateway]
   - name: openchoreo-control-plane
     namespace: openchoreo-control-plane
     dependsOn: [cert-manager, external-secrets, kgateway, thunder]
@@ -208,14 +208,14 @@ apps:
     dependsOn: [openchoreo-data-plane]
 ```
 
-The sync waves are global across all `Application` objects. If `agentgateway` is not `Healthy`, the health gate holds back the later waves: `thunder`, both planes and `choreo-sandbox`. M1 has no seed: agentgateway calls Vertex AI through Workload Identity Federation, with no secret (RFC 0008 question 4, RFC 0006 question 2). Thus no `secrets:apply` gates the `agentgateway` `Application`. A missing upload of the cluster keys to Google fails only the model calls, not the health of the `Application`.
+The sync waves are global across all `Application` objects. `agentgateway` has no `dependsOn`, thus it is in the first wave with `argocd`, `cert-manager` and `external-secrets` (RFC 0003: `dependsOn` gives each Application its wave). If it is not `Healthy`, the health gate holds back each later wave: `kgateway`, `kagent`, `thunder`, both planes and `choreo-sandbox`. M1 has no seed: agentgateway calls Vertex AI through Workload Identity Federation, with no secret (RFC 0008 question 4, RFC 0006 question 2). Thus no `secrets:apply` gates the `agentgateway` `Application`. A missing upload of the cluster keys to Google fails only the model calls, not the health of the `Application`.
 
 The workflow plane and the observability plane stay out of the M2 scope (refer to [question 1](#1-the-planes-in-the-scope-of-m2-decided)). The owner selected the names `kgateway-system` and `sandbox` ([question 5](#5-the-openchoreo-namespace-of-a-tenant-decided) B and [question 10](#10-the-namespace-of-kgateway-decided) B).
 
 ### What changes for an author
 
 - A platform definition goes in the `infrastructure` group. The cluster-scoped forms (`ClusterComponentType`, `ClusterTrait`, `ClusterProjectType`, `ClusterWorkflow`) go in `gitops/infrastructure/openchoreo-control-plane/sources/templates/`. The `ClusterDataPlane` goes in the data plane component. Only the `infrastructure` AppProject can create cluster-scoped objects.
-- The platform owns the OpenChoreo namespace of each tenant, its `Environment` objects and its `DeploymentPipeline` ([question 6](#6-the-owner-of-the-tenant-resources-decided) B). A tenant writes only the developer kinds. The tenants RFC, now in draft, designs where each of them lives. The AppProject of a tenant refuses the namespaced platform kinds.
+- The platform owns the OpenChoreo namespace of each tenant, its `Environment` objects and its `DeploymentPipeline` ([question 6](#6-the-owner-of-the-tenant-resources-decided) B). A tenant writes only the developer kinds. The tenants RFC ([issue #182](https://github.com/gsuquet/homelab/issues/182), not yet written) designs where each of them lives. The AppProject of a tenant refuses the namespaced platform kinds.
 - An author does not write a `Deployment` or a `Service` for an OpenChoreo application. OpenChoreo makes them. The author does not add the `dp-*` namespaces to `cluster.yaml`.
 - To promote or roll back a release, the author changes the `ReleaseBinding` in Git. The `occ` commands that change the API directly cause drift, and Argo CD reverts it.
 
@@ -433,11 +433,11 @@ Positive criteria:
 
 Negative criteria:
 
-1. A tenant `ComponentType`, a tenant `RenderedRelease` or a tenant `ComponentRelease` in the tenant source of `sandbox` (`gitops/apps/choreo-sandbox/` until the tenants RFC) makes the sync fail, because the `apps` AppProject does not permit the kind. A tenant `Namespace` with the name `dp-sandbox-test` also makes the sync fail.
+1. A tenant `ComponentType`, a tenant `RenderedRelease` or a tenant `ComponentRelease` in the tenant source of `sandbox` (`gitops/apps/choreo-sandbox/`, or its replacement in the tenants RFC layout) makes the sync fail, because the tenant AppProject (the `apps` AppProject, or its replacement in the tenants RFC layout) does not permit the kind. A tenant `Namespace` with the name `dp-sandbox-test` also makes the sync fail.
 2. A tenant `SecretReference` to a platform key, for example the ThunderID admin credentials, gives an `ExternalSecret` that does not become ready.
 3. A login to the console with `admin@openchoreo.dev` and its documented default password fails.
 4. A `ProjectReleaseBinding` that sets `tenant.infra.gsuquet.com/name` in `namespaceLabels` does not change the label of the cell. The admission policy refuses a `dp-sandbox-test` namespace with correct labels from the admin (rule 1). It also refuses a `dp-sandbox-test` namespace with a wrong `tenant` label from `kubectl --as=system:serviceaccount:openchoreo-data-plane:<agent ServiceAccount>` (rule 2).
-5. A tenant `Pod` with the destination `agentgateway-system` makes the sync of `choreo-sandbox` fail. A `Pod` that the agent ServiceAccount writes into `kagent` (`kubectl --as=`) is refused by the second admission policy.
+5. A tenant `Pod` with the destination `agentgateway-system` makes the sync of `choreo-sandbox` (or its replacement in the tenants RFC layout) fail. A `Pod` that the agent ServiceAccount writes into `kagent` (`kubectl --as=`) is refused by the second admission policy. As the agent ServiceAccount, a `Pod` with `serviceAccountName: agentgateway-proxy` in `agentgateway-system`, and `create serviceaccounts/token` for `agentgateway-proxy`, are refused too: that `ServiceAccount` has the Google identity of RFC 0008.
 6. Apply a temporary `CiliumNetworkPolicy` that denies the egress of the agent to the cluster gateway. Argo CD does not track it, thus `selfHeal` keeps it, and no sync setting changes. A change of the sync of a child `Application` fails, because the `argocd` `Application` heals it. Within 120 seconds, `.status.agentConnection.connected` is not `true`. A new `ReleaseBinding` is not ready after 300 seconds. Then delete the policy.
 7. Each of these calls with `kubectl --as=system:serviceaccount:openchoreo-data-plane:<agent ServiceAccount>` is refused: `create clusterrolebinding`, `delete validatingadmissionpolicy` and `delete validatingadmissionpolicybinding` for the two policies, and `create clustersecretstore`. Run them under the role of question 13 A, and again under B.
 
@@ -472,7 +472,7 @@ This is a summary only. Each number comes from the sources:
 | Later topic | What M2 depends on | Choice in M2 that the topic can force us to redo | Cost of a redo |
 | --- | --- | --- | --- |
 | Talos cut-over | Nothing on `kind-local`. `olympus` gets OpenChoreo only after Talos. | A dependency on k3s features, for example `coredns-custom` or klipper. M2 avoids them. | Low |
-| Tenants | The tenant layout of question 6 B (the tenants RFC, now in draft), the tenant names, the tenant label values, the isolation between tenants in the store | The map "one OpenChoreo namespace for each tenant". A `Project` cannot move to another namespace. A move deletes and makes again its cell namespaces, also their volumes. | High after real data. Thus M2 uses one test tenant only. |
+| Tenants | The tenant layout of question 6 B (the tenants RFC, [issue #182](https://github.com/gsuquet/homelab/issues/182), not yet written), the tenant names, the tenant label values, the isolation between tenants in the store | The map "one OpenChoreo namespace for each tenant". A `Project` cannot move to another namespace. A move deletes and makes again its cell namespaces, also their volumes. | High after real data. Thus M2 uses one test tenant only. |
 | Zero-trust networking | The `network` zone label, the Cilium values | The Cilium provider in the annotation-only form on Cilium 1.20.0, and the absence of a `network` label on cell namespaces | Low. The removal of the annotation brings back the default provider. |
 | Security baseline | Pod Security levels, admission rules without Kyverno, image signatures | The Pod Security labels in the `ClusterProjectType`, and the cluster agent role | Medium. A narrower agent role needs tests. |
 | Secrets (RFC 0006) | External Secrets Operator 2.14 and the per-tenant `ClusterSecretStore` of RFC 0006 | Nothing. M2 uses the RFC 0006 store from the start. | None |
@@ -483,7 +483,7 @@ This is a summary only. Each number comes from the sources:
 
 - **The cluster agent is equal to cluster admin.** Its `ClusterRole` ([`clusterrole.yaml`](https://github.com/openchoreo/openchoreo/blob/v1.3.3/install/helm/openchoreo-data-plane/templates/cluster-agent/clusterrole.yaml)) gives `*` on Secrets, Namespaces, ServiceAccounts, Roles, RoleBindings, ClusterRoles, ClusterRoleBindings, `clustersecretstores` and `pushsecrets` in the whole cluster. It gives `create` and `get` on `pods/exec`. A subject that can write ClusterRoleBindings can give itself `cluster-admin`. A subject that can write a `ClusterSecretStore` can point it at each backend credential that it can read. The cluster agent RBAC page says "By default, the cluster agent has permissions to manage OpenChoreo's built-in custom resources". The chart gives more than that.
 - **Who holds this power.** The control plane holds it. Each identity with write access to the OpenChoreo API, or to the OpenChoreo resources in Git, holds it too. Without the tenant limits, each tenant holds it. The [tenant limits](#tenant-limits) reduce this to the platform definitions in the `infrastructure` group.
-- **The mitigation.** The data plane chart can skip its role (`clusterAgent.rbac.create: false`). The repository then owns the agent role, without the RBAC kinds, without `clustersecretstores` and with only the namespaced kinds that the component types use. This needs tests, thus the verify list has it. M2 starts with the upstream role, and moves to the repository role before its end if the tests pass ([question 13](#13-the-cluster-agent-role-decided), decided). The repository role is a prerequisite before a second tenant, because the upstream role has `*` on `clustersecretstores`.
+- **The mitigation.** The data plane chart can skip its role (`clusterAgent.rbac.create: false`). The repository then owns the agent role, without the RBAC kinds, without `clustersecretstores` and with only the namespaced kinds that the component types use. This needs tests, thus the verify list has it. M2 starts with the upstream role, and moves to the repository role before its end, as general criterion 4 requires ([question 13](#13-the-cluster-agent-role-decided), decided). The repository role is a prerequisite before a second tenant, because the upstream role has `*` on `clustersecretstores`.
 - **Trusted readers of all Secrets (owner, in chat, 2026-11-02).** RFC 0006 names the platform controllers that read each Secret in the cluster as trusted platform components, under an allowlist check. SC16 of RFC 0006 refuses each other reader. The list: Argo CD (the application controller and `argocd-server`), cert-manager, External Secrets Operator, the agentgateway controller, the kagent controller if it stays cluster-wide, and the OpenChoreo cluster agent. The owner added the OpenChoreo controller manager, `openchoreo-api` and cluster gateway ("Yes, add them", in chat, 2026-11-02). The repository narrows each one where its chart permits. Upstream patches are follow-ups. The owner accepts the remaining risk on `kind-local`. The cluster agent stays a Secret reader also after question 13 B.
 - **Admission webhooks.** The controller manager has validating and mutating webhooks with `failurePolicy: Fail` for OpenChoreo kinds, on create and update. If the controller is down, no write to these kinds succeeds, also the removal of a finalizer. The webhooks select only `openchoreo.dev` resources, thus the other workloads continue. The rollback must keep this in mind.
 - **Exposed endpoints.** The portal, the API with its MCP server, ThunderID, the data plane Gateway and the cluster gateway (port 8443, TLS passthrough). The remote-connect router stays off. On `kind-local`, nothing goes out of the cluster except through `kubectl port-forward`. M2 adds no Cloudflare tunnel and no public DNS name.
@@ -503,7 +503,7 @@ The implementation steps. Each step is one PR, after the ADRs:
 2. **R2 Terraform.** The LB pool and the CoreDNS change, from the data of the `kind` network.
 3. **R3 cert-manager, kgateway and ThunderID.** Add the three components. `thunder` joins the consumer list, with its seeds and its `eso-seed-reader` and store `secrets`. Check that kgateway accepts Gateway API v1.6.2.
 4. **R4 Control plane.** Add the component with the CA issuer, the cluster-scoped platform definitions and the admission policy for the cells. Add the Conftest checks for the `ClusterProjectType` labels and for `property: value`. `openchoreo-control-plane` joins the consumer list, with its seeds and its `eso-seed-reader` and store `secrets`.
-5. **R5 Data plane.** Add the component with the `ClusterDataPlane`, its annotation `openchoreo.dev/networkpolicyprovider: cilium` ([question 7](#7-the-network-policy-provider-decided)), and the upstream agent role ([question 13](#13-the-cluster-agent-role-decided) A). A later PR before the end of M2 changes to the repository role (B), if the tests of the verify list pass. Change the `apps` AppProject once, for this RFC and RFC 0008: the blacklist of the platform kinds and of the `external-secrets.io`, `agentgateway.dev` and `kagent.dev` groups, the `Namespace` name blacklist, and the destinations from `cluster.yaml`. Add the second admission policy.
+5. **R5 Data plane.** Add the component with the `ClusterDataPlane`, its annotation `openchoreo.dev/networkpolicyprovider: cilium` ([question 7](#7-the-network-policy-provider-decided)), and the upstream agent role ([question 13](#13-the-cluster-agent-role-decided) A). A later PR before the end of M2 changes to the repository role (B). Change the `apps` AppProject once, for this RFC and RFC 0008: the blacklist of the platform kinds and of the `external-secrets.io`, `agentgateway.dev` and `kagent.dev` groups, the `Namespace` name blacklist, and the destinations from `cluster.yaml`. Add the second admission policy.
 6. **R6 Sample tenant.** It depends on the tenants RFC, which designs the tenant layout (question 6 B). In that layout, the platform adds the OpenChoreo namespace `sandbox`, its Environments and its DeploymentPipeline, and the tenant adds the sample. Add the tenant `sandbox` in the same PR, with the mechanism of RFC 0006: the store `oc-sandbox`, `secret-seeds-oc-sandbox` and the test seed. Check all done criteria.
 7. **R7 Documentation.** A how-to page for an OpenChoreo component, and a reference page for the namespaces.
 
@@ -532,7 +532,7 @@ A removal from `cluster.yaml` alone deletes nothing in the cluster, because the 
 - **Per-tenant store.** The regex condition `^dp-<tenant>-` of each `oc-<tenant>` store matches only the cells of that tenant. The variables `metadata.resourceNamespace` and `metadata.projectNamespace` give the same name as `metadata.componentNamespace`.
 - **Releases.** `ReleaseBinding.releaseName` and `ProjectReleaseBinding.projectRelease` accept a release that the controller did not create. This confirms the need of the `*Release` entry.
 - **Cell names.** The truncation of long cell namespace names (`MaxNamespaceNameLength`) keeps the prefix `dp-<tenant>-`.
-- **Admission policy.** `resourceRules` lists `namespaces` only, without subresources. Objects with `metadata.deletionTimestamp` are exempt, so that rollback step 6 can remove a finalizer. The CEL of the `ValidatingAdmissionPolicy`, with `matchConditions` on the name, `validationActions: [Deny]`, and the user name of the agent ServiceAccount. The platform map of `oc_merge` also carries the `openchoreo.dev/*` labels from `metadata.labels`. Else the controller loses these labels, and the policy refuses each cell.
+- **Admission policy.** The cell policy: `resourceRules` lists `namespaces` only, without subresources. The second policy: its `resourceRules` cover the subresource `serviceaccounts/token`, so that negative criterion 5 holds. Objects with `metadata.deletionTimestamp` are exempt, so that rollback step 6 can remove a finalizer. The CEL of the `ValidatingAdmissionPolicy`, with `matchConditions` on the name, `validationActions: [Deny]`, and the user name of the agent ServiceAccount. The platform map of `oc_merge` also carries the `openchoreo.dev/*` labels from `metadata.labels`. Else the controller loses these labels, and the policy refuses each cell.
 - **Default login.** Negative criterion 3 as a request to the ThunderID authentication endpoint, with the expected status.
 - **Gateway API.** kgateway v2.3.11 with the v1.6.2 CRDs of Terraform. The kgateway charts do not install Gateway API CRDs.
 - **Load balancer.** Each Gateway becomes `Programmed` with an address from the LB IPAM pool.
@@ -628,7 +628,7 @@ Not selected: A, the upstream `default` namespace for all. A `Project` cannot mo
 
 Decided by the owner on 2026-11-02: option B. Build the tenant model "as a true platform would". The platform owns the OpenChoreo namespace of each tenant, its `Environment` objects and its `DeploymentPipeline`. Tenants write only the developer kinds.
 
-This RFC does not design the details. A new tenants RFC, now in draft (issue to follow), designs them. Its direction:
+This RFC does not design the details. A new tenants RFC ([issue #182](https://github.com/gsuquet/homelab/issues/182), not yet written) designs them. Its direction:
 
 - The OpenChoreo multi-repository GitOps layout ([OpenChoreo: GitOps overview](https://openchoreo.dev/docs/platform-engineer-guide/gitops/overview/)).
 - `platform-shared/` and `namespaces/<ns>/platform/` in this repository.
@@ -679,7 +679,7 @@ Not selected: B, the Terraform module `bootstrap-cert-manager` in the bootstrap 
 
 ### 13. The cluster agent role (decided)
 
-Decided by the owner on 2026-11-02, as recommended: option A for the first sync of M2, then option B before the end of M2 if the tests of the verify list pass.
+Decided by the owner on 2026-11-02: option A for the first sync of M2, then option B before the end of M2 (general criterion 4). If the tests of B fail, M2 is not done, and the owner decides.
 
 - A: accept the upstream role on `kind-local`, with bounds: `kind-local` only, no tenant except the test tenant `sandbox`, the tenant limits in place, and no OpenChoreo on `olympus` or in the cloud before the repository role works.
 - B: the repository role (`clusterAgent.rbac.create: false`), without the RBAC kinds and `clustersecretstores`.
@@ -701,7 +701,7 @@ Not selected: B, an `infrastructure` component in `gitops/`. Argo CD would then 
 - **[RFC 0005](0005-repository-scope-and-naming.md)** (accepted): the rename to `gsuquet/infra` changes `repoURL` only.
 - **RFC 0006** (draft, secrets): External Secrets Operator 2.14 and the per-tenant `ClusterSecretStore` of RFC 0006. This is a cross-RFC decision: RFC 0006 permits the `oc-*` stores as its one named exception, and this RFC sets the limits that they need.
 - **RFC 0008** (draft, kagent and agentgateway): the agentgateway version and namespace, the Gateway API version, and the details of kagent. M1 has no seed, because agentgateway calls Vertex AI through Workload Identity Federation.
-- **The tenants RFC** (draft, issue to follow): it designs question 6 B, the tenant layout and the AppProject of each tenant. It amends K15 of RFC 0004 and the `cluster.yaml` schema, because the platform then writes into the namespace of a tenant. This RFC does not change RFC 0003 or RFC 0004. R6 depends on it.
+- **The tenants RFC** ([issue #182](https://github.com/gsuquet/homelab/issues/182), not yet written): it designs question 6 B, the tenant layout and the AppProject of each tenant. It amends K15 of RFC 0004 and the `cluster.yaml` schema, because the platform then writes into the namespace of a tenant. This RFC does not change RFC 0003 or RFC 0004. R6 depends on it.
 - **The zero-trust, security baseline, Talos and agent identity RFCs**: refer to [Dependencies on later topics](#dependencies-on-later-topics).
 
 ## Future possibilities
