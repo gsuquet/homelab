@@ -1,6 +1,6 @@
 # Generate the Vertex JWKS
 
-This guide updates the public key set of `kind-local` in `accounts/gcp/jwks/` after a re-create of the cluster. Google uses that key set to accept the proxy token of agentgateway. The reasons are in [kagent and agentgateway (explanation)](../explanation/kagent-and-agentgateway.md#the-vertex-ai-federation). The files and the checks are in [kagent and agentgateway (reference)](../reference/kagent-and-agentgateway.md#jwks-files-and-their-checks).
+This guide updates the public key set of `kind-local` in `accounts/gcp/jwks/` after a re-create of the cluster. Google uses that key set to accept the proxy token of agentgateway. The reasons are in [kagent and agentgateway (explanation)](../explanation/kagent-and-agentgateway.md#the-vertex-ai-federation). The files and the checks are in [kagent and agentgateway (reference)](../reference/kagent-and-agentgateway.md#jwks-files-and-their-checks). The first key set comes in step R1 of [Roll out kagent and agentgateway](roll-out-kagent-and-agentgateway.md). To remove the access, refer to [Roll back kagent and agentgateway](roll-back-kagent-and-agentgateway.md).
 
 Each new cluster has new signing keys. Until you do these steps, the model calls fail with a Google authentication error. The Argo CD Applications stay `Synced` and `Healthy`.
 
@@ -27,7 +27,7 @@ Each new cluster has new signing keys. Until you do these steps, the model calls
 
    The task reads `kubectl get --raw /openid/v1/jwks` and writes `accounts/gcp/jwks/<laptop>.json`. It replaces only the keys of this laptop.
 
-3. Open a PR with that file. `mise run lint` checks the combined set.
+3. Open a PR with that file only. A JWKS PR changes exactly one file under `accounts/gcp/jwks/`. `mise run lint` checks the combined set.
 4. On the same laptop, compare the file in the PR with the live cluster:
 
    ```sh
@@ -41,7 +41,7 @@ Each new cluster has new signing keys. Until you do these steps, the model calls
 
    The plan must change only `oidc.jwks_json`. If it changes more, stop and read the plan.
 
-7. Send a question to the agent, as in done criterion 5 of the reference page. The model call must succeed.
+7. If kagent and agentgateway are installed, send a question to the agent, as in done criterion 5 of the reference page. The model call must succeed.
 
 ## When the task stops
 
@@ -55,6 +55,8 @@ Each new cluster has new signing keys. Until you do these steps, the model calls
 
 ## Revoke the keys of one laptop
 
+An agent can open the PR. Only you merge and apply, outside of agent sessions.
+
 1. Remove `accounts/gcp/jwks/<laptop>.json` in a PR.
 2. Merge the PR.
-3. Apply `accounts/gcp/` in one apply session.
+3. Apply `accounts/gcp/` in one apply session. Sign in, apply, then sign out.

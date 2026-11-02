@@ -1,6 +1,6 @@
 # Roll back kagent and agentgateway
 
-This guide removes kagent and agentgateway from `kind-local`, and stops the access of the cluster to Vertex AI. The rollout is in [Roll out kagent and agentgateway](roll-out-kagent-and-agentgateway.md). The objects are in [kagent and agentgateway (reference)](../reference/kagent-and-agentgateway.md).
+This guide removes kagent and agentgateway from `kind-local`, and stops the access of the cluster to Vertex AI. The rollout is in [Roll out kagent and agentgateway](roll-out-kagent-and-agentgateway.md). The objects are in [kagent and agentgateway (reference)](../reference/kagent-and-agentgateway.md). The reasons are in [kagent and agentgateway (explanation)](../explanation/kagent-and-agentgateway.md). To revoke the keys of one laptop only, refer to [Generate the Vertex JWKS](generate-vertex-jwks.md#revoke-the-keys-of-one-laptop).
 
 ## The fast rollback on `kind-local`
 
