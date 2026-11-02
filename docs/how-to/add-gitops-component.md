@@ -23,9 +23,16 @@ This procedure adds an infrastructure component or an application to a cluster. 
        pod-security.kubernetes.io/enforce: restricted
        pod-security.kubernetes.io/audit: restricted
        pod-security.kubernetes.io/warn: restricted
+       tenant.infra.gsuquet.com/name: platform   # The tenant of an apps component is not platform.
+       ownership.infra.gsuquet.com/owner: gsuquet
+       app.kubernetes.io/name: <component>
+       app.kubernetes.io/instance: <component>
+       app.kubernetes.io/managed-by: Helm
      annotations:
        argocd.argoproj.io/sync-wave: "-2"
    ```
+
+   The Namespace needs these labels. For an `infrastructure` component, the tenant is `platform`. For an `apps` component, use the tenant of the component in `policy/data/labels.yaml`. Refer to [Labels and annotations](../reference/labels-and-annotations.md#required-keys).
 
 5. If the chart has CRDs, give them the annotation `argocd.argoproj.io/sync-wave: "-1"`. Most charts have a value for CRD annotations. Helm cannot change the files in the `crds/` folder of a chart. If the chart has CRDs only there, ask for a review of the render task before you add the component.
 6. Give each container a memory request equal to its memory limit, and a CPU request. Do not set a CPU limit.
