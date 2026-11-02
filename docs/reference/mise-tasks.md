@@ -248,12 +248,17 @@ Run it after you change a provider version. Commit the `.terraform.lock.hcl` fil
 **Script**: `.mise/tasks/labels/sync.sh`
 **Description**: Make the labels of the repository equal to `.github/labels.yml`. Only the owner runs this task, because it changes the labels of the repository. Refer to [RFC 0002](../records/rfcs/0002-how-we-work.md) ("Labels as code") and [ADR 0012](../records/adrs/0012-use-the-label-taxonomy-the-issue-forms-and-the-pr-template.md).
 
-The task checks the file first: each color has 6 hex digits, each description has 100 characters or fewer, and each name is unique. Then it runs `gh label create --force` for each label. This creates the label, or updates its color and description.
+The task always targets `gsuquet/homelab`. It does not use the git remotes. The `gh` login needs write access to the issues of the repository.
+
+The task checks the file first: each label has a name, a color of 6 hex digits and a description of 100 characters or fewer, and each name is unique (names are not case-sensitive). Then it reads the labels of the repository, so that a failure stops the task before any write. Then it runs `gh label create --force` for each label. This creates the label, or updates its color and description.
 
 | Flag | Effect |
 | --- | --- |
 | `--dry-run` | Prints each create, update and delete command. It makes no write call. With `--prune`, it reads the labels of the repository with `gh label list`. |
-| `--prune` | Prints the labels that are not in the file, then deletes them with `gh label delete --yes`. |
+| `--prune` | Prints the labels that are not in the file, then asks `[y/N]`, then deletes them with `gh label delete`. Without a terminal, the task refuses unless you add `--yes`. |
+| `--yes` | With `--prune`, deletes with no question. |
+
+Deleting a label removes it from every issue and PR. This cannot be undone.
 
 ```bash
 mise run labels:sync --dry-run --prune   # Check first

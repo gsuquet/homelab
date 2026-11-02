@@ -50,15 +50,15 @@
 
 # state/: does something block it?
 - name: state/blocked
-  color: "BF8700"
+  color: "9A6700"
   description: Another item or an outside event blocks this item. The description tells which.
 - name: state/needs-owner
-  color: "BF8700"
+  color: "9A6700"
   description: The item waits for a decision of the owner.
 
 # No prefix: Renovate sets these.
 - name: renovate
-  color: "2DA44E"
+  color: "1A7F37"
   description: Set by Renovate on each PR
 - name: security
   color: "CF222E"
