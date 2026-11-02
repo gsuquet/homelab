@@ -38,7 +38,7 @@ Do these steps by hand, outside of agent sessions, after the merge.
 OpenChoreo cells use a `ClusterSecretStore`, not a namespaced store.
 
 1. Make sure the tenant name is a DNS label without `-`.
-2. Before a second tenant, make sure question 13 B of the [OpenChoreo platform](../explanation/openchoreo-platform.md) is done.
+2. Before a second tenant, make sure that the cluster agent uses the repository role of the [OpenChoreo platform](../explanation/openchoreo-platform.md#the-cluster-agent-role).
 3. Add the tenant to the tenant list of the `external-secrets` component.
 4. The component renders `secret-seeds-oc-<tenant>`, its ServiceAccount, its RBAC and the store `oc-<tenant>`.
 5. Make sure the store has exactly one condition: `namespaceRegexes: ["^dp-<tenant>-"]`.

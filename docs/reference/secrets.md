@@ -175,7 +175,7 @@ One store for each OpenChoreo tenant. A tenant is its OpenChoreo namespace, and 
 | Token `Role` | The `Role` of `rbac.serviceAccountTokenCreate: false` names `secret-seeds-oc-<tenant>/eso-seed-reader`. |
 
 - No other `ClusterSecretStore`, and no `ClusterExternalSecret`. SC9 checks this in Git, SC9a in the cluster.
-- Before a second tenant, the OpenChoreo cluster agent must lose `clustersecretstores` and the RBAC kinds (question 13 B of the [OpenChoreo platform](openchoreo-platform.md)). Until then, M2 has one test tenant only.
+- Before a second tenant, the OpenChoreo cluster agent must lose `clustersecretstores` and the RBAC kinds (the repository role of the [OpenChoreo platform](../explanation/openchoreo-platform.md#the-cluster-agent-role)). Until then, M2 has one test tenant only.
 
 ## Consumers
 
@@ -223,7 +223,7 @@ Chart values, after [ESO: security best practices](https://external-secrets.io/l
 | --- | --- | --- |
 | ESO controller | `get`, `list`, `watch`, `create`, `update`, `patch`, `delete` on `secrets` in all namespaces | None in the chart, except `scopedRBAC`, which turns off the `oc-*` cluster stores |
 | agentgateway controller (v1.7.0) | Reads Secrets in all namespaces. With federation, no model key exists for it to read. Its deployer can run a pod as the proxy `ServiceAccount`, which has the Google identity. | `rbac.gatewayNamespaces` limits only its writes |
-| OpenChoreo cluster agent | `*` on `secrets`, `clustersecretstores` and RBAC kinds (upstream) | Question 13 B of the [OpenChoreo platform](openchoreo-platform.md) |
+| OpenChoreo cluster agent | `*` on `secrets`, `clustersecretstores` and RBAC kinds (upstream) | The repository role of the [OpenChoreo platform](../explanation/openchoreo-platform.md#the-cluster-agent-role) |
 | OpenChoreo control plane: controller manager, API, cluster gateway (upstream 1.3.3) | `get` and `list` on `secrets` in all namespaces. The controller manager also `watch`. | Where their charts permit. This waits for the OpenChoreo work. |
 | kagent controller | Reads all core resources in all namespaces (chart 0.10.4) | `rbac.namespaces: [kagent]` (question 5 A of [kagent and agentgateway](kagent-and-agentgateway.md)). This row applies only if a later change makes it cluster-wide again. |
 | Argo CD application controller and `argocd-server` | Their default cluster-wide roles. `argocd-server` has `get`, `patch` and `delete` on all resources (chart 10.11.6, on `main`). | Where their chart permits |
