@@ -1,4 +1,4 @@
-# Labels of the repository. RFC 0002 ("Labels as code") and ADR 0012 define them.
+# Labels of the repository, in three groups (kind, area, state) and two for Renovate.
 # Apply with `mise run labels:sync`. Run it by hand, because it changes the labels of the repository.
 # color: 6 hex digits, no "#". description: 100 characters or fewer.
 
@@ -11,21 +11,15 @@
   description: Wrong behavior
 - name: kind/docs
   color: "1F6FEB"
-  description: Documentation only, not a record
-- name: kind/record
-  color: "1F6FEB"
-  description: An RFC or an ADR
+  description: Documentation only
 - name: kind/chore
   color: "1F6FEB"
   description: Maintenance, refactoring, CI, dependencies
 
 # area/: which part of the repository does it change?
-- name: area/records
-  color: "8250DF"
-  description: Changes under docs/records/
 - name: area/docs
   color: "8250DF"
-  description: Changes under docs/ except docs/records/, and *.md at the root
+  description: Changes under docs/ and *.md at the root
 - name: area/ci
   color: "8250DF"
   description: Changes under .github/, .pre-commit-config.yaml, renovate.json
