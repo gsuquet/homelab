@@ -1,6 +1,6 @@
 # Reference: Repository Structure
 
-Annotated directory tree of the full repository.
+Annotated directory tree of the full repository. The reasons for the tree are in [Repository structure (explanation)](../explanation/repository-structure.md).
 
 ```ascii
 homelab/
@@ -91,8 +91,7 @@ homelab/
 │   ├── tutorials/                    # Learning-oriented guides
 │   ├── how-to/                       # Task-oriented recipes
 │   ├── reference/                    # Technical lookup tables (ansible-roles/, terraform-modules/)
-│   ├── explanation/                  # Conceptual background
-│   └── records/                      # RFCs and ADRs (outside of Diátaxis)
+│   └── explanation/                  # Conceptual background
 │
 ├── AGENTS.md                         # Guidelines for AI coding agents
 ├── CHANGELOG.md                      # Automated commit changelog
