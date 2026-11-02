@@ -13,7 +13,7 @@
 ## Agents
 
 - Author: <!-- Person, Claude Code, Codex or Antigravity -->
-- Reviewer: <!-- A different agent, or the owner -->
+- Reviewer: <!-- A different agent -->
 
 ## Checklist
 

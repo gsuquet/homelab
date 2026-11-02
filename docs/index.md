@@ -12,7 +12,6 @@ While the primary active deployment target is a single-node [K3s](https://k3s.io
 | [How-to Guides](#how-to-guides) | Recipes for specific operational tasks |
 | [Reference](#reference) | Technical specifications and lookup tables |
 | [Explanation](#explanation) | Conceptual background: how the system works, and why |
-| [Records](#records) | RFCs and ADRs: the proposals and the decisions |
 
 ---
 
@@ -44,6 +43,8 @@ Task-oriented recipes that solve a specific problem. Assumes familiarity with th
 | [Configure Cloudflare](how-to/configure-cloudflare.md) | Set up the Cloudflare tunnel for external access |
 | [Use Kind behind a TLS-inspecting proxy](how-to/use-kind-behind-a-tls-proxy.md) | Make the Colima VM and the Kind nodes trust a company proxy CA |
 | [Resize the Colima VM](how-to/resize-the-colima-vm.md) | Fix a `TLS handshake timeout` during the apply of a Kind instance |
+| [Rename the Repository](how-to/rename-the-repository.md) | Rename `gsuquet/homelab` to `gsuquet/infra` without a loss on `olympus` |
+| [Import Provider Resources](how-to/import-provider-resources.md) | Bring the resources of a provider account under Terraform |
 
 ---
 
@@ -60,12 +61,14 @@ Information-oriented documentation for looking up technical details.
 | [Mise Tasks](reference/mise-tasks.md) | All `mise run` tasks with descriptions and usage |
 | [Tools](reference/tools.md) | All project tools with versions and install methods |
 | [How We Work](reference/how-we-work.md) | The rules for issues, PRs, labels, the review, commits and the merge |
+| [Labels and Annotations](reference/labels-and-annotations.md) | The Kubernetes and cloud label keys, and their checks |
+| [Provider Accounts](reference/provider-accounts.md) | The scope rule, `accounts/`, state, credentials, budgets and naming |
 
 ---
 
 ## Explanation
 
-Understanding-oriented documents that explain how the system works, and why. The decisions are in [Records](#records).
+Understanding-oriented documents that explain how the system works, and why. Each page also holds the decisions and their reasons.
 
 | Document | Description |
 | -------- | ----------- |
@@ -76,12 +79,9 @@ Understanding-oriented documents that explain how the system works, and why. The
 | [Smart Home Stack](explanation/smart-home-stack.md) | How Zigbee2MQTT, Mosquitto, and Home Assistant work together |
 | [Automated Updates](explanation/automated-updates.md) | How Renovate keeps dependencies current |
 | [How We Work](explanation/how-we-work.md) | The doc-first workflow, the review and the merge, and why |
-
----
-
-## Records
-
-The RFCs and the ADRs record the proposals and the decisions of the repository. This section is outside of the four Diátaxis sections. Refer to [Records](records/index.md).
+| [Repository Structure](explanation/repository-structure.md) | Why the tree, the layouts and the naming rules have their form |
+| [Labels and Annotations](explanation/labels-and-annotations.md) | Why the key prefix, the sub-groups and the checks have their form |
+| [Repository Scope](explanation/repository-scope.md) | What belongs in the repository, the provider accounts and the name `infra` |
 
 ---
 

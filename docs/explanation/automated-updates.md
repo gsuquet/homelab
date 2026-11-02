@@ -1,6 +1,6 @@
 # Explanation: Automated Updates
 
-This document tells how Renovate keeps dependencies up to date, and which updates merge without a human review.
+This document tells how Renovate keeps dependencies up to date, and which updates merge without my review.
 
 ---
 
@@ -48,9 +48,9 @@ Renovate opens PRs on Monday before 07:00. Security fixes open at any time. Lock
 | --- | --- | --- |
 | Dev tools: mise, pre-commit, GitHub Actions (minor, patch, digest) | Yes, one grouped PR | All checks pass |
 | Lock file maintenance | Yes | All checks pass |
-| Terraform providers | No | Human review |
-| Helm charts and container images | No | Human review |
-| Major updates | No | Approval on the Dependency Dashboard, then human review |
+| Terraform providers | No | My review |
+| Helm charts and container images | No | My review |
+| Major updates | No | Approval on the Dependency Dashboard, then my review |
 
 Helm charts and images reach the homelab. They will merge automatically after the Kind tests exist (Phase 4 of the plan). After that, a minor or patch update merges when all checks and Kind tests pass.
 
