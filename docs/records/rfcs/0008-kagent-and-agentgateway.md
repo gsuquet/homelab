@@ -630,9 +630,16 @@ Done criterion 11 records the real peak with `docker stats`.
 
 ### kagent RBAC
 
-The kagent controller has wide rights by default. The writer `ClusterRole` gives `create`, `update` and `patch` on all core resources, `"*"` in the API group `""`. The getter role reads them. This includes Secrets in all namespaces ([`writer-role.yaml`](https://github.com/kagent-dev/kagent/blob/v0.10.4/helm/kagent/templates/rbac/writer-role.yaml)). It also writes `apps`, `batch` and `gateway.networking.k8s.io` objects.
+**The gap.** The kagent controller has wide rights by default, in v0.10.4 and on `main`. Its two `ClusterRole` objects have these rules:
 
-The proposal: `rbac.namespaces: [kagent]`. Then the chart makes a `Role` and a `RoleBinding` in `kagent` only, and the controller watches only that namespace. The controller can still read the Secrets of `kagent`. No Gemini key is there.
+- The getter role `<name>-getter-role` gives `get`, `list` and `watch` on `resources: ["*"]` in the API group `""` ([`getter-role.yaml`](https://github.com/kagent-dev/kagent/blob/v0.10.4/helm/kagent/templates/rbac/getter-role.yaml)). That rule covers each Secret in each namespace. "Granting `list` access to Secrets implicitly lets the subject fetch the contents" ([Kubernetes: good practices for Secrets](https://kubernetes.io/docs/concepts/security/secrets-good-practices/)).
+- The writer role `<name>-writer-role` gives `create`, `update`, `patch` and `delete` on all resources of the API groups `""`, `apps` and `batch` ([`writer-role.yaml`](https://github.com/kagent-dev/kagent/blob/v0.10.4/helm/kagent/templates/rbac/writer-role.yaml)). It writes `gateway.networking.k8s.io` objects too.
+
+Thus the controller can read the Gemini key in `agentgateway-system`, and each Secret of the cluster. The RFC 0006 check SC16 refuses a rendered role with this rule.
+
+**The chart supports a namespace limit.** With `rbac.namespaces` set, the getter and writer templates make one `Role` and one `RoleBinding` for each listed namespace, and no `ClusterRole`. The controller then watches only these namespaces, unless `controller.watchNamespaces` is set. The chart fails if the list does not include the install namespace (`kagent.rbac.validate` in [`_helpers.tpl`](https://github.com/kagent-dev/kagent/blob/v0.10.4/helm/kagent/templates/_helpers.tpl)). The metrics `ClusterRole` stays. It has only `create` on `tokenreviews` and `subjectaccessreviews`, and only with secure metrics on.
+
+The proposal: `rbac.namespaces: [kagent]` ([question 5](#5-the-scope-of-the-kagent-controller)). The controller can then read the Secrets of `kagent` only. No Gemini key is there. The rule in `kagent` still matches SC16 in its form: `""/*` with `list`, but in one namespace. RFC 0006 must accept this one namespaced rule, or the repository needs a values override or a patch upstream.
 
 Each agent gets its own `ServiceAccount`. The translator makes no `Role` for it, thus an agent pod has no API rights of its own. The agents act on the cluster only through the tool server.
 
@@ -664,7 +671,7 @@ The ten bundled agents are off. `k8s-agent` lists `k8s_delete_resource`, `k8s_ap
 
 - The kagent UI and the controller are `ClusterIP` Services. The proxy Service is `ClusterIP` through `AgentgatewayParameters`, because the chart default is `LoadBalancer`.
 - No Cloudflare tunnel, no public DNS name, no `NodePort` and no `extraPortMappings`. The owner uses `kubectl port-forward`. A check refuses a `LoadBalancer` or a `NodePort` Service in `rendered/kagent/` and `rendered/agentgateway/`.
-- **The kagent API has no authentication.** The auth mode `unsecure` takes the user from a header. Each process that can reach port 8083 can make and call agents. On `kind-local`, only the cluster administrator can do a port-forward. Before an exposure outside the laptop, the owner must turn on `trusted-proxy` with oauth2-proxy, or use the principals of kagent v1.0.
+- **The kagent API has no authentication.** The value `controller.auth.mode` is `unsecure` by default in v0.10.4. On `main`, the value path is `config.server.auth.mode` ([`values.yaml` at `12aa4d4`](https://github.com/kagent-dev/kagent/blob/12aa4d460aaeabc9ee2f923decf8d14372f1bae3/helm/kagent/values.yaml)). The mode `unsecure` takes the user from a header. Each process that can reach port 8083 can make and call agents. On `kind-local`, only the cluster administrator can do a port-forward. Before an exposure outside the laptop, the owner must turn on `trusted-proxy` with oauth2-proxy, or use the principals of kagent v1.0.
 - **The agentgateway listener has no authentication.** Each pod that reaches the proxy can use the Gemini key. The proposal: a `NetworkPolicy` in `agentgateway-system` that permits ingress to the proxy only from the namespace `kagent`. Cilium enforces standard network policies. A rate limit policy on the route limits the cost of a loop. The zero-trust RFC gives the general model ([question 10](#10-access-to-the-agentgateway-listener)).
 
 ### Key handling
@@ -739,7 +746,7 @@ Each item must be true on a `kind-local` cluster that `mise run instance:up` mak
 5. **Answer through agentgateway.** Through `kubectl -n kagent port-forward svc/kagent-controller 8083:8083`, an A2A message to `http://localhost:8083/api/a2a/kagent/cluster-reader/` asks "How many namespaces does this cluster have?". The answer gives the correct number. The v0.10.4 release has no CLI binary, thus the check uses the A2A endpoint. The implementation PR records the JSON-RPC request.
 6. **Access log.** Check: `kubectl -n agentgateway-system logs deploy/agentgateway-proxy` has a line with `gen_ai.provider.name=gemini`, `http.status=200` and the route `gemini`, at the time of check 5.
 7. **No direct path.** No agent pod has a Gemini key. Check: `kubectl -n kagent get deploy cluster-reader -o yaml` has no `GOOGLE_API_KEY`, and no Secret in `kagent` has a key with that name.
-8. **Least privilege.** Checks with `kubectl auth can-i --as=system:serviceaccount:kagent:<tools ServiceAccount>`: `get secrets -A` is `no`, `delete pods -A` is `no`, `create clusterrolebindings` is `no`. The rendered tool `ClusterRole` has no `*` and no `nonResourceURLs`.
+8. **Least privilege.** Checks with `kubectl auth can-i --as=system:serviceaccount:kagent:<tools ServiceAccount>`: `get secrets -A` is `no`, `delete pods -A` is `no`, `create clusterrolebindings` is `no`. The rendered tool `ClusterRole` has no `*` and no `nonResourceURLs`. For the controller `ServiceAccount`, `get secrets -n agentgateway-system` is `no`, and `rendered/kagent/` has no getter or writer `ClusterRole`.
 9. **No plaintext key.** `mise run lint` passes, with the gitleaks check of RFC 0006. No file in `rendered/` has a `Secret` with `data` or `stringData`. The Terraform state has no part of the key (RFC 0006 check).
 10. **Pins.** Each chart has an exact version. Each image that the chart permits has a digest. Check: the implementation PR lists them, and `mise run lint` passes.
 11. **Footprint.** The PR records the peak memory and CPU of the kind node containers with `docker stats`, during check 5.
@@ -854,10 +861,13 @@ Recommendation: A, fixed at the gateway backend. The author did not verify the f
 
 ### 5. The scope of the kagent controller
 
-- A: the chart default. `ClusterRole` objects with writes on all core resources, also Secrets.
-- B: `rbac.namespaces: [kagent]`. M3 adds the cell namespaces by value.
+The chart default gives the controller `get`, `list` and `watch` on all core resources in all namespaces, thus on each Secret. The RFC 0006 check SC16 blocks it. Refer to [kagent RBAC](#kagent-rbac).
 
-Recommendation: B.
+- A: limit the controller to `kagent` with `rbac.namespaces: [kagent]`. The chart supports it in v0.10.4. The controller still reads the Secrets of `kagent`, where no model key is. RFC 0006 SC16 permits this one namespaced rule as a listed exception. M3 adds the cell namespaces by value, and each new namespace gets the same rule.
+- B: accept the cluster-wide rule as a bounded exception for `kind-local` only. The SC16 allowlist names the role, the chart version and the instance. The controller can read the Gemini key in `agentgateway-system`.
+- C: carry a patch: a values override, a post-render step or an upstream PR, that removes `secrets` from the core rule. The chart has no value for it. The core rule is `resources: ["*"]`, thus a patch must list each core resource that the controller needs. The author did not verify that list.
+
+Recommendation: A for M1, and C as an upstream PR in parallel. A uses a documented chart value, keeps the model key out of reach, and needs no fork. C removes the exception later. B leaves the Gemini key readable by the controller.
 
 ### 6. The tools of the first agent
 
