@@ -6,11 +6,6 @@ This page shows the target tree of the repository and the legacy folders. [ADR 0
 
 The target tree is not complete yet. This page marks each part that does not exist in the repository. The mark is [not yet]. Other pull requests (PRs) add these parts, as RFC 0003 ("Rollout") plans.
 
-This page shows the tree as if two changes are complete:
-
-- RFC 0003 ("Rollout", step 3.2) plans the PR that deletes `modules/bootstrap-agent-sandbox/`. This page shows the tree after that PR.
-- [ADR 0021](../records/adrs/0021-use-the-community-health-files-and-the-mit-license.md) decides the rename of `LICENSE.md` to `LICENSE`. This page shows the tree after the rename.
-
 RFC 0005 adds a folder `accounts/<account>/` for the provider accounts. Its ADRs are not merged yet, so this page does not show the folder. Refer to [RFC 0005](../records/rfcs/0005-repository-scope-and-naming.md).
 
 ## Target tree
@@ -106,7 +101,6 @@ Notes on the tree:
 | `charts/<chart>/` | No | A copy of an upstream chart, without change. |
 
 - A module has no `providers.tf` and no `backend.tf`. The instance configures the providers and the state.
-- A module has no `examples/` folder.
 - A copy of upstream content keeps the license of its source. The folder of the copy holds the license file of the source. `README.md` of the module names the source, the version and the license.
 
 ### Files of an instance
