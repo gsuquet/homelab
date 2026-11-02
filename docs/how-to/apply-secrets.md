@@ -79,10 +79,13 @@ Each step keeps `main` green. Do the steps in this order.
    3. Create the policy for SC11 if it is not on `main`.
    4. Run SC1a.
    5. Add `gitops/infrastructure/external-secrets/` with the admission policy (SC9a) and an empty consumer list.
+      - Add the K15 data entry `{component: external-secrets, pattern: "^secret-seeds-"}` to `policy/data/labels.yaml`, with a test that passes and a test that fails.
+      - Add `secret-seeds-*` to `reserved_namespaces`.
+      - Update the K15 row of [Labels and annotations](../reference/labels-and-annotations.md#checks).
    6. Add the component to `cluster.yaml`.
    7. Update [Policies](../reference/policies.md) and rule 4 of `AGENTS.md`.
    8. Check: the ESO pods are ready.
-5. **Secrets root module PR.** Add `modules/bootstrap-secret-seeds/` and `instances/kind-local/secrets/`, with a **dummy** value for the first seed of `thunder`. Extend `instance-checks.sh`. This PR only adds the module. No seed namespace exists yet, so do not run `secrets:apply` here.
+5. **Secrets root module PR.** Add `modules/bootstrap-secret-seeds/` and `instances/kind-local/secrets/`, with a **dummy** value for the first seed of `thunder`. Extend `instance-checks.sh`. Update the "Files of an instance" table of [Repository structure](../reference/repository-structure.md#files-of-an-instance) and the instance schema for the `secrets/` folder. This PR only adds the module. No seed namespace exists yet, so do not run `secrets:apply` here.
 6. **M1.** Steps R2 and R3 of [Roll out kagent and agentgateway](roll-out-kagent-and-agentgateway.md) own these PRs and their split. M1 has no secret and no consumer.
    - Gate: SC16 passes on the rendered agentgateway and kagent components, with the rule for `agentgateway-system`.
    - Check: no Secret in `agentgateway-system` or `kagent` holds a model credential (done criteria 3 and 7 of [kagent and agentgateway (reference)](../reference/kagent-and-agentgateway.md)).

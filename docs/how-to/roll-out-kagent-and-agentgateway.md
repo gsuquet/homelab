@@ -2,7 +2,7 @@
 
 This guide rolls out milestone M1: kagent and agentgateway on `kind-local`, with Gemini on Vertex AI through Workload Identity Federation. The reasons are in [kagent and agentgateway (explanation)](../explanation/kagent-and-agentgateway.md). The objects, the checks and the done criteria are in [kagent and agentgateway (reference)](../reference/kagent-and-agentgateway.md).
 
-Each step R1 to R5 is one PR. The checks are the numbered done criteria of the reference page. To undo the rollout, refer to [Roll back kagent and agentgateway](roll-back-kagent-and-agentgateway.md).
+Each step R2 to R5 is one PR. R1 has three PRs: the JWKS tooling, `accounts/gcp/`, and the file of the second laptop. The checks are the numbered done criteria of the reference page. To undo the rollout, refer to [Roll back kagent and agentgateway](roll-back-kagent-and-agentgateway.md).
 
 ## R1. Prerequisites and the Google Cloud side
 
@@ -16,13 +16,14 @@ Then, in this order:
 1. On the first laptop, run `mise run instance:up kind-local`.
 2. Open a PR with the task `vertex:jwks` and its `--check` option.
 3. In the same PR, add the lint script for `accounts/gcp/jwks/`, with its allowlist of laptops and of JWK members.
-4. In the same PR, write the issuer of the cluster:
+4. In the same PR, write the issuer and the first key file:
 
    ```sh
-   kubectl get --raw /.well-known/openid-configuration | jq -r .issuer > accounts/gcp/jwks/issuer.txt
+   mise run vertex:jwks kind-local <laptop> --init
+   mise run vertex:jwks kind-local <laptop>
    ```
 
-   Then add the first file `accounts/gcp/jwks/<laptop>.json` with `mise run vertex:jwks kind-local <laptop>`. This PR is the one exception to the rule of one file in each JWKS PR, because it adds the lint script that enforces the rule.
+   `--init` writes `accounts/gcp/jwks/issuer.txt`, only when it does not exist. If the base branch has no `accounts/gcp/jwks/issuer.txt`, the PR may add exactly `issuer.txt` and one `<laptop>.json`. Otherwise it changes exactly one file.
 5. On that laptop, run `mise run vertex:jwks kind-local <laptop> --check`. Then merge.
 6. Open a PR for `accounts/gcp/`. Put the Vertex project and its budget first (G2 in [Provider accounts](../reference/provider-accounts.md#free-tier-guardrails)).
 7. In the same PR, add the Vertex AI API, the pool, the provider with the key set from Git, and the service account.

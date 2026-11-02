@@ -5,7 +5,7 @@ This guide installs OpenChoreo v1.3.3 on `kind-local` (milestone M2), in steps R
 ## Before you start
 
 - Use the 16 GB laptop. The 8 GB laptop cannot run M2.
-- Give the Docker VM 12 GiB of memory or more.
+- Give the Docker VM 12 GiB of memory or more: set `COLIMA_MEMORY=12` and `COLIMA_STRICT=1` before `mise run instance:up kind-local`. The task does not resize a running VM. Refer to [Resize the Colima VM](resize-the-colima-vm.md).
 - Merge the doc PR of this design first. Each step is one PR.
 - Do the steps in order. The dependencies:
   - R1 and each consumer of R3 to R6 need External Secrets Operator from the [secrets design](apply-secrets.md).

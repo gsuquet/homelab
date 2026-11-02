@@ -450,9 +450,15 @@ No `google_service_account_key`. Nobody creates a key for `agentgateway-vertex`.
 - It checks the kubeconfig as `secrets:apply` does ([Secrets](secrets.md)). It stops if the `server` is not a loopback address, or if the file has an `exec` or a `proxy-url`.
 - It compares the issuer of the live cluster with `issuer.txt`. If they differ, it stops with the message "one `kind-local` at a time for the federation".
 
+### `mise run vertex:jwks kind-local <laptop> --init`
+
+- [not yet] It writes `accounts/gcp/jwks/issuer.txt` from the issuer of the live cluster, only when the file does not exist.
+- It does the same kubeconfig checks: a loopback `server`, no `exec` and no `proxy-url`.
+
 ### `mise run vertex:jwks kind-local <laptop> --check`
 
 - It exits non-zero if `accounts/gcp/jwks/<laptop>.json` differs in any JWK member from `kubectl get --raw /openid/v1/jwks` of the live cluster on that laptop.
+- It also compares the issuer of the live cluster with `issuer.txt`. Thus a PR that changes only `issuer.txt` gets a check too.
 - It compares the whole file, not only the `kid`. The reason is in [The Vertex AI federation](../explanation/kagent-and-agentgateway.md#the-vertex-ai-federation).
 - It runs by hand on that laptop, outside of agent sessions, before the merge of each JWKS PR.
 
@@ -467,7 +473,7 @@ No `google_service_account_key`. Nobody creates a key for `agentgateway-vertex`.
 | Use | Each key has `use: sig`. |
 | Count | The combined set has at most 8 keys. |
 | Unique `kid` | No `kid` repeats. |
-| PR scope | [not yet] A PR changes exactly one file under `accounts/gcp/jwks/`. The one exception is the first PR of R1, which adds the lint script, `issuer.txt` and the first laptop file together. |
+| PR scope | [not yet] If the base branch has no `accounts/gcp/jwks/issuer.txt`, the PR may add exactly `issuer.txt` and one `<laptop>.json`. Otherwise it changes exactly one file. The script compares the PR with its merge base with `origin/main`, so it needs the full history, as SC1 does. |
 
 ### The Terraform `precondition`
 
@@ -476,8 +482,8 @@ A `precondition` on the provider resource ([HashiCorp: custom conditions](https:
 ### Who changes the key set
 
 - A person reviews and merges each PR that touches `accounts/`, by hand, outside of agent sessions. Agents never merge such a PR.
-- [not yet] A JWKS PR changes exactly one file under `accounts/gcp/jwks/`. The JWKS lint script enforces it. The first PR of R1 adds the lint script itself, `issuer.txt` and the first laptop file, so the rule applies from the next JWKS PR.
-- `--check` runs before the merge, on the laptop of the file. A change of `issuer.txt` needs `--check` on both laptops.
+- [not yet] If the base branch has no `accounts/gcp/jwks/issuer.txt`, the PR may add exactly `issuer.txt` and one `<laptop>.json`. Otherwise it changes exactly one file. The JWKS lint script enforces it.
+- `--check` runs before the merge, on the laptop of the file. A change of `issuer.txt` needs `--check` on both laptops, because `--check` also compares the live issuer with `issuer.txt`.
 - The apply of `accounts/gcp/` runs by hand, in one apply session, outside of agent sessions. Agents get no provider token ([Provider accounts](provider-accounts.md#who-applies)).
 - These are working rules, not GitHub controls, because the agents use the same GitHub account ([Secrets management](../explanation/secrets-management.md)). They do not rely on `CODEOWNERS`, which the repository no longer has (#196).
 - To revoke the keys of one laptop: remove its file, then apply.
