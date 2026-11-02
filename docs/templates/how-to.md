@@ -4,6 +4,7 @@
 Template for a how-to guide. Copy it to docs/how-to/. The rules are in
 docs/reference/writing-rules.md, section "How-to guides".
 Use the imperative. Give only the actions. Each step has a maximum of 20 words.
+Name each section after its task. Do not use a "Procedure" heading.
 Replace each text in curly braces, then remove these comments.
 -->
 
@@ -13,6 +14,13 @@ This guide shows how to {do the task}.
 
 - {a symptom, an error message or a need};
 - {a different symptom, error message or need}.
+
+## Before you start
+
+<!-- Optional. The tools, the access and the state that the task needs. -->
+
+- {a requirement};
+- {a different requirement}.
 
 ## {The task, in the imperative}
 

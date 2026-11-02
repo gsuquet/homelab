@@ -2,7 +2,7 @@
 # Refer to docs/reference/writing-rules.md.
 extends: existence
 message: "Remove '%s'. Describe the system as built, in the present tense."
-level: warning
+level: error
 ignorecase: true
 nonword: true
 tokens:

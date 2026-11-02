@@ -4,9 +4,9 @@
 # Refer to docs/reference/writing-rules.md.
 extends: existence
 message: "Remove '%s'. Do not name a person as an owner or a maintainer. State the rule, or name the agents."
-level: warning
+level: error
 ignorecase: true
 raw:
   # "Code Owners" is the name of a GitHub setting, and an "owner reference" is
   # a Kubernetes field. Both are not about a person of this repository.
-  - (?<!code )\b(?:owner|maintainer)s?\b(?! references?\b)
+  - (?<!\b(?:code|file) )\b(?:owner|maintainer)s?\b(?! references?\b)(?!/)

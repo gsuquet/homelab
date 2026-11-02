@@ -48,6 +48,8 @@ Source: <https://diataxis.fr/how-to-guides/>
 | A condition and its action are in one sentence. | "If the task printed a warning, use the command in the warning." |
 | A how-to guide has only actions. It does not teach or explain. | Link to the reference page for the full list of options. |
 | The steps have numbers, in the order of their dependencies. | Each step has a maximum of 20 words. |
+| Each section has the name of its task, in the imperative. No section has the name "Procedure". | "## Resize the VM", "## Let the task set the size" |
+| Requirements go in an optional "Before you start" section, before the first task. | The tools, the access and the state that the task needs. |
 | The guide starts and stops at a point that has a meaning for the reader. | The guide stops when the task is complete. |
 
 The title is the task, in the imperative: "Resize the Colima VM". It does not start with "How to".
@@ -89,7 +91,7 @@ A page describes the system as built, in the present tense. When the code differ
 | Rule | Not permitted | Vale check |
 | --- | --- | --- |
 | A page has no first person singular. It uses the language of its type. | `I`, `my`, `me`, `mine`, `myself` | `Homelab.FirstPerson` |
-| A page does not name a person by a role. It states the rule with no person, or it names the agents. | `owner`, `maintainer`, `the human`, `the user` | `Homelab.PersonRoles`, for `owner` and `maintainer` |
+| A page does not name a person by a role. It states the rule with no person, or it names the agents. | `owner`, `maintainer`, `the human`, and `the user` as a person, not an account | `Homelab.PersonRoles`, for `owner` and `maintainer` |
 | A page describes the system as built. It does not mark a part as missing. | `[not yet]` | `Homelab.NotYet` |
 | A page does not refer to a numbered question of a plan or a review. It states the answer as a fact. | `Q3`, `question 3` | `Homelab.QuestionNumbers` |
 | A page has no open decisions, done criteria or stop rules. Design work is in a plan, outside the repository. | "We decide this later." | None |
@@ -105,7 +107,7 @@ The documentation uses [ASD-STE100](https://www.asd-ste100.org/) (Simplified Tec
 | Rule | Vale check | Level |
 | --- | --- | --- |
 | A page uses approved words. Refer to [Word list](#word-list). | `STE.Words` | Error |
-| A sentence has a maximum of 25 words. | `STE.SentenceLength` | Warning |
+| A descriptive sentence has a maximum of 25 words (ASD-STE100 rule 5.1). | `STE.SentenceLength` | Warning |
 | A sentence uses the active voice. | `STE.Passive` | Warning |
 | A page has no vague words: `basically`, `easily`, `just`, `simply`, `should` or `very`. | `STE.Vague` | Warning |
 
@@ -140,7 +142,7 @@ Vale does not check the 20-word limit for procedural sentences (ASD-STE100 rule 
 | `terminate` | `stop` |
 | `utilize` | `use` |
 
-To add a word, refer to [Add a word to the STE word list](../how-to/add-a-word-to-the-writing-rules.md).
+To add a word, refer to [Add a word to the STE word list](../how-to/add-a-word-to-the-ste-word-list.md).
 
 ## File format
 
@@ -155,7 +157,7 @@ The files stay compatible with an MkDocs site.
 
 ## Vale
 
-`mise run lint:docs` runs Vale on each Markdown file that Git tracks. Only errors fail the check. The warnings help to write better text. To see them, run Vale on one file:
+`mise run lint:docs` runs Vale on each Markdown file that Git tracks. Only errors fail the check. To see the warnings too, run Vale on one file:
 
 ```bash
 vale docs/how-to/render-manifests.md
@@ -166,17 +168,20 @@ vale docs/how-to/render-manifests.md
 | Files | Styles |
 | --- | --- |
 | `docs/**/*.md` | `STE`, `Homelab` |
+| The pages that `.vale.ini` lists in its temporary section | `STE`. These pages still break the `Homelab` rules. Each rewrite of a page removes it from the list. |
 | The other `*.md` files | `STE` |
 | `CHANGELOG.md` | None. git-cliff makes it from the commit messages. |
 | `docs/reference/ansible-roles/` | None. A script makes these pages from the role tasks. |
 | Files in `charts/` folders | None. Helm charts can come from upstream projects. |
 | `docs/archive/` | None. The archived pages get no updates. |
 
-The `Homelab` rules are in `.vale/styles/Homelab/`. Their level is warning.
+The `Homelab` rules are in `.vale/styles/Homelab/`. Their level is error.
 
 ## Templates
 
 The templates in `docs/templates/` have the structure of each page type. A new page starts as a copy of the template of its type, in the folder of the type. The text in curly braces is a placeholder. The HTML comments tell what each section holds. A finished page has no placeholders and no template comments.
+
+`docs/templates/` is not a navigation section. A future site excludes it.
 
 - [Tutorial](../templates/tutorial.md)
 - [How-to guide](../templates/how-to.md)
@@ -185,6 +190,6 @@ The templates in `docs/templates/` have the structure of each page type. A new p
 
 ## Related pages
 
-- [Add a word to the STE word list](../how-to/add-a-word-to-the-writing-rules.md)
+- [Add a word to the STE word list](../how-to/add-a-word-to-the-ste-word-list.md)
 - [How we work](how-we-work.md)
 - [Mise tasks](mise-tasks.md)
