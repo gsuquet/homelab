@@ -61,6 +61,7 @@ homelab/
 │       ├── doc/                      # Documentation generation and check tasks
 │       ├── manifests/                # Manifest render and check tasks
 │       ├── instance/                 # instance:plan, instance:up, instance:down
+│       ├── labels/                   # Label sync task (labels:sync)
 │       ├── lint/                     # Linters and policy checks (mise run lint)
 │       ├── schemas/                  # Schema tests and checks
 │       └── tf/                       # Terraform docs and lock tasks

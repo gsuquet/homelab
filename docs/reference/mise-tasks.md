@@ -243,6 +243,25 @@ Run it after you change a provider version. Commit the `.terraform.lock.hcl` fil
 
 ---
 
+### `labels:sync`
+
+**Script**: `.mise/tasks/labels/sync.sh`
+**Description**: Make the labels of the repository equal to `.github/labels.yml`. Only the owner runs this task, because it changes the labels of the repository. Refer to [RFC 0002](../records/rfcs/0002-how-we-work.md) ("Labels as code") and [ADR 0012](../records/adrs/0012-use-the-label-taxonomy-the-issue-forms-and-the-pr-template.md).
+
+The task checks the file first: each color has 6 hex digits, each description has 100 characters or fewer, and each name is unique. Then it runs `gh label create --force` for each label. This creates the label, or updates its color and description.
+
+| Flag | Effect |
+| --- | --- |
+| `--dry-run` | Prints each create, update and delete command. It makes no write call. With `--prune`, it reads the labels of the repository with `gh label list`. |
+| `--prune` | Prints the labels that are not in the file, then deletes them with `gh label delete --yes`. |
+
+```bash
+mise run labels:sync --dry-run --prune   # Check first
+mise run labels:sync --prune             # Apply, and delete the other labels
+```
+
+---
+
 ### `manifests:validate`
 
 **Script**: `.mise/tasks/manifests/validate.sh`
