@@ -24,15 +24,15 @@ variable "node_image" {
 }
 
 variable "node_image_tag" {
-  description = "Kubernetes version tag for the node image (e.g. v1.36.1)."
+  description = "Kubernetes version tag for the node image (e.g. v1.37.0)."
   type        = string
-  default     = "v1.36.1"
+  default     = "v1.37.0"
 }
 
 variable "node_image_digest" {
-  description = "SHA256 digest of the node image for reproducible, tamper-resistant builds. Find the digest for a given release at https://github.com/kubernetes-sigs/kind/releases."
+  description = "SHA256 digest of the node image for reproducible, tamper-resistant builds. The reference is the default node image compiled into the pinned kind binary. Release notes: https://github.com/kubernetes-sigs/kind/releases."
   type        = string
-  default     = "3489c7674813ba5d8b1a9977baea8a6e553784dab7b84759d1014dbd78f7ebd5"
+  default     = "a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5"
 }
 
 # ─────────────────────────────────────────────
