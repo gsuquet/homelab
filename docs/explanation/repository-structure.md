@@ -63,7 +63,11 @@ The Argo CD of `olympus` reads `kubernetes/` at `HEAD`, with `prune: true` and t
 
 ## Root files
 
-The root keeps the files that GitHub and the tools expect there: `README.md`, `LICENSE`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` and `SECURITY.md`. GitHub shows them on the repository page and in its community profile. `CHANGELOG.md` is at the root too, because git-cliff writes it from the commits of this repository.
+The root keeps `README.md` and `LICENSE`, because GitHub cannot get them from a default. `CHANGELOG.md` is at the root too, because git-cliff writes it from the commits of this repository. `CONTRIBUTING.md` stays at the root, because its content is specific to this repository: the mise tasks, the checks and the review flow. A generic default cannot name them.
+
+The code of conduct, the security policy and the support file are in the shared repository [`gsuquet/.github`](https://github.com/gsuquet/.github). GitHub uses them as defaults for each repository of the account that has no file of its own ([GitHub: default community health files](https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/creating-a-default-community-health-file)). Thus all the personal repositories get the same rules from one source. The cost: a default file is not in the file browser, the Git history or the clones of this repository.
+
+The code of conduct is the Contributor Covenant 2.0. The security policy gives two report channels: GitHub private vulnerability reporting first, and email second. With email only, a reporter does not know about the private channel. With GitHub only, each repository needs the setting on, and a person with no GitHub account cannot report.
 
 **MIT** is the license, except upstream copies, which keep their own license. MIT is short and well known, and it has one duty: keep the notice in each copy. It has no explicit patent grant. Most license duties apply when a person distributes the code, not when a person uses it for a homelab of their own. The other candidates are Apache-2.0, `MIT OR Apache-2.0`, MPL-2.0, GPL-3.0, AGPL-3.0, 0BSD, Unlicense, CC0-1.0 and no license. This is not legal advice.
 

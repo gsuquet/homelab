@@ -39,8 +39,7 @@ This page lists the folders and the root files of the repository. It also lists 
 ├── .editorconfig, .gitignore, .pre-commit-config.yaml, .shellcheckrc,
 │   .terraform-docs.yml, .tflint.hcl, .typos.toml, .vale.ini, .yamllint.yaml
 ├── renovate.json
-├── README.md, LICENSE, CONTRIBUTING.md, CHANGELOG.md,
-│   CODE_OF_CONDUCT.md, SECURITY.md
+├── README.md, LICENSE, CONTRIBUTING.md, CHANGELOG.md
 │
 ├── ansible/, kubernetes/             # Legacy folders
 └── AGENTS.md, CLAUDE.md, GEMINI.md,  # Agent files
@@ -73,8 +72,16 @@ This page lists the folders and the root files of the repository. It also lists 
 | `LICENSE` | The MIT license. It applies to all the repository, `docs/` too, except upstream copies, which keep their own license. |
 | `CONTRIBUTING.md` | The tasks, the checks and the review flow for a change. |
 | `CHANGELOG.md` | The list of changes. `mise run changelog:generate` writes it from the commit messages with git-cliff. |
-| `CODE_OF_CONDUCT.md` | The Contributor Covenant, version 2.0. |
-| `SECURITY.md` | How to report a vulnerability. Private vulnerability reporting is on in the settings of the repository. |
+
+The repository has no `CODE_OF_CONDUCT.md`, `SECURITY.md` or `SUPPORT.md`. GitHub uses the default files of the shared repository [`gsuquet/.github`](https://github.com/gsuquet/.github):
+
+| File | Content |
+| --- | --- |
+| [`CODE_OF_CONDUCT.md`](https://github.com/gsuquet/.github/blob/main/CODE_OF_CONDUCT.md) | The Contributor Covenant, version 2.0. |
+| [`SECURITY.md`](https://github.com/gsuquet/.github/blob/main/SECURITY.md) | How to report a vulnerability: GitHub private vulnerability reporting first, and email second. |
+| [`SUPPORT.md`](https://github.com/gsuquet/.github/blob/main/SUPPORT.md) | How to get help. |
+
+Private vulnerability reporting is on in the settings of this repository.
 
 ## Files of a module
 
