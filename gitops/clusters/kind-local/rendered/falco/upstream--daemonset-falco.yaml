@@ -24,8 +24,9 @@ spec:
         app.kubernetes.io/instance: falco
       annotations:
         checksum/config: 63000ff1bf476d2228ecddc6dd61d68c874bf02e30e5a0b5e703335ec5e05c00
-        checksum/rules: d795a023a6f6c741c7f19def74203989773aad48daa82291b51d07a284545197
+        checksum/rules: fa770dff401f6fef117d092e49fedf89715b67ef347a57286a8f8f38e8af922a
         checksum/certs: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+        container.apparmor.security.beta.kubernetes.io/falco: unconfined
     spec:
       serviceAccountName: falco
       tolerations:

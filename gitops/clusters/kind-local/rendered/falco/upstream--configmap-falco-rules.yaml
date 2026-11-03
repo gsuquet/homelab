@@ -24,11 +24,11 @@ data:
       tags: [rtsec-lab, filesystem]
 
     # The Cilium socket load balancer rewrites the ClusterIP of the API server
-    # to the node IP, so the connection reaches a node IP on port 6443.
+    # to the node IP, so the connection reaches the node IP on port 6443.
     - rule: API server endpoint connection from rtsec-lab
-      desc: A process in a container of rtsec-lab connects to a node IP on port 6443, the API server endpoint.
+      desc: A process in a container of rtsec-lab connects to any IP on port 6443, the API server endpoint.
       condition: >
-        evt.type = connect and evt.rawres >= 0
+        evt.type = connect and (evt.rawres >= 0 or evt.res = EINPROGRESS)
         and container and fd.type in (ipv4, ipv6)
         and fd.sport = 6443
         and k8s.ns.name = "rtsec-lab"
