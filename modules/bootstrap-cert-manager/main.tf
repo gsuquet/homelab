@@ -18,6 +18,5 @@ resource "helm_release" "cert_manager" {
 
   depends_on = [
     kubernetes_namespace_v1.this,
-    kubernetes_secret_v1.cloudflare_api_token,
   ]
 }
