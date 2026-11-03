@@ -1,6 +1,6 @@
 # Rotate a secret
 
-This guide shows how to rotate the age keys, the data key of a SOPS file, or a secret value.
+This guide shows how to rotate the age keys, the data key of a SOPS file, or a secret value. A new value goes through `secrets:edit` and `secrets:apply`, as for each value change.
 
 Rotate when one of these occurs:
 
@@ -28,7 +28,7 @@ Do the tasks of this guide by hand. Agents never do them.
 2. Update the recipients of the file:
 
    ```bash
-   sops updatekeys <file>
+   mise run secrets:rotate <instance> --recipients
    ```
 
 3. Run `mise run lint`. SC5 and SC6 must pass.
@@ -42,13 +42,13 @@ Do the steps in this order.
 2. Update the recipients of the file:
 
    ```bash
-   sops updatekeys <file>
+   mise run secrets:rotate <instance> --recipients
    ```
 
 3. Rotate the data key:
 
    ```bash
-   sops rotate --in-place <file>
+   mise run secrets:rotate <instance> --data-key
    ```
 
 4. Commit `.sops.yaml` and the SOPS file, and open a pull request.
@@ -60,7 +60,7 @@ Do the steps in this order.
 1. Rotate the data key:
 
    ```bash
-   sops rotate --in-place <file>
+   mise run secrets:rotate <instance> --data-key
    ```
 
 2. Commit the SOPS file, and open a pull request.
@@ -84,7 +84,12 @@ Do the steps in this order.
 
 ## Replace a lost scope key
 
-1. Make a new scope key.
+1. Make a new scope key:
+
+   ```bash
+   age-keygen -o <file>
+   ```
+
 2. In the rule of the file in `.sops.yaml`, replace the public key of the lost key with the new public key.
 3. Set `SOPS_AGE_KEY_FILE` to the recovery key file.
 4. Do steps 2 to 6 of [Remove a recipient](#remove-a-recipient).
@@ -93,10 +98,12 @@ Do the steps in this order.
 
 When the scope key and the recovery key are both lost, nobody can decrypt the SOPS file.
 
-1. Make a new scope key and a new recovery key.
-2. Put their public keys in the rule of the file in `.sops.yaml`.
-3. Recreate each value at its issuer.
-4. Do [Add a secret](add-a-secret.md#write-the-value) for each value.
+1. Make a new scope key with `age-keygen -o <file>`.
+2. Make a new recovery key with `age-keygen` on a machine that no agent uses, or on an offline live system.
+3. Put their public keys in the rule of the file in `.sops.yaml`.
+4. Delete the old SOPS file.
+5. Recreate each value at its issuer.
+6. Do [Add a secret](add-a-secret.md#write-the-value) for each value.
 
 ## Related pages
 

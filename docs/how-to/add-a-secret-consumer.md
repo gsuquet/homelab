@@ -17,7 +17,7 @@ An agent can write all the code of this guide. No agent writes or reads a value.
 Do all these changes in one pull request, together with the component of the consumer. SC9 refuses a consumer without its component, and a component store without its consumer.
 
 1. Add the consumer to the consumer list in the values of `gitops/infrastructure/external-secrets/`.
-2. In the component of the consumer, add these objects from the shared store template:
+2. Copy `gitops/infrastructure/external-secrets/sources/files/secret-store.yaml` to `sources/templates/secret-store.yaml` of the consumer component. It renders:
    - the ServiceAccount `eso-seed-reader`;
    - the `SecretStore` `secrets`, with `remoteNamespace: secret-seeds-<consumer>` and `server.caProvider`;
    - the token `Role` and `RoleBinding` `eso-token-eso-seed-reader`.
@@ -42,7 +42,7 @@ For the fields of each object, refer to [Namespaced stores](../reference/secrets
 3. Add the tenant to the tenant list in the values of `gitops/infrastructure/external-secrets/`.
 4. Render the manifests with `mise run manifests:render`.
 5. Make sure that the store `oc-<tenant>` has one condition: `namespaceRegexes: ["^dp-<tenant>-"]`.
-6. Add each seed name to the seed map of `instances/<instance>/secrets/main.tf`, under the tenant.
+6. Add each seed name to the seed map of `instances/<instance>/secrets/main.tf`, under `oc-<tenant>`.
 7. Run `mise run lint`. SC9 must pass.
 8. Open the pull request.
 

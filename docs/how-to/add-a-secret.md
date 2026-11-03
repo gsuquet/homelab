@@ -41,10 +41,17 @@ Do these steps by hand. No agent writes or reads a value.
    mise run secrets:edit <instance>
    ```
 
-3. Add or change the value under the name of its seed, then save and close the editor.
+3. Add or change the value under the block of its consumer, with the name of its seed as the key. Save and close the editor:
+
+   ```yaml
+   <consumer>:
+     <seed>: <value>
+   ```
+
 4. Run `mise run lint:secrets`. SC4 and SC5 must pass.
 5. Commit the SOPS file, and open a pull request. Git holds only the ciphertext.
-6. Do [Apply the secrets](apply-the-secrets.md#apply-the-secrets).
+6. Merge the pull request.
+7. Do [Apply the secrets](apply-the-secrets.md#apply-the-secrets) from a clean checkout of `main` at the merged commit.
 
 ## Related pages
 

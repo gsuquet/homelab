@@ -4,13 +4,19 @@ This guide shows how to write the values of the SOPS file of an instance into it
 
 Apply the secrets when one of these occurs:
 
-- a value in the SOPS file changed;
-- a new consumer or a new seed merged;
+- a pull request that changes a value in the SOPS file merged;
+- a pull request that adds a consumer or a seed merged;
 - after a re-create of the cluster, the `ExternalSecret` objects show `SecretSyncedError`.
 
 Agents never do the tasks of this guide. Do them by hand.
 
 ## Before you start
+
+- The change is merged, and the checkout is a clean copy of `main` at the merged commit:
+
+  ```bash
+  git switch main && git pull --ff-only && git status --short
+  ```
 
 - The cluster is up, for example after `mise run instance:up kind-local`.
 - Argo CD synced the `external-secrets` component, so each seed namespace of the seed map exists.
@@ -41,7 +47,7 @@ Agents never do the tasks of this guide. Do them by hand.
    kubectl -n argocd get application <component>
    ```
 
-The task stops when the cluster is down, when a seed namespace is missing, or when the kubeconfig is not clean. For the preconditions, refer to [`secrets:apply`](../reference/secrets.md#secretsapply).
+The task stops when the working tree is not clean, when the commit is not on `origin/main`, when the cluster is down, when a seed namespace is missing, or when the kubeconfig is not clean. For the preconditions, refer to [Secrets](../reference/secrets.md#secretsplan-secretsapply-and-secretsdestroy).
 
 ## Copy a new value at once
 
@@ -62,23 +68,21 @@ A re-created cluster has no seeds. Each consumer Secret keeps its last value, an
 
 ## Check that the state holds no value
 
-Do this check with a dummy value in the SOPS file, before the first real value, and after each change to the version of `carlpett/sops` or `hashicorp/kubernetes`. Run each command in the environment of `secrets:apply`.
+Do this check with a dummy value in the SOPS file, before the first real value, and after each change to the version of `carlpett/sops` or `hashicorp/kubernetes`.
 
-1. Put a dummy value in the SOPS file, and run `mise run secrets:apply <instance>`.
-2. Make a saved plan:
-
-   ```bash
-   terraform plan -refresh-only -out=<file>
-   terraform show -json <file>
-   ```
-
-3. Refresh the state and show it:
+1. Merge a dummy value in the SOPS file, then apply it:
 
    ```bash
-   terraform apply -refresh-only
-   terraform show -json
+   mise run secrets:apply <instance>
    ```
 
+2. Make a saved plan, and save the output of the task:
+
+   ```bash
+   mise run secrets:plan <instance> > <output-file>
+   ```
+
+3. Run `mise run secrets:apply <instance>` again, to refresh the state.
 4. Search the state, its backup, the saved plan and each output for the dummy value and for its base64 form.
 
 The check passes when no search finds the value. If a search finds it, do [Create the seeds by hand](#create-the-seeds-by-hand).
@@ -91,7 +95,7 @@ Do this only when the state check fails. Real values then never go into Terrafor
 2. For each seed, write the value from the SOPS file into its seed namespace:
 
    ```bash
-   sops decrypt --extract '["<seed>"]' <file> \
+   sops decrypt --extract '["<consumer>"]["<seed>"]' <file> \
      | kubectl -n secret-seeds-<consumer> create secret generic <seed> --from-file=value=/dev/stdin
    ```
 
@@ -100,9 +104,16 @@ Do this only when the state check fails. Real values then never go into Terrafor
 ## Remove the secrets of an instance
 
 1. Remove the `ExternalSecret` objects from their components in a pull request, and merge it. Kubernetes deletes each consumer Secret through its owner reference.
+   Do not delete an `ExternalSecret` by hand: Argo CD self-heal makes it again.
 2. Stop all the agent sessions.
-3. Run `terraform destroy` on the secrets root module, in the environment of `secrets:apply`. This deletes the seeds.
-4. Keep the SOPS file, or remove it in a pull request.
+3. Update the checkout to the merged commit of `main`.
+4. Destroy the secrets root module. This deletes the seeds:
+
+   ```bash
+   mise run secrets:destroy <instance>
+   ```
+
+5. Keep the SOPS file, or remove it in a pull request.
 
 ## Related pages
 

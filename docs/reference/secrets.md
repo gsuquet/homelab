@@ -11,7 +11,7 @@ The secrets of the `gitops/` tree are in one SOPS file for each instance, encryp
 | `gitops/infrastructure/external-secrets/` | The ESO component. Refer to [ESO component](#eso-component). |
 | `policy/data/secrets.yaml` | The trusted platform components, the SC7 exception and the SC16 protected namespaces and allowlist. |
 | `.gitleaks.toml` | The gitleaks settings, with the SC3 rule for age keys. |
-| `.mise/tasks/secrets/apply.sh` | The script of `secrets:apply`. |
+| `.mise/tasks/secrets/` | The scripts of the `secrets:*` tasks. `apply.sh` builds the clean environment. |
 
 ## Classes of secrets
 
@@ -34,6 +34,17 @@ The secrets of the `gitops/` tree are in one SOPS file for each instance, encryp
 | Scope key | One age key for each SOPS file. On `kind-local`, a plain `keys.txt` file. |
 | Recovery key | One age key, made on a machine that no agent uses or on an offline live system. Kept offline, for example on paper. A recipient of each SOPS file. |
 | Keys in a cluster | None |
+
+### Layout of the SOPS file
+
+The SOPS file has one block for each consumer, and thus for each seed namespace. Each key of a block is the name of a seed:
+
+```yaml
+<consumer>:
+  <seed>: <value>
+```
+
+The block of a namespaced consumer has the name of its namespace, for example `thunder`. The block of a tenant has the name `oc-<tenant>`. The block names are equal to the keys of the seed map.
 
 ### `.sops.yaml`
 
@@ -89,7 +100,7 @@ A SOPS file with production values uses a hardware key through an age plugin, wi
 
 | Item | Value |
 | --- | --- |
-| Seed map | A non-ephemeral input of `module.secret_seeds`: each consumer and the names of its seeds. `for_each` uses this map. The decrypted map gives only the values. |
+| Seed map | A non-ephemeral input of `module.secret_seeds`: each consumer and the names of its seeds. The key of a namespaced consumer is its namespace. The key of a tenant is `oc-<tenant>`, the name of its store. `for_each` uses this map. The decrypted map gives only the values. |
 | Seed | A `kubernetes_secret_v1` named after its remote key, for example `oauth-client-secret`, in `secret-seeds-<consumer>`. One data key: `value`. |
 | `data_wo_revision` | `parseint(substr(filesha256(<file>), 0, 8), 16)`, from the hash of the encrypted file. Each edit of the SOPS file changes the revision of each seed. |
 | State | `data: null` and `data_wo: null` for each seed. No value, plain or base64, in the state, its backup or a plan. |
@@ -102,7 +113,8 @@ Terraform refuses a sensitive or an ephemeral value in `for_each`.
 | --- | --- | --- |
 | Terraform | 1.17.0 | `.mise/config.toml` |
 | `sops` | 3.13.3 | `.mise/config.toml` |
-| `age` | Exact version | `.mise/config.toml` |
+| `age` | 1.3.2 | `.mise/config.toml` |
+| ESO chart `external-secrets` | 2.14.0 | `gitops/infrastructure/external-secrets/sources/Chart.yaml` |
 | `carlpett/sops` | 1.4.1 | `.terraform.lock.hcl` |
 | `hashicorp/kubernetes` | 3.1.0 | `.terraform.lock.hcl` |
 
@@ -113,26 +125,41 @@ A change to the version of `carlpett/sops` or `hashicorp/kubernetes` needs the s
 | Task | Use | Who runs it |
 | --- | --- | --- |
 | `secrets:edit <instance>` | Open the SOPS file of the instance in an editor with swap, backup and undo files off. | A person, by hand, with no agent session |
-| `secrets:apply <instance>` | Apply the secrets root module of the instance in a clean environment. | A person, by hand, with no agent session |
-| `secrets:rotate` | Rotate the keys of a SOPS file. | A person, by hand, with no agent session |
+| `secrets:plan <instance>` | Show the changes and the state of the secrets root module, in the clean environment. It changes nothing. | A person, by hand, with no agent session |
+| `secrets:apply <instance>` | Apply the secrets root module of the instance in the clean environment. | A person, by hand, with no agent session |
+| `secrets:destroy <instance>` | Destroy the secrets root module of the instance, and thus its seeds, in the clean environment. | A person, by hand, with no agent session |
+| `secrets:rotate <instance> --recipients` | Run `sops updatekeys` on the SOPS file of the instance, after a change to its rule in `.sops.yaml`. | A person, by hand, with no agent session |
+| `secrets:rotate <instance> --data-key` | Run `sops rotate --in-place` on the SOPS file of the instance. | A person, by hand, with no agent session |
 | `lint:secrets` | Run SC1, SC4 and SC5. Part of `mise run lint`. | Anyone, also CI |
 | `instance:up`, `instance:down` | Do not change the seeds. | Anyone, also agents |
 
-### `secrets:apply`
+A value change has no task of its own: `secrets:edit`, then `secrets:apply`.
+
+### `secrets:plan`, `secrets:apply` and `secrets:destroy`
 
 ```bash
+mise run secrets:plan <instance>
 mise run secrets:apply <instance>
+mise run secrets:destroy <instance>
 ```
 
-`secrets:apply` stops with a message when one of these preconditions fails:
+| Task | Terraform commands |
+| --- | --- |
+| `secrets:plan` | `terraform plan -refresh-only -out=<file>`, then `terraform show -json <file>` |
+| `secrets:apply` | `terraform apply`, with `-replace` of each seed address |
+| `secrets:destroy` | `terraform destroy` |
+
+The three tasks have the same preconditions. A task stops with a message when one of them fails:
 
 | Precondition | Check |
 | --- | --- |
+| The working tree is clean. | Git shows no change and no untracked file. |
+| The commit is on `main`. | The checked-out commit is on `origin/main`. A task runs only after the merge. |
 | The cluster is up. | The task gets a kubeconfig from the cluster. |
 | The kubeconfig is clean. | `server` is a loopback address. The file has no `exec` and no `proxy-url`. |
 | Each seed namespace exists. | The seed namespace of each consumer in the seed map is in the cluster. |
 
-The task builds its own environment:
+The three tasks build the same environment:
 
 | Item | Value |
 | --- | --- |
@@ -140,13 +167,14 @@ The task builds its own environment:
 | `TF_CLI_CONFIG_FILE` | An empty file in the repository. No `provider_installation` and no `dev_overrides`. |
 | `TF_DATA_DIR` | A new folder, with `terraform init` against the lock file. |
 | Kubeconfig | A temporary file from `kind get kubeconfig --name <cluster>`. |
-| Seeds | `-replace` of each seed address, on each run. |
 
 Without a key, `terraform plan` stops at the ephemeral resource before any write, with `Error getting data key: 0 successful groups required, got 0`.
 
 ## ESO component
 
-`gitops/infrastructure/external-secrets/` installs ESO 2.14 from `https://charts.external-secrets.io`, at an exact chart version. Its CRDs have sync wave `-1`.
+`gitops/infrastructure/external-secrets/` installs ESO from the chart `external-secrets` 2.14.0 of `https://charts.external-secrets.io`. The Helm release is `external-secrets`, in the namespace `external-secrets`. Its CRDs have sync wave `-1`.
+
+The chart names the controller ServiceAccount after its full name. The release name contains the chart name, so the full name is the release name alone: the ServiceAccount is `external-secrets/external-secrets` (`_helpers.tpl` of chart 2.14.0, `external-secrets.fullname`).
 
 The values hold the consumer list and the tenant list. The component renders:
 
@@ -179,14 +207,14 @@ The component has no network policy.
 
 ## Namespaced stores
 
-Each consumer component renders these objects in its own namespace, from the shared store template:
+Each consumer component renders these objects in its own namespace, from `sources/templates/secret-store.yaml`. This file is a copy of the shared store template, `gitops/infrastructure/external-secrets/sources/files/secret-store.yaml`. A local chart dependency is not permitted, so each consumer has its own copy, and SC9 checks it.
 
 | Object | Value |
 | --- | --- |
 | ServiceAccount | `eso-seed-reader` |
 | `SecretStore` | `secrets` |
 | `Role` | `eso-token-eso-seed-reader`: `create` on `serviceaccounts/token` in the `""` group, with `resourceNames: [eso-seed-reader]` |
-| `RoleBinding` | `eso-token-eso-seed-reader`, to the ESO controller ServiceAccount `external-secrets/<release>-external-secrets` |
+| `RoleBinding` | `eso-token-eso-seed-reader`, to the ESO controller ServiceAccount `external-secrets/external-secrets` |
 | `ExternalSecret` | One or more, on the store `secrets` |
 
 No component writes into a namespace that another component makes.
@@ -341,7 +369,7 @@ Each Conftest rule has a test that passes and a test that fails. The legacy `kub
 - In a module with an ephemeral variable, the variable goes only into a write-only argument of the list. The module has no `provider` block and no `ephemeral` block.
 - `module.secret_seeds` has no `providers` argument.
 - `bootstrap-secret-seeds` uses only `hashicorp/kubernetes`.
-- The `provider "kubernetes"` of the secrets root module has only `config_path`, set to the file that `secrets:apply` makes.
+- The `provider "kubernetes"` of the secrets root module has only `config_path`, set to the file that the task makes.
 
 ### SC16 rules
 
@@ -369,13 +397,13 @@ Agents run as the same OS user as the person who applies the secrets. These rule
 
 | Rule | Detail |
 | --- | --- |
-| Agents never run `secrets:apply`. | Also never `sops decrypt`, `sops edit`, `sops exec-env`, `kubectl get secret -o yaml`, or a `terraform` command in `instances/*/secrets/`. |
+| Agents never run a `secrets:*` task. | Also never `sops decrypt`, `sops edit`, `sops exec-env`, `kubectl get secret -o yaml`, or a `terraform` command in `instances/*/secrets/`. |
 | Agents never read or delete a key or a state. | `keys.txt` and each `.tfstate` file. |
 | Agents never apply account changes. | No `terraform` command in `accounts/`, no provider tokens. |
 | Agents never merge. | Also not a pull request that changes `accounts/`. |
 | Agents never use the proxy identity of agentgateway. | No `kubectl create token` for the proxy ServiceAccount of `agentgateway-system`, no read of its token file, no hand edit of `accounts/gcp/jwks/`. Agents can run `vertex:jwks`. |
 | Agents can run `instance:up` and `instance:down`. | After a re-create of a cluster with seeds, the agent tells the person who applies the secrets. |
-| No agent session runs during a SOPS edit or a `secrets:apply`. | `secrets:edit` and `secrets:apply` run only with no agent session. |
+| No agent session runs during a SOPS edit or a `secrets:apply`. | `secrets:edit`, `secrets:plan`, `secrets:apply`, `secrets:destroy` and `secrets:rotate` run only with no agent session. |
 | Agents write the code around a secret, never the value. | A value in the output of an agent gets a rotation. |
 
 ### What agents can read
