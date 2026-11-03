@@ -8,4 +8,8 @@ name: kind-local
 infrastructure:
   - name: argocd
     namespace: argocd
+  # No dependsOn: the cert-manager component is not built yet. The plan adds
+  # dependsOn: [cert-manager] with that component.
+  - name: kgateway
+    namespace: kgateway-system
 apps: []

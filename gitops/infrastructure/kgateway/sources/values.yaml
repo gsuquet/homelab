@@ -1,0 +1,32 @@
+# Values for all clusters. gitops/clusters/<cluster>/values/kgateway.yaml can
+# override them for one cluster.
+#
+# The Gateway API CRDs are not in these charts (checked at v2.3.11): the
+# Terraform module bootstrap-gateway-api owns them. kgateway-crds has only the
+# CRDs of gateway.kgateway.dev.
+
+kgateway:
+  controller:
+    image:
+      # Digest of the multi-arch index of cr.kgateway.dev/kgateway-dev/kgateway:v2.3.11
+      # (amd64 and arm64). The chart appends the tag to the repository.
+      # TODO: the data plane (Envoy) image has no digest. The chart passes
+      # image.tag to the controller as KGW_DEFAULT_IMAGE_TAG, and a digest does
+      # not fit there. Pin it with a GatewayParameters object when a Gateway exists.
+      tag: "v2.3.11@sha256:bf7a605d1eaafd7f7ccb759a67a096c5f9c313660fa100abb9935949b8cef8c0"
+    # Memory request equal to the limit, a CPU request, no CPU limit.
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        memory: 128Mi
+    podSecurityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL

@@ -1,0 +1,14 @@
+apiVersion: v2
+name: kgateway
+description: Umbrella chart for kgateway, the Gateway API implementation of the platform. The Gateway API CRDs come from Terraform (bootstrap-gateway-api), not from this chart.
+type: application
+version: 1.0.0
+
+dependencies:
+  # The CRDs of kgateway itself (gateway.kgateway.dev and related groups).
+  - name: kgateway-crds
+    version: "v2.3.11"
+    repository: oci://cr.kgateway.dev/kgateway-dev/charts
+  - name: kgateway
+    version: "v2.3.11"
+    repository: oci://cr.kgateway.dev/kgateway-dev/charts
