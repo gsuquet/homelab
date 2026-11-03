@@ -18,5 +18,4 @@ layers:
     modules:
       - bootstrap-gateway-api
       - bootstrap-cilium
-      - bootstrap-coredns
       - bootstrap-argocd

@@ -59,17 +59,6 @@ module "cilium" {
   depends_on = [module.kind_cluster, module.gateway_api]
 }
 
-# The OpenChoreo host names resolve in the cluster to the Service of the control
-# plane Gateway. This Service does not exist before the control plane component.
-module "coredns" {
-  source = "../../modules/bootstrap-coredns"
-
-  rewrite_hostnames = var.openchoreo_hostnames
-  rewrite_target    = var.openchoreo_gateway_service
-
-  depends_on = [module.cilium]
-}
-
 # Argo CD starts from the same rendered manifests that it syncs from Git. Then
 # it manages itself and the components in gitops/clusters/kind-local/cluster.yaml.
 module "argocd" {
