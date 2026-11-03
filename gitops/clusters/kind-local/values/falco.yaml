@@ -1,0 +1,8 @@
+# Values of falco for kind-local only.
+falco:
+  resources:
+    limits:
+      # TODO(#290): move the null into sources/values.yaml when render passes it with -f.
+      # Removes the CPU limit of the chart (1000m). A null works only in a
+      # values file that the render passes with -f, not in sources/values.yaml.
+      cpu: null

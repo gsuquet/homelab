@@ -8,4 +8,6 @@ name: kind-local
 infrastructure:
   - name: argocd
     namespace: argocd
+  - name: falco
+    namespace: falco
 apps: []
