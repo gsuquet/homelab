@@ -1,6 +1,6 @@
 # Homelab documentation
 
-This repository holds the code of a personal platform. Terraform modules in `modules/` and instances in `instances/` create the clusters. Argo CD deploys the workloads from the sources in `gitops/`. Conftest policies, JSON schemas and Vale check each change. A cluster runs at home on Raspberry Pi nodes, and other instances run in the cloud. Each change gets its first test on `kind-local`, a Kind cluster on a computer.
+This repository holds the code of a personal platform. Terraform modules in `modules/` and instances in `instances/` create the clusters. Argo CD deploys the workloads from the sources in `gitops/`. Conftest policies, JSON schemas and Vale check the code and the docs of each change. A cluster runs at home on Raspberry Pi nodes, and other instances run in the cloud. Each change gets its first test on `kind-local`, a Kind cluster on a computer.
 
 If the repository is new to you, start with the tutorial [Run your first local cluster](tutorials/run-your-first-local-cluster.md). It starts `kind-local` with one command, shows Argo CD as it syncs the cluster from Git, and removes the cluster.
 
@@ -27,7 +27,7 @@ The pages have four types. Use the type that agrees with your need:
 | --- | --- |
 | [Install the tools](how-to/install-the-tools.md) | Install the pinned tools and the Git hooks |
 | [Resize the Colima VM](how-to/resize-the-colima-vm.md) | Give the Colima VM more CPUs or memory for a Kind instance |
-| [Use Kind behind a TLS-inspecting proxy](how-to/use-kind-behind-a-tls-proxy.md) | Make the Colima VM and the Kind nodes trust a company proxy CA |
+| [Use Kind behind a TLS-inspecting proxy](how-to/use-kind-behind-a-tls-inspecting-proxy.md) | Make the Colima VM and the Kind nodes trust a company proxy CA |
 
 ### Operate the GitOps components
 
@@ -39,7 +39,12 @@ The pages have four types. Use the type that agrees with your need:
 | [Open the Argo CD UI](how-to/open-the-argo-cd-ui.md) | Open the Argo CD UI of an instance with a port-forward |
 | [Force a sync](how-to/force-a-sync.md) | Make Argo CD apply a merged change at once |
 | [Upgrade Argo CD](how-to/upgrade-argo-cd.md) | Upgrade Argo CD, or change its settings, on all the clusters |
-| [Configure Cloudflare](how-to/configure-cloudflare.md) | Set up the Cloudflare tunnel for external access |
+
+### Expose a service
+
+| Page | Description |
+| --- | --- |
+| [Configure Cloudflare](how-to/configure-cloudflare.md) | Set up the Cloudflare tunnel of the `kubernetes/` stack |
 
 ### Change the repository
 
@@ -77,7 +82,7 @@ The module pages come from terraform-docs. `mise run doc:generate` updates them:
 
 | Page | Description |
 | --- | --- |
-| [Repository structure](reference/repository-structure.md) | The folders, the root files and the naming rules |
+| [Repository structure (reference)](reference/repository-structure.md) | The folders, the root files and the naming rules |
 | [Mise tasks](reference/mise-tasks.md) | The `mise run` tasks and what each one does |
 | [Tools](reference/tools.md) | The pinned tools and their versions |
 | [Policies](reference/policies.md) | The Conftest policies and what each one checks |
@@ -85,17 +90,6 @@ The module pages come from terraform-docs. `mise run doc:generate` updates them:
 | [Renovate settings](reference/renovate-settings.md) | The settings in `renovate.json` |
 | [Work rules](reference/work-rules.md) | The rules for the plans, the issues, the PRs, the review, the commits and the merge |
 | [Writing rules](reference/writing-rules.md) | The page types, ASD-STE100 and the Vale checks |
-
-### Page templates
-
-Each new page starts from the template of its type:
-
-| Template | Type |
-| --- | --- |
-| [Tutorial template](templates/tutorial.md) | Tutorial |
-| [How-to template](templates/how-to.md) | How-to guide |
-| [Reference template](templates/reference.md) | Reference |
-| [Explanation template](templates/explanation.md) | Explanation |
 
 ## Explanation
 
@@ -110,6 +104,17 @@ Each new page starts from the template of its type:
 | [How we work](explanation/how-we-work.md) | Why the work goes from a plan to the docs and then to the code |
 | [Automated updates](explanation/automated-updates.md) | Why Renovate keeps the exact versions current, and how it groups the updates |
 
+## Page templates
+
+Each new page starts from the template of its type:
+
+| Template | Type |
+| --- | --- |
+| [Tutorial template](templates/tutorial.md) | Tutorial |
+| [How-to template](templates/how-to.md) | How-to guide |
+| [Reference template](templates/reference.md) | Reference |
+| [Explanation template](templates/explanation.md) | Explanation |
+
 ## Archive
 
 Nobody maintains these pages, and Vale does not check them. The reasons are in [Archive](archive/README.md).
@@ -117,4 +122,4 @@ Nobody maintains these pages, and Vale does not check them. The reasons are in [
 | Page | Description |
 | --- | --- |
 | [Chaos Citadel](archive/chaos-citadel.md) | A design for a cloud-native defense game |
-| [Zero Trust and Chaos Lab](archive/zero-trust-chaos-lab.md) | The design for the Chaos Citadel test bed |
+| [Zero Trust and Chaos Lab](archive/zero-trust-chaos-lab.md) | A scoping draft for a Zero Trust, shadow traffic and chaos engineering lab |
