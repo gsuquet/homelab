@@ -83,7 +83,7 @@ The module pages come from terraform-docs. `mise run doc:generate` updates them:
 | [Policies](reference/policies.md) | The Conftest policies and what each one checks |
 | [Schemas](reference/schemas.md) | The JSON schemas of `module.yaml`, `instance.yaml` and `cluster.yaml` |
 | [Renovate settings](reference/renovate-settings.md) | The settings in `renovate.json` |
-| [Work rules](reference/how-we-work.md) | The rules for the plans, the issues, the PRs, the review, the commits and the merge |
+| [Work rules](reference/work-rules.md) | The rules for the plans, the issues, the PRs, the review, the commits and the merge |
 | [Writing rules](reference/writing-rules.md) | The page types, ASD-STE100 and the Vale checks |
 
 ### Page templates

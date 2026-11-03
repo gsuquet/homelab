@@ -17,7 +17,7 @@ These rules apply to all types:
 
 - A page has one type. Content of a different type goes to a page of that type, and the page links to it.
 - A page links to the matching pages of the other types, when they exist. The link list is the last section of the page: "Next steps" in a tutorial, "Related pages" in the other types.
-- A new subject starts from a plan, outside the repository. The pages then describe the system as it is once built, and the code follows. Refer to [How we work](how-we-work.md#workflow-steps).
+- A new subject starts from a plan, outside the repository. The pages then describe the system as it is once built, and the code follows. Refer to [Work rules](work-rules.md#workflow-steps).
 
 ### Tutorials
 
@@ -192,5 +192,5 @@ The templates in `docs/templates/` have the structure of each page type. A new p
 ## Related pages
 
 - [Add a word to the STE word list](../how-to/add-a-word-to-the-ste-word-list.md)
-- [How we work](how-we-work.md)
+- [Work rules](work-rules.md)
 - [Mise tasks](mise-tasks.md)

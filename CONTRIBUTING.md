@@ -16,7 +16,7 @@ pre-commit install --hook-type commit-msg
 
 ## Make a change
 
-Follow [Make a change](docs/how-to/make-a-change.md). The rules are in [Work rules](docs/reference/how-we-work.md). The reasons are in [How we work](docs/explanation/how-we-work.md).
+Follow [Make a change](docs/how-to/make-a-change.md). The rules are in [Work rules](docs/reference/work-rules.md). The reasons are in [How we work](docs/explanation/how-we-work.md).
 
 ## Checks
 

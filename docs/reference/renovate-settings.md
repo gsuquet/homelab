@@ -78,5 +78,5 @@ These settings take effect only when the Dependency graph and the Dependabot ale
 
 - [Automated updates](../explanation/automated-updates.md)
 - [Render the manifests](../how-to/render-manifests.md)
-- [Work rules](how-we-work.md)
+- [Work rules](work-rules.md)
 - [Tools](tools.md)

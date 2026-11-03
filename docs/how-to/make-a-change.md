@@ -1,6 +1,6 @@
 # Make a change
 
-This guide shows how to take a change from a plan to a merged pull request (PR). The rules behind each step are in [Work rules](../reference/how-we-work.md).
+This guide shows how to take a change from a plan to a merged pull request (PR). The rules behind each step are in [Work rules](../reference/work-rules.md).
 
 For a small, reversible change, for example a bug fix or a change to the tooling, skip steps 1 to 3. Start at step 4, and update the docs that the change makes wrong in the same PR.
 
@@ -94,6 +94,6 @@ gh project item-list 2 --owner gsuquet --format json \
 
 ## Related pages
 
-- [Work rules](../reference/how-we-work.md)
+- [Work rules](../reference/work-rules.md)
 - [How we work](../explanation/how-we-work.md)
 - [Mise tasks](../reference/mise-tasks.md)
