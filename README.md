@@ -1,92 +1,103 @@
-# HomeLab
-
-> A personal infrastructure sandbox, configuration archive, and learning environment for Infrastructure as Code, Kubernetes GitOps, Ansible, and Terraform.
+# Homelab
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Renovate](https://img.shields.io/badge/renovate-enabled-brightgreen.svg)](renovate.json)
 
----
+The code of a personal Kubernetes platform, at <https://github.com/gsuquet/homelab>.
 
-## Overview
+## Project description
 
-This repository serves as a **personal learning sandbox and configuration archive**. It acts as a single source of truth for modular Terraform configurations, Helm chart values, Ansible roles, and Kubernetes manifest patterns.
+With this repository, you can create a Kubernetes cluster from Terraform modules, and then let Argo CD deploy its workloads from Git. Each change gets its first test on `kind-local`, a Kind cluster on a computer. One command creates the cluster, and one command removes it.
 
-While the codebase currently deploys a live smart home and personal services stack to a Raspberry Pi (`olympus.local`), the architecture is modular and provider-agnostic — designed to support local development environments (e.g. `Kind`), cloud providers, and multi-node clusters.
+The repository has these parts:
 
-### Key Focus Areas
+| Folder | Content |
+| --- | --- |
+| `modules/` | Terraform child modules: `cluster-kind`, `bootstrap-gateway-api`, `bootstrap-cilium`, `bootstrap-cert-manager` and `bootstrap-argocd`. |
+| `instances/` | One Terraform root module for each instance. The instance `kind-local` uses `cluster-kind`, `bootstrap-gateway-api`, `bootstrap-cilium` and `bootstrap-argocd`. |
+| `gitops/` | The Helm sources of the components, and the rendered manifests of each cluster. Argo CD applies the rendered manifests. |
+| `policy/`, `schemas/` | The Conftest policies and the JSON schemas that check each change. |
+| `.mise/` | The pinned tools and the `mise run` tasks. |
+| `docs/` | The documentation. |
 
-- **Infrastructure as Code & Modules**: Modular Terraform (`modules/`) and Ansible roles (`ansible/roles/`) designed for reuse and learning.
-- **GitOps & Rendered Manifests**: ArgoCD-driven deployment using local Helm rendering for complete transparency and declarative auditability.
-- **Multi-Environment Ready**: Targets local dev clusters (`Kind`), bare-metal nodes (Raspberry Pi / K3s), and extensible for cloud targets.
-- **Security & Secret Hygiene**: Sealed Secrets for Git-committed secrets, UFW firewall hardening, and Zero-Trust Cloudflare Tunnels.
-- **Automated Maintenance**: Renovate bot for dependency management and pre-commit hooks for linting and doc generation.
+`ansible/` and `kubernetes/` are legacy folders. New work does not use them. Refer to [Repository structure](docs/reference/repository-structure.md#legacy-folders).
 
----
+## Who this project is for
 
-## Quickstart
+This project is for engineers who want to read, run or copy a GitOps platform that starts on a local cluster. It is a personal platform, not a product. It has no releases and no support contract.
 
-### Prerequisites
+## Project dependencies
 
-- Operating System: Linux (Debian/Ubuntu/Raspbian) or macOS (for CLI management)
-- Managed via [Mise](https://mise.jdx.dev/) tool manager
+Before you use the repository, make sure that you have:
 
-### Setup Instructions
+- a Mac or a Linux computer with a minimum of 8 GiB of memory;
+- [mise](https://mise.jdx.dev/), activated in your shell. mise installs the other tools at the versions that `.mise/config.toml` pins;
+- the `docker` command and a Docker runtime, for example [Colima](https://github.com/abiosoft/colima);
+- `kubectl`;
+- Git.
 
-1. **Clone Repository**:
+## Instructions for using the repository
+
+To start, run the tutorial [Run your first local cluster](docs/tutorials/run-your-first-local-cluster.md). It starts `kind-local`, shows Argo CD as it syncs the cluster from Git, and removes the cluster.
+
+### Install the tools
+
+1. Clone the repository, and go to its root:
 
    ```bash
    git clone https://github.com/gsuquet/homelab.git
    cd homelab
    ```
 
-2. **Install Development Tools**:
+2. Install the pinned tools:
 
    ```bash
    mise install
    ```
 
-3. **Provision Node**:
+### Run the local cluster
+
+1. Create the cluster and install Argo CD:
 
    ```bash
-   ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/install.yml
+   mise run instance:up kind-local
    ```
 
-4. **Verify Deployment**:
+2. Remove the cluster when you do not need it:
 
    ```bash
-   kubectl get nodes
-   kubectl get pods -n argocd
+   mise run instance:down kind-local
    ```
 
----
+The arguments, the steps and the exit status of these tasks are in [Instance tasks](docs/reference/instance-tasks.md).
 
-## Documentation
+### Troubleshoot the local cluster
 
-Full documentation is organized using the **Diátaxis framework** in the [`docs/`](docs/index.md) directory:
+| Problem | Solution |
+| --- | --- |
+| `instance:up` fails with `TLS handshake timeout`, or it tells that the Docker VM has not enough memory. | [Resize the Colima VM](docs/how-to/resize-the-colima-vm.md) |
+| Image pulls fail with `x509: certificate signed by unknown authority` behind a company proxy. | [Use Kind behind a TLS-inspecting proxy](docs/how-to/use-kind-behind-a-tls-inspecting-proxy.md) |
+| A task stops because a command is missing. | [Install the tools](docs/how-to/install-the-tools.md) |
 
-| Section | Description | Link |
-|---------|-------------|------|
-| **Tutorials** | Learning-oriented step-by-step guides for getting started | [Explore Tutorials](docs/index.md#tutorials) |
-| **How-to Guides** | Operational task-oriented recipes (updating K3s, secrets, Zigbee) | [Explore How-to Guides](docs/index.md#how-to-guides) |
-| **Reference** | Technical specifications, Ansible roles, tools, and apps | [Explore Reference](docs/index.md#reference) |
-| **Explanation** | Architectural decisions, GitOps patterns, and design rationale | [Explore Explanations](docs/index.md#explanation) |
+## Contributing guidelines
 
----
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before you change the repository. It gives the tasks, the checks and the review flow of a change.
 
-## Contributing
+## More documentation
 
-Contributions, feedback, and issue reports are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on code standards, commit formatting, and pull request workflows.
+The [documentation index](docs/index.md) lists all the pages, by type:
 
-Please note that this project adheres to a [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
+- [Tutorials](docs/index.md#tutorials): learn the platform step by step.
+- [How-to guides](docs/index.md#how-to-guides): do one specific task.
+- [Reference](docs/index.md#reference): find a fact, for example a task, a file or a rule.
+- [Explanation](docs/index.md#explanation): understand why the platform has its form.
 
----
+## How to get help
 
-## Security
+- To ask a question or report a bug, open an issue at <https://github.com/gsuquet/homelab/issues>. Refer to the [support policy](https://github.com/gsuquet/.github/blob/main/SUPPORT.md).
+- To report a vulnerability, do not open an issue. Obey the [security policy](https://github.com/gsuquet/.github/blob/main/SECURITY.md).
+- All the people in the project obey the [code of conduct](https://github.com/gsuquet/.github/blob/main/CODE_OF_CONDUCT.md).
 
-For security vulnerability reporting instructions, please see [SECURITY.md](SECURITY.md).
+## Terms of use
 
----
-
-## License
-
-This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
+The repository has the [MIT license](LICENSE), except the upstream copies, which keep their own license.
