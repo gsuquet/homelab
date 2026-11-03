@@ -29,6 +29,10 @@ area/tooling:
           - .tflint.hcl
           - .typos.toml
           - .gitignore
+          - .claude/**
+          - .gemini/**
+          - .entire/**
+          - .vscode/**
 
 area/modules:
   - changed-files:
