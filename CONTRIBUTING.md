@@ -37,7 +37,7 @@ Make sure that you have:
 
 - the [project dependencies](README.md#project-dependencies) of the README;
 - a GitHub account;
-- a Git configuration that signs your commits. The ruleset on `main` refuses a commit with no signature that GitHub can verify.
+- a Git configuration that signs your commits. Each commit has a signature that GitHub can verify. Refer to [Commits and the merge](docs/reference/work-rules.md#commits-and-the-merge).
 
 ## Environment setup
 
@@ -70,7 +70,7 @@ The standards are checks, not only text. When you add a rule, add a check for it
 
 ### Checks
 
-The `Lint` workflow and the pre-commit hooks run the same tasks. `mise run lint` runs all of them.
+`mise run lint` runs the tasks of this table, and also `lint:records-test` and `schemas:test`. The pre-commit hooks run the same tasks, and also gitleaks, typos, yamllint and commitlint.
 
 | Check | Task | Reference |
 | --- | --- | --- |
@@ -88,7 +88,7 @@ The `Lint` workflow also runs `mise run doc:check`. The `Validate Schemas` and `
 
 | Change | Also do this |
 | --- | --- |
-| A Helm chart or values in `gitops/**/sources/` or `gitops/clusters/*/values/` | Run `mise run manifests:render`. Refer to [Render manifests](docs/how-to/render-manifests.md). |
+| A Helm chart or values in `gitops/**/sources/` or `gitops/clusters/*/values/`, or a `gitops/clusters/*/cluster.yaml` | Run `mise run manifests:render`. Refer to [Render manifests](docs/how-to/render-manifests.md). |
 | A Terraform module | Run `mise run doc:generate`. |
 | A Terraform provider version | Run `mise run tf:lock`. Refer to [Change a Terraform provider version](docs/how-to/change-a-terraform-provider-version.md). |
 | A tool version in `.mise/config.toml` | Run `mise lock`. |
@@ -112,7 +112,7 @@ Open an issue at <https://github.com/gsuquet/homelab/issues>. Tell the command t
 
 ### Issue management
 
-One issue is one task, and one task gives one PR. The labels and the fields of the project "Perso" are in [Work rules](docs/reference/work-rules.md#work-items).
+One issue is one task, and one task gives one PR. The fields of the project "Perso" are in [Work items](docs/reference/work-rules.md#work-items). The labels are in [Labels](docs/reference/work-rules.md#labels).
 
 ### Commit messages
 
