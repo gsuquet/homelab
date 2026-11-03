@@ -5,10 +5,10 @@ The `tetragon` and `falco` components install the two runtime security tools of 
 | Item | File | Description |
 | --- | --- | --- |
 | `tetragon` | `gitops/infrastructure/tetragon/sources/` | Umbrella chart for Tetragon. No lab policies. |
-| `falco` | `gitops/infrastructure/falco/sources/` | Umbrella chart for Falco. No lab rules. |
+| `falco` | `gitops/infrastructure/falco/sources/` | Umbrella chart for Falco, with the Falco lab rules in `customRules` |
 | Kind values | `gitops/clusters/kind-local/values/tetragon.yaml` | The values of Tetragon for `kind-local` only |
 | Attack set | `.mise/tasks/security/attack-set.sh` | The task that runs the attack steps |
-| Lab fixtures | `tests/runtime-security/` | The lab pods, the Tetragon lab policies and the Falco lab rules. Refer to [Lab fixtures](#lab-fixtures). |
+| Lab fixtures | `tests/runtime-security/` | The lab pods and the Tetragon lab policies. Refer to [Lab fixtures](#lab-fixtures). |
 | Measurement | `.mise/tasks/security/measure.sh` | The task that samples the memory, the CPU and the event volume |
 
 The syntax of the `security:*` tasks is in [Mise tasks](mise-tasks.md).
@@ -41,6 +41,7 @@ infrastructure:
 | Falco | 0.45.2, libs 0.26.1, driver 11.0.1 | [Release 0.45.2](https://github.com/falcosecurity/falco/releases/tag/0.45.2) |
 | Falco rules | `falco_rules.yaml` of the Falco image, equal to [falco-rules 5.2.0](https://github.com/falcosecurity/rules/blob/falco-rules-5.2.0/rules/falco_rules.yaml) (stable rule set, 25 rules) | The Falco image |
 | Falco container plugin | `container` 0.7.6, `/usr/share/falco/plugins/libcontainer.so` | The Falco image |
+| event-generator | `docker.io/falcosecurity/event-generator` v0.13.0, pinned by tag and digest | [falcosecurity/event-generator](https://github.com/falcosecurity/event-generator) |
 
 `Chart.yaml` of each component has the exact chart version. The values set each image with its tag and its digest. Each image is an OCI image index for `linux/amd64` and `linux/arm64`.
 
@@ -96,21 +97,30 @@ The component owns the CRDs `tracingpolicies.cilium.io`, `tracingpoliciesnamespa
 | `collectors.kubernetes.enabled` | `false`. No k8s-metacollector. The container plugin reads the CRI socket. |
 | `collectors.containerEngine.engines` | `containerd` and `cri` on. `docker`, `podman`, `lxc`, `libvirt_lxc` and `bpm` off. |
 | `falcoctl.artifact.install.enabled`, `falcoctl.artifact.follow.enabled` | `false`. No `falcoctl` container. The rules and the plugin come from the image. |
+| `customRules` | The Falco lab rules. Refer to [Falco lab rules](#falco-lab-rules). |
 | `metrics.enabled`, `falco.webserver.prometheus_metrics_enabled` | `true`. Port 8765. |
 | Resources | Refer to [Footprint](#footprint). |
 
+## Falco lab rules
+
+`customRules` of the `falco` component adds these rules to the stable rule set of the image. Each rule has the condition `k8s.ns.name = "rtsec-lab"`, so it fires only for the lab. The rules are always on.
+
+| Rule | Condition |
+| --- | --- |
+| `Write below etc` | A process in a container of `rtsec-lab` opens a file below `/etc` for a write. From the [Falco quickstart](https://falco.org/docs/getting-started/falco-kubernetes-quickstart/). |
+| API server endpoint | A connection from a container of `rtsec-lab` to a node IP on port 6443 (`fd.sport=6443`) |
+
 ## Lab fixtures
 
-The `tetragon` and `falco` components hold only the tools. They have no `TracingPolicy`, no `TracingPolicyNamespaced` and no local Falco rule for the lab. The lab objects are test fixtures in `tests/runtime-security/`. Argo CD does not sync them.
+The `tetragon` component holds only the tool. It has no `TracingPolicy` and no `TracingPolicyNamespaced`. The lab pods and the Tetragon lab policies are test fixtures in `tests/runtime-security/`. Argo CD does not sync them.
 
 | Fixture | Content | Applied | Deleted |
 | --- | --- | --- | --- |
 | Lab pods | The pods of the attack steps, and the pod `enforce-target` with the label `rtsec.gsuquet.com/role: enforce` | At the start of the run | With `rtsec-lab` |
 | Tetragon detection policies | `TracingPolicyNamespaced` objects in `rtsec-lab`, with the action `Post` only | For the full run | With `rtsec-lab` |
 | Tetragon enforcement policies | `TracingPolicyNamespaced` objects in `rtsec-lab`, with a `podSelector` on `rtsec.gsuquet.com/role: enforce` | For the E steps only | After the E steps, and with `rtsec-lab` |
-| Falco local rules | The local rules for the lab steps that the stable rule set does not cover, for example the API server endpoint | For the full run | At the end of the run |
 
-The sources of the Tetragon policies are the Tetragon [policy library](https://tetragon.io/docs/policy-library/observability/) and the [examples of v1.8.0](https://github.com/cilium/tetragon/tree/v1.8.0/examples).
+The Tetragon detection policies follow the paths and the arguments of the `event-generator` actions. The sources of the policies are the Tetragon [policy library](https://tetragon.io/docs/policy-library/observability/) and the [examples of v1.8.0](https://github.com/cilium/tetragon/tree/v1.8.0/examples).
 
 The enforcement policies act only on the pod `enforce-target`:
 
@@ -124,7 +134,24 @@ Falco has no enforcement. For the E steps, the summary records "detect only" for
 
 ## Attack set
 
-The attack steps come from [falcosecurity/event-generator](https://github.com/falcosecurity/event-generator), the test tool of the Falco project. The task pins its image by the digest. The repository has no attack code of its own. A step that `event-generator` does not cover is not in the set, or it is a plain shell command.
+The attack steps come from [falcosecurity/event-generator](https://github.com/falcosecurity/event-generator), the test tool of the Falco project, or they are plain shell commands. The task pins the image by its tag and its digest. The repository has no attack code of its own. The task runs only the named actions of the `syscall` collection, never all the actions. It never runs an action that leaves the pod.
+
+| ID | Behavior | Source |
+| --- | --- | --- |
+| A1 | Shell with a TTY in the lab pod | Shell |
+| A2 | Read of a sensitive file | `ReadSensitiveFileUntrusted` |
+| A3 | Write below `/etc` | `WriteBelowEtc` |
+| A4 | Drop of a new binary in `/bin`, then its execution | `DropAndExecuteNewBinaryInContainer` |
+| A5 | Execution from `/dev/shm` | `ExecutionFromDevShm` |
+| A6 | Fileless execution through `memfd_create` | `FilelessExecutionViaMemfdCreate` |
+| A7 | Connection to the API server | Shell |
+| A8 | Connection to the lab `listener` pod | Shell |
+| A9 | Search for private keys or passwords | `SearchPrivateKeysOrPasswords` |
+| A10 | Clear of a log file in a temporary folder | `ClearLogActivities` |
+| A11 | Change of namespace privileges through `unshare` | `ChangeNamespacePrivilegesViaUnshare` |
+| A12 | Ptrace attach to a process | `PtraceAttachedToProcess` |
+
+The enforcement steps E1 to E3 run in the pod `enforce-target`. Refer to [Lab fixtures](#lab-fixtures).
 
 The `security:attack-set` task obeys these limits:
 
@@ -229,12 +256,13 @@ Kind nodes have no allocatable limit below the Colima VM. On `kind-local`, the r
 | Rule | Check |
 | --- | --- |
 | A privileged Pod Security level on an `infrastructure` Namespace has a permit only for the namespaces of `pod_security_privileged` in `policy/data/labels.yaml`: `tetragon` and `falco`. | Conftest (K16) |
-| No cluster-scoped `TracingPolicy` has the action `Sigkill`, `Signal`, `Override` or `NotifyEnforcer`. | Conftest |
+| No cluster-scoped `TracingPolicy` has the action `Sigkill`, `Signal`, `Override` or `NotifyEnforcer`. | Conftest (K17) |
+| Each image in `tests/runtime-security/` ends with a `sha256` digest. | Conftest |
 | Each rendered CRD has the sync wave `-1`. | Conftest |
 | Each rendered image has an explicit tag that is not `latest`. | Conftest |
 | Each rendered Namespace is the namespace of its component in `cluster.yaml`. | Conftest (K15) |
 
-The rules and their messages are in [Policies](policies.md) and [Labels and annotations](labels-and-annotations.md#checks).
+The `lint:policy` inputs include `tests/runtime-security/`, so K17 and the digest rule also check the lab fixtures. The rules and their messages are in [Policies](policies.md) and [Labels and annotations](labels-and-annotations.md#checks).
 
 ## Related pages
 

@@ -41,13 +41,15 @@ The `security:measure` task samples the memory and the CPU of the agents, the ki
 
 The alerts go to the standard output as JSON lines. `kubectl logs` and `jq` read them. An alert backend, for example Falcosidekick with Grafana, adds components that the comparison does not need.
 
-## Why the lab policies are test fixtures
+## Why the Tetragon lab policies are test fixtures
 
-The `tetragon` and `falco` components hold only the tools. The Tetragon policies and the Falco local rules of the lab are test fixtures in `tests/runtime-security/`, and the attack-set task applies them. There are two reasons.
+The `tetragon` component holds only the tool. The Tetragon policies of the lab are test fixtures in `tests/runtime-security/`, and the attack-set task applies them. There are two reasons.
 
 First, the lab policies are objects in the namespace `rtsec-lab`, and the task deletes this namespace after each run. Argo CD cannot keep an object `Synced` in a namespace that does not exist. Its self-heal then fails until the next run.
 
 Second, an enforcement policy that is always on changes the detection results. A kill on each read of `/etc/shadow` stops the detection step that reads the same file. Thus the task applies the detection policies for the full run, and the enforcement policies only for the E steps.
+
+The Falco lab rules are different. They stay in `customRules` of the `falco` component, and each rule has a condition on the namespace `rtsec-lab`. Falco reads its rules from files. A change of the rules at run time patches a ConfigMap that Argo CD manages, and Falco must restart. A Falco rule also never blocks a process, so a lab rule that is always on does not change the results.
 
 ## Why Falco has its settings
 
