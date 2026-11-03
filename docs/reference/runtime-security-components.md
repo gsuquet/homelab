@@ -118,7 +118,7 @@ The names are the values of the upstream chart. In the umbrella chart, they are 
 | Rule | Condition |
 | --- | --- |
 | `Write below etc` | A process in a container of `rtsec-lab` opens a file below `/etc` for a write. From the [Falco quickstart](https://falco.org/docs/getting-started/falco-kubernetes-quickstart/). |
-| API server endpoint | A connection from a container of `rtsec-lab` to a node IP on port 6443 (`fd.sport=6443`) |
+| API server endpoint | A connection from a container of `rtsec-lab` to any IP on port 6443 (`fd.sport=6443`). With Cilium socket load balancing, this IP is the node IP. |
 
 ## Lab fixtures
 
