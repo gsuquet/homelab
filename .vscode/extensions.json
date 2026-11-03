@@ -1,6 +1,5 @@
 {
   "recommendations": [
-    "aquasecurityofficial.trivy-vulnerability-scanner",
     "eamodio.gitlens",
     "editorconfig.editorconfig",
     "exiasr.hadolint",

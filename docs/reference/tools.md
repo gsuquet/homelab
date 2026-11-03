@@ -18,7 +18,6 @@ The `mise` policy makes sure that each version is exact and that the lock file s
 | `helm` | 4.3.1 | Renders the Helm charts in the `sources/` folders. | `manifests:render` |
 | `kind` | 0.33.0 | Kubernetes clusters in Docker containers. | `instance:up`, to export the kubeconfig |
 | `kubeconform` | 0.8.0 | Validates Kubernetes manifests against the Kubernetes schemas. | `manifests:validate` |
-| `kyverno` | 1.18.1 | The Kyverno CLI: applies and tests Kyverno policies. | No task |
 | `pipx:check-jsonschema` | 0.38.2 | Validates YAML and JSON files against a JSON schema. mise installs it with uv, from PyPI. | `schemas:check`, `schemas:test` |
 | `pre-commit` | 4.7.0 | Runs the hooks of `.pre-commit-config.yaml`. | The Git hooks |
 | `python` | 3.15.1 | Python runtime. The workflows install it before `pipx:check-jsonschema`. | No task |
@@ -27,7 +26,6 @@ The `mise` policy makes sure that each version is exact and that the lock file s
 | `terraform` | 1.17.0 | Applies the Terraform code of `instances/` and `modules/`. | The instance tasks, `lint:terraform`, `tf:lock` |
 | `terraform-docs` | 0.24.0 | Writes the input and output tables of a Terraform module. | `tf:docs`, `doc:generate` |
 | `tflint` | 0.65.0 | Linter for Terraform code. | `lint:terraform` |
-| `trivy` | 0.76.1 | Scanner for vulnerabilities and configuration errors. | No task |
 | `typos` | 1.51.1 | Spell checker for source code. | No task. The `typos` pre-commit hook uses its hook repository at `v1.51.1`. |
 | `uv` | 0.13.3 | Python package installer. mise uses it to install the `pipx:` tools ([mise: pypi backend](https://mise.jdx.dev/dev-tools/backends/pypi.html)). | `pipx:check-jsonschema` |
 | `vale` | 3.25.1 | Prose linter. It checks the Markdown files against the styles in `.vale/styles/`. | `lint:docs` |

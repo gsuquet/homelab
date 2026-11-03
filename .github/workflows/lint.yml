@@ -26,7 +26,10 @@ jobs:
         with:
           install_args: >-
             python uv pipx:check-jsonschema yq terraform tflint conftest
-            actionlint zizmor shellcheck shfmt vale
+            actionlint zizmor shellcheck shfmt vale terraform-docs
 
       - name: Run linters
         run: mise run lint
+
+      - name: Check generated docs
+        run: mise run doc:check
