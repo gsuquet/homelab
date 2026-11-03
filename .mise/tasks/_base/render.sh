@@ -17,7 +17,7 @@
 split_manifest_by_resource() {
     local manifest_file="$1"
     local output_dir="$2"
-    local documents duplicates chunks chunk source prefix files
+    local documents duplicates overridden chunks chunk source prefix files
     # The file name without the prefix. The duplicate guard uses it: two
     # resources with the same kind and name fail, also when only one of them
     # comes from an upstream chart.
@@ -26,6 +26,11 @@ split_manifest_by_resource() {
     local crd_wave_expression='with(select(.kind == "CustomResourceDefinition"); .metadata.annotations["argocd.argoproj.io/sync-wave"] = "-1")'
 
     mkdir -p "$output_dir"
+    # The override is not silent: name each CRD whose chart sets another wave.
+    overridden="$(yq ea 'select(.kind == "CustomResourceDefinition") | select(.metadata.annotations["argocd.argoproj.io/sync-wave"] != null and (.metadata.annotations["argocd.argoproj.io/sync-wave"] | tostring) != "-1") | .metadata.name + " (wave " + (.metadata.annotations["argocd.argoproj.io/sync-wave"] | tostring) + ")"' "$manifest_file")"
+    if [ -n "$overridden" ]; then
+        log_warn "$output_dir: the render sets the sync wave -1 on CRDs that had another wave: ${overridden//$'\n'/, }"
+    fi
     documents="$(yq ea '[select(. != null)] | length' "$manifest_file")"
     duplicates="$(yq ea "[select(. != null) | $name_expression] | group_by(.) | map(select(length > 1) | .[0]) | .[]" "$manifest_file")"
     if [ -n "$duplicates" ]; then

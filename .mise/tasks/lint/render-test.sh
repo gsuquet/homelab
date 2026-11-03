@@ -53,6 +53,31 @@ metadata:
 spec:
   group: example.com
 ---
+# Source: demo/templates/crd.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: firsts.example.com
+spec:
+  group: example.com
+---
+# Source: demo/charts/crds/crds/two.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: ones.example.com
+spec:
+  group: example.com
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: twos.example.com
+  annotations:
+    argocd.argoproj.io/sync-wave: -1
+spec:
+  group: example.com
+---
 # Source: demo/templates/config.yaml
 apiVersion: v1
 kind: ConfigMap
@@ -83,6 +108,10 @@ check "CRD without annotations gets the wave" upstream--customresourcedefinition
 check "CRD with another annotation gets the wave" upstream--customresourcedefinition-others.example.com.yaml "$wave" "-1"
 check "CRD keeps its other annotation" upstream--customresourcedefinition-others.example.com.yaml '.metadata.annotations["helm.sh/resource-policy"]' "keep"
 check "CRD with another wave gets the wave -1" upstream--customresourcedefinition-waves.example.com.yaml "$wave" "-1"
+check "first-party CRD gets the wave" customresourcedefinition-firsts.example.com.yaml "$wave" "-1"
+check "first CRD of a chunk with two CRDs gets the wave" upstream--customresourcedefinition-ones.example.com.yaml "$wave" "-1"
+check "CRD with an unquoted wave -1 gets the string" upstream--customresourcedefinition-twos.example.com.yaml "$wave" "-1"
+check "CRD with an unquoted wave -1 gets the string tag" upstream--customresourcedefinition-twos.example.com.yaml "$wave | tag" "!!str"
 check "Namespace keeps its wave" namespace-demo.yaml "$wave" "-2"
 check "ConfigMap gets no wave" configmap-config.yaml "$wave" "null"
 check "ConfigMap keeps its data" configmap-config.yaml ".data.key" "value"
