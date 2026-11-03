@@ -1,0 +1,119 @@
+# Values for all clusters. gitops/clusters/<cluster>/values/falco.yaml can
+# override them for one cluster.
+falco:
+  image:
+    registry: docker.io
+    repository: falcosecurity/falco
+    # The chart has no digest value. The tag value holds the tag and the digest
+    # (OCI image index for linux/amd64 and linux/arm64).
+    tag: "0.45.2@sha256:1562a643953f938e02f47319b5214d93a235f11f646d60e9b8a516fd5a64698e"
+
+  driver:
+    # Needs a kernel with BTF (kernel 5.8 or later). No driver loader init container.
+    kind: modern_ebpf
+
+  # Capabilities of the leastPrivileged set of the chart (BPF, SYS_RESOURCE,
+  # PERFMON, SYS_PTRACE) plus SYS_ADMIN. leastPrivileged alone crash-loops on
+  # kernels with perf_event_paranoid = 4, for example the Colima VM, because
+  # PERFMON is not enough at that level. No privileged container.
+  containerSecurityContext:
+    privileged: false
+    capabilities:
+      add:
+        - BPF
+        - SYS_RESOURCE
+        - PERFMON
+        - SYS_PTRACE
+        - SYS_ADMIN
+
+  # The memory request equals the memory limit. No CPU limit: the chart default
+  # of 1000m stays here, because Helm ignores a null in the values.yaml of an
+  # umbrella chart. gitops/clusters/<cluster>/values/falco.yaml must set
+  # falco.resources.limits.cpu to null.
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      memory: 256Mi
+
+  # JSON alerts on stdout only. No alert backend.
+  falco:
+    json_output: true
+    json_include_output_property: true
+    stdout_output:
+      enabled: true
+    syslog_output:
+      enabled: false
+    log_syslog: false
+    http_output:
+      enabled: false
+    webserver:
+      prometheus_metrics_enabled: true
+
+  metrics:
+    enabled: true
+
+  falcosidekick:
+    enabled: false
+
+  responseActions:
+    enabled: false
+
+  collectors:
+    # No k8s-metacollector. The container plugin reads the CRI socket.
+    kubernetes:
+      enabled: false
+    containerEngine:
+      engines:
+        docker:
+          enabled: false
+        podman:
+          enabled: false
+        lxc:
+          enabled: false
+        libvirt_lxc:
+          enabled: false
+        bpm:
+          enabled: false
+        containerd:
+          enabled: true
+        cri:
+          enabled: true
+
+  # No falcoctl container. The rules (falco_rules.yaml, equal to falco-rules
+  # 5.2.0) and the container plugin come from the image, which the digest pins.
+  falcoctl:
+    artifact:
+      install:
+        enabled: false
+      follow:
+        enabled: false
+
+  # Lab rules. They add to the rules of the image. Each rule is for the lab
+  # namespace only and detects only. The pods of the lab are in rtsec-lab.
+  customRules:
+    rtsec-lab.yaml: |-
+      - rule: Write below etc
+        desc: A process in a container of rtsec-lab opens a file below /etc for a write.
+        condition: >
+          open_write and container and fd.name startswith /etc/
+          and k8s.ns.name = "rtsec-lab"
+        output: >
+          File below /etc opened for writing (file=%fd.name proc=%proc.name cmd=%proc.cmdline ns=%k8s.ns.name pod=%k8s.pod.name container=%container.id)
+        priority: ERROR
+        tags: [rtsec-lab, filesystem]
+
+      # The Cilium socket load balancer rewrites the ClusterIP of the API server
+      # to the node IP, so the connection reaches a node IP on port 6443.
+      - rule: API server endpoint connection from rtsec-lab
+        desc: A process in a container of rtsec-lab connects to a node IP on port 6443, the API server endpoint.
+        condition: >
+          evt.type = connect and evt.rawres >= 0
+          and container and fd.type in (ipv4, ipv6)
+          and fd.sport = 6443
+          and k8s.ns.name = "rtsec-lab"
+        output: >
+          Connection to the API server endpoint (dest=%fd.sip:%fd.sport proc=%proc.name cmd=%proc.cmdline ns=%k8s.ns.name pod=%k8s.pod.name container=%container.id)
+        priority: WARNING
+        tags: [rtsec-lab, network]

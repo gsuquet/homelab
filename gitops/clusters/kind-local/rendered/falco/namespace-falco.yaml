@@ -1,0 +1,20 @@
+---
+# Source: falco/templates/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: falco
+  labels:
+    # The Falco pods need host paths (/proc, /etc, /usr, the containerd socket)
+    # and a security context that is not restricted. Only privileged allows it.
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
+    tenant.infra.gsuquet.com/name: platform
+    ownership.infra.gsuquet.com/owner: gsuquet
+    app.kubernetes.io/name: falco
+    app.kubernetes.io/instance: falco
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    # Sync waves: -2 Namespace, -1 CRDs, 0 the rest, 1 and more the Applications.
+    argocd.argoproj.io/sync-wave: "-2"

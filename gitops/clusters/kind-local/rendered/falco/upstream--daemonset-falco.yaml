@@ -1,0 +1,170 @@
+---
+# Source: falco/charts/falco/templates/daemonset.yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: falco
+  namespace: falco
+  labels:
+    helm.sh/chart: falco-9.2.2
+    app.kubernetes.io/name: falco
+    app.kubernetes.io/instance: falco
+    app.kubernetes.io/version: "0.45.2"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: falco
+      app.kubernetes.io/instance: falco
+  template:
+    metadata:
+      name: falco
+      labels:
+        app.kubernetes.io/name: falco
+        app.kubernetes.io/instance: falco
+      annotations:
+        checksum/config: 63000ff1bf476d2228ecddc6dd61d68c874bf02e30e5a0b5e703335ec5e05c00
+        checksum/rules: d795a023a6f6c741c7f19def74203989773aad48daa82291b51d07a284545197
+        checksum/certs: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    spec:
+      serviceAccountName: falco
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/control-plane
+      containers:
+        - name: falco
+          image: docker.io/falcosecurity/falco:0.45.2@sha256:1562a643953f938e02f47319b5214d93a235f11f646d60e9b8a516fd5a64698e
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              memory: 256Mi
+            requests:
+              cpu: 50m
+              memory: 256Mi
+          securityContext:
+            capabilities:
+              add:
+                - BPF
+                - SYS_RESOURCE
+                - PERFMON
+                - SYS_PTRACE
+                - SYS_ADMIN
+            privileged: false
+          args:
+            - /usr/bin/falco
+          env:
+            - name: HOST_ROOT
+              value: /host
+            - name: FALCO_HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: FALCO_K8S_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          tty: false
+          ports:
+            - containerPort: 8765
+              name: web
+              protocol: TCP
+          startupProbe:
+            initialDelaySeconds: 3
+            timeoutSeconds: 5
+            periodSeconds: 5
+            failureThreshold: 20
+            httpGet:
+              path: /healthz
+              port: 8765
+          livenessProbe:
+            initialDelaySeconds: 0
+            timeoutSeconds: 5
+            periodSeconds: 15
+            failureThreshold: 3
+            httpGet:
+              path: /healthz
+              port: 8765
+          readinessProbe:
+            initialDelaySeconds: 0
+            timeoutSeconds: 5
+            periodSeconds: 15
+            failureThreshold: 3
+            httpGet:
+              path: /healthz
+              port: 8765
+          volumeMounts:
+            - mountPath: /host/run/host-containerd
+              name: container-engine-socket-0
+            - mountPath: /host/run/containerd
+              name: container-engine-socket-1
+            - mountPath: /host/run/crio
+              name: container-engine-socket-2
+            - mountPath: /host/run/k3s/containerd
+              name: container-engine-socket-3
+            - mountPath: /etc/falco/config.d
+              name: specialized-falco-configs
+            - mountPath: /root/.falco
+              name: root-falco-fs
+            - mountPath: /host/proc
+              name: proc-fs
+              readOnly: true
+            - mountPath: /host/etc
+              name: etc-fs
+              readOnly: true
+            - mountPath: /sys/kernel
+              name: sys-fs
+              readOnly: true
+            - mountPath: /etc/falco/falco.yaml
+              name: falco-yaml
+              subPath: falco.yaml
+            - mountPath: /etc/falco/rules.d
+              name: rules-volume
+      initContainers:
+      volumes:
+        - hostPath:
+            path: /run/host-containerd
+          name: container-engine-socket-0
+        - hostPath:
+            path: /run/containerd
+          name: container-engine-socket-1
+        - hostPath:
+            path: /run/crio
+          name: container-engine-socket-2
+        - hostPath:
+            path: /run/k3s/containerd
+          name: container-engine-socket-3
+        - name: specialized-falco-configs
+          emptyDir: {}
+        - name: root-falco-fs
+          emptyDir: {}
+        - name: boot-fs
+          hostPath:
+            path: /boot
+        - name: lib-modules
+          hostPath:
+            path: /lib/modules
+        - name: usr-fs
+          hostPath:
+            path: /usr
+        - name: etc-fs
+          hostPath:
+            path: /etc
+        - name: sys-fs
+          hostPath:
+            path: /sys/kernel
+        - name: proc-fs
+          hostPath:
+            path: /proc
+        - name: falco-yaml
+          configMap:
+            name: falco
+            items:
+              - key: falco.yaml
+                path: falco.yaml
+        - name: rules-volume
+          configMap:
+            name: falco-rules
+  updateStrategy:
+    type: RollingUpdate
