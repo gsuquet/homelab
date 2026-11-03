@@ -30,7 +30,7 @@ It is used for two purposes in this repository:
 - **Extra mounts are opt-in** — `extra_mounts` bind-mounts host paths into every node. `read_only`
   defaults to `true`, but it stops writes to the mounted files only. It is not an isolation
   boundary. Example: a pod that can mount `/procHost` sees all processes of the Docker host, and
-  `/procHost/<pid>/root` reaches the writable root filesystem of the host. A follow-up issue tracks
+  `/procHost/<pid>/root` reaches the writable root filesystem of the host. Refer to #283 for
   the `hostPath` restriction. The Docker daemon reads `host_path`, so the module cannot check that
   it exists (for example `/proc` of the Docker VM). A change replaces the cluster. The empty default gives
   the same cluster as before.
