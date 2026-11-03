@@ -1,7 +1,7 @@
 # bootstrap-argocd
 
 Installs [Argo CD](https://argo-cd.readthedocs.io/) one time from the rendered manifests in `gitops/clusters/<cluster>/rendered/argocd/`. After the bootstrap, Argo CD syncs the same folder from Git, manages itself and makes the Applications of the other components.
-Refer to [AGENTS.md](AGENTS.md) for the design decisions.
+Refer to [AGENTS.md](../../../../modules/bootstrap-argocd/AGENTS.md) for the design decisions.
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements

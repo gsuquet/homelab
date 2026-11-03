@@ -1,7 +1,7 @@
 # cert-manager
 
 Installs [cert-manager](https://cert-manager.io/) via its official Helm chart, providing automated TLS certificate management, Gateway API HTTP-01 and Cloudflare DNS-01 challenge solving, and pre-configured ClusterIssuers.
-See [AGENTS.md](AGENTS.md) for key architectural and design decisions.
+See [AGENTS.md](../../../../modules/bootstrap-cert-manager/AGENTS.md) for key architectural and design decisions.
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements

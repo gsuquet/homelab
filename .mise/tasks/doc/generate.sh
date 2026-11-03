@@ -16,7 +16,11 @@ for module_dir in "$MISE_PROJECT_ROOT/modules"/*; do
         mod_name="$(basename "$module_dir")"
         mkdir -p "$TF_REF_DIR/$mod_name"
         if [ -f "$module_dir/README.md" ]; then
-            cp "$module_dir/README.md" "$TF_REF_DIR/$mod_name/index.md"
+            # The copy sits four levels below the repo root, so a link that is relative to
+            # the module folder must point back to modules/<module>/. Absolute URLs, anchors
+            # and absolute paths stay unchanged (they do not match the pattern).
+            sed -E "s#\]\(([A-Za-z0-9_.-]+[/)#])#](../../../../modules/$mod_name/\1#g" \
+                "$module_dir/README.md" > "$TF_REF_DIR/$mod_name/index.md"
         fi
     fi
 done
