@@ -47,7 +47,7 @@ The `tetragon` component holds only the tool. The Tetragon policies of the lab a
 
 First, the lab policies are objects in the namespace `rtsec-lab`, and the task deletes this namespace after each run. Argo CD cannot keep an object `Synced` in a namespace that does not exist. Its self-heal then fails until the next run.
 
-Second, an enforcement policy that is always on changes the detection results. A kill on each read of `/etc/shadow` stops the detection step that opens the same file. Thus the task applies the detection policies for the full run, and the enforcement policies only for the E steps.
+Second, an enforcement policy that is always on changes the detection results. An enforcement policy that is always on acts on the detection steps that use the same files or ports. For example, A8 runs in `enforce-target`, and an E2 block on port 4444 stops it. Thus the task applies the detection policies for the full run, and the enforcement policies only for the E steps.
 
 The Falco lab rules are different. They stay in `customRules` of the `falco` component, and each rule has a condition on the namespace `rtsec-lab`. Falco reads its rules from files. A change of the rules at run time patches a ConfigMap that Argo CD manages, and Falco must restart. A Falco rule also never blocks a process, so a lab rule that is always on does not change the results.
 

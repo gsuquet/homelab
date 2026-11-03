@@ -108,7 +108,7 @@ Do not read the alerts during a `security:measure` run. Its load rotates the log
 
 ## Measure the overhead
 
-1. Enable the tools of the mode, as in [Enable the tools](#enable-the-tools), up to the merge. For `none`, remove the tools as in [Remove a runtime security tool](remove-a-runtime-security-tool.md).
+1. Enable the tools of the mode, as in [Enable the tools](#enable-the-tools), up to the merge. For a mode with fewer tools, remove the other tools as in [Remove a runtime security tool](remove-a-runtime-security-tool.md).
 2. Start from a new cluster:
 
    ```bash

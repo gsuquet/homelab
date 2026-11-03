@@ -52,6 +52,12 @@ quay.io/cilium/hubble-export-stdout:v1.1.1@sha256:cf701f96d1c8de30231792e35733e1
 docker.io/falcosecurity/falco:0.45.2@sha256:1562a643953f938e02f47319b5214d93a235f11f646d60e9b8a516fd5a64698e
 ```
 
+The attack-set task uses this image:
+
+```text
+docker.io/falcosecurity/event-generator:0.13.0@sha256:932956d86c99a96a9d6cf71970ae23de94ebc119a0ff19b1acf75b8db43ac165
+```
+
 The digest of the Falco image pins the Falco rules and the container plugin. The `falco_rules.yaml` file of this image has the sha256 `30a1a60263ab97650c851011468da03b17fc0096a7cfa3b6686eba5de73b865b`.
 
 ## Namespaces
@@ -137,7 +143,7 @@ The Tetragon detection policies follow the paths and the arguments of the `event
 | A11 | `create_user_ns` | None |
 | A12 | `sys_ptrace` (`__arm64_sys_ptrace` on arm64) | None |
 
-No test result exists for the A2 hook and the A10 hook with the `event-generator` actions. This page makes no claim that they fire.
+The hooks have no test with the `event-generator` actions.
 
 The sources of the policies are the Tetragon [policy library](https://tetragon.io/docs/policy-library/observability/) and the [examples of v1.8.0](https://github.com/cilium/tetragon/tree/v1.8.0/examples).
 
@@ -164,13 +170,13 @@ The attack steps come from [falcosecurity/event-generator](https://github.com/fa
 | A5 | Execution from `/dev/shm` | `ExecutionFromDevShm` |
 | A6 | Fileless execution through `memfd_create` | `FilelessExecutionViaMemfdCreate` |
 | A7 | Connection to the API server | Shell |
-| A8 | Connection to the lab `listener` pod | Shell |
+| A8 | Connection to the lab `listener` pod, from `enforce-target` | Shell |
 | A9 | Search for private keys or passwords | `SearchPrivateKeysOrPasswords` |
 | A10 | Clear of a log file in a temporary folder | `ClearLogActivities` |
 | A11 | Change of namespace privileges through `unshare` | `ChangeNamespacePrivilegesViaUnshare` |
 | A12 | Ptrace attach to a process | `PtraceAttachedToProcess` |
 
-The enforcement steps E1 to E3 run in the pod `enforce-target`. Refer to [Lab fixtures](#lab-fixtures).
+The enforcement steps E1 to E3 run in the pod `enforce-target`. A8 also runs in `enforce-target`. Refer to [Lab fixtures](#lab-fixtures).
 
 The `security:attack-set` task obeys these limits:
 
@@ -274,7 +280,7 @@ Kind nodes have no allocatable limit below the Colima VM. On `kind-local`, the r
 
 | Rule | Check |
 | --- | --- |
-| No container, init container or ephemeral container has `securityContext.privileged: true`, except when `metadata.namespace` and the component namespace are both in `pod_security_privileged` of `policy/data/labels.yaml` (`tetragon`, `falco`). An object with no known namespace fails. | Conftest (K16) |
+| No container, init container or ephemeral container has `securityContext.privileged: true`, except when each known namespace of the object, `metadata.namespace` and the component namespace, is in `pod_security_privileged` of `policy/data/labels.yaml` (`tetragon`, `falco`). An object with no known namespace fails. | Conftest (K16) |
 | No `TracingPolicy` (`cilium.io`) has `Sigkill`, `Override`, `Signal`, `NotifyEnforcer` or `Set` in a `matchActions` or `matchReturnActions` array, and `spec.enforcers` is empty. | Conftest (K17) |
 | Each lab pod is in its own file in `tests/runtime-security/`, and its image ends with a `sha256` digest. | Conftest |
 | A `hostPath` volume on `/procHost`, or on a parent path, is only in the namespace `tetragon`. | Conftest |
