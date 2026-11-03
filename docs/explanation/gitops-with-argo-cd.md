@@ -105,9 +105,9 @@ Most settings of Argo CD follow from the design above. The others follow from th
 
 - [GitOps layout](../reference/gitops-layout.md): the folders, the values, the sync waves and the settings.
 - [Rendered manifests pattern](rendered-manifests-pattern.md): why the repository commits the output of Helm.
-- [Add a GitOps component](../how-to/add-gitops-component.md)
+- [Add a GitOps component](../how-to/add-a-gitops-component.md)
 - [Upgrade Argo CD](../how-to/upgrade-argo-cd.md)
 - [Force a sync](../how-to/force-a-sync.md)
-- [Open the Argo CD UI](../how-to/open-argocd-ui.md)
+- [Open the Argo CD UI](../how-to/open-the-argo-cd-ui.md)
 - [Run your first local cluster](../tutorials/run-your-first-local-cluster.md): a first look at Argo CD on `kind-local`.
 - [Instance tasks](../reference/instance-tasks.md): the tasks that create the cluster and install Argo CD.

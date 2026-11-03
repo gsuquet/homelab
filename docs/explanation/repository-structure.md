@@ -24,7 +24,7 @@ flowchart LR
     A -->|syncs all the time| CL
 ```
 
-Terraform and Argo CD have different jobs, so the code of each tool stays in its own folders. [GitOps with Argo CD](gitops-with-argocd.md) tells why the two tools stay apart.
+Terraform and Argo CD have different jobs, so the code of each tool stays in its own folders. [GitOps with Argo CD](gitops-with-argo-cd.md) tells why the two tools stay apart.
 
 Each tool reads its configuration file from the root. `lint:terraform` passes `--config`, because `--chdir` moves TFLint into each module. `policy/` is at the root, because Conftest reads `policy/` by default. A person who knows a tool thus finds its configuration file with no search.
 
@@ -45,13 +45,13 @@ The files of a module and of an instance follow the HashiCorp standard module st
 
 All the files of one cluster are in one folder, `gitops/clusters/<cluster>/`: the list of components, the overrides and the rendered manifests. A reviewer sees the full state of one cluster in one place. The removal of a cluster removes two folders: `instances/<name>/` and `gitops/clusters/<name>/`.
 
-With a layout by component, the files of one cluster would go into each component, and the removal of a cluster would change each component. The cost of the layout by cluster: the files of one component are in two places, its sources and the folder of each cluster. [GitOps with Argo CD](gitops-with-argocd.md) tells why `gitops/` has three parts and why Git holds the rendered Applications.
+With a layout by component, the files of one cluster would go into each component, and the removal of a cluster would change each component. The cost of the layout by cluster: the files of one component are in two places, its sources and the folder of each cluster. [GitOps with Argo CD](gitops-with-argo-cd.md) tells why `gitops/` has three parts and why Git holds the rendered Applications.
 
 ## Names
 
 The base of a name uses the DNS-1123 label format. It is the format of Kubernetes names and the Helm rule for chart names. Thus one name can be a folder, a Helm chart, a namespace and an Argo CD Application. Some items have a lower limit, because their name goes into longer names. An instance has 40 characters at most, and a component 53, the limit of a Helm release name.
 
-Instance names are free DNS-1123 labels, not a fixed pattern such as `rpi-olympus`. The `purpose` field of `instance.yaml` gives the type of the instance. A short name is better, because the instance name is also the cluster name and a part of Argo CD names. A fixed pattern gives longer names, and labels can hold the type ([Labels and annotations](labels-and-annotations.md)).
+Instance names are free DNS-1123 labels, not a fixed pattern such as `rpi-olympus`. The `purpose` field of `instance.yaml` gives the type of the instance. A short name is better, because the instance name is also the cluster name and a part of Argo CD names. A fixed pattern gives longer names, and labels can hold the type ([Why the label scheme has its form](why-the-label-scheme-has-its-form.md)).
 
 The cost: the naming rules can conflict with names from upstream projects, so the list of exceptions grows with them.
 
@@ -88,6 +88,6 @@ Other layouts are possible. Each one is a worse match for one repository with fe
 
 - [Repository structure (reference)](../reference/repository-structure.md)
 - [Repository scope](repository-scope.md)
-- [GitOps with Argo CD](gitops-with-argocd.md)
+- [GitOps with Argo CD](gitops-with-argo-cd.md)
 - [GitOps layout](../reference/gitops-layout.md)
-- [Add a GitOps component](../how-to/add-gitops-component.md)
+- [Add a GitOps component](../how-to/add-a-gitops-component.md)

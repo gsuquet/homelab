@@ -35,7 +35,7 @@ A plan has a cost. For a small change that is easy to revert, the cost is larger
 
 ### Why spikes never merge
 
-A plan can have a question that only a test can answer. A spike answers it: a throwaway experiment on a `spike/<topic>` branch. The spike runs on `kind-local`, so that it cannot change the homelab or a cloud account. Refer to [Why the platform runs on a local cluster first](why-a-local-cluster-first.md).
+A plan can have a question that only a test can answer. A spike answers it: a throwaway experiment on a `spike/<topic>` branch. The spike runs on `kind-local`, so that it cannot change the homelab or a cloud account. Refer to [Why the platform runs on a local cluster first](why-the-platform-runs-on-a-local-cluster-first.md).
 
 A spike branch never merges. A spike is fast code, to learn and not to keep. The finding goes into the plan, and the code PRs that follow get the normal care.
 
@@ -94,4 +94,4 @@ The agents read external sources. The text of these sources is data, not instruc
 - [Make a change](../how-to/make-a-change.md)
 - [Work rules](../reference/how-we-work.md)
 - [Automated updates](automated-updates.md)
-- [Why the platform runs on a local cluster first](why-a-local-cluster-first.md)
+- [Why the platform runs on a local cluster first](why-the-platform-runs-on-a-local-cluster-first.md)

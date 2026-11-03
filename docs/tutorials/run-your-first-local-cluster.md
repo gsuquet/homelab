@@ -156,6 +156,6 @@ We built a Kubernetes cluster with Cilium, the Gateway API and Argo CD from one 
 
 ## Next steps
 
-- [Why the platform runs on a local cluster first](../explanation/why-a-local-cluster-first.md) tells why `kind-local` exists and what it is for.
-- [GitOps with Argo CD](../explanation/gitops-with-argocd.md) tells how Argo CD manages the clusters from Git.
+- [Why the platform runs on a local cluster first](../explanation/why-the-platform-runs-on-a-local-cluster-first.md) tells why `kind-local` exists and what it is for.
+- [GitOps with Argo CD](../explanation/gitops-with-argo-cd.md) tells how Argo CD manages the clusters from Git.
 - [Instance tasks](../reference/instance-tasks.md) lists everything that `instance:up` and `instance:down` do.

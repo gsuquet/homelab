@@ -131,7 +131,7 @@ The general rule: the base of a folder or file name uses lowercase letters, digi
 | Helm values | Camel case | `targetRevision` | The review |
 | Rego files | `<input>.rego` and `<input>_test.rego`. The package is `<input>`. The package of the test is `<input>_test`. | `kubernetes_test.rego` | The review |
 | Schemas | `<kind>.schema.json`. `kind` is the kebab-case form of the `kind` field. | `gitops-cluster.schema.json` | The review |
-| Documentation pages | DNS-1123 label, with `.md` | `add-gitops-component.md` | The review |
+| Documentation pages | DNS-1123 label, with `.md` | `add-a-gitops-component.md` | The review |
 
 Exceptions:
 
@@ -163,4 +163,4 @@ The production cluster `olympus` runs from `ansible/` and `kubernetes/`.
 - [Repository scope](../explanation/repository-scope.md): what the repository holds, and why.
 - [GitOps layout](gitops-layout.md): the files in `gitops/`.
 - [Schemas](schemas.md): the rules of the metadata files.
-- [Add a GitOps component](../how-to/add-gitops-component.md)
+- [Add a GitOps component](../how-to/add-a-gitops-component.md)

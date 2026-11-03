@@ -90,6 +90,6 @@ The `apps` AppProject accepts sources only from this repository. The review of e
 
 - [Labels and annotations (reference)](../reference/labels-and-annotations.md)
 - [Label a GitOps component](../how-to/label-a-gitops-component.md)
-- [GitOps with Argo CD](gitops-with-argocd.md)
+- [GitOps with Argo CD](gitops-with-argo-cd.md)
 - [Rendered manifests pattern](rendered-manifests-pattern.md)
 - [Repository scope](repository-scope.md)

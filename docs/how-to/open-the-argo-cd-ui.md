@@ -42,4 +42,4 @@ The `argocd` Application must show `Synced` and `Healthy`. Each component of `gi
 - [Run your first local cluster](../tutorials/run-your-first-local-cluster.md): the same steps, as a first lesson.
 - [Force a sync](force-a-sync.md)
 - [GitOps layout](../reference/gitops-layout.md#argo-cd-settings): the settings of the server and of the roles.
-- [GitOps with Argo CD](../explanation/gitops-with-argocd.md)
+- [GitOps with Argo CD](../explanation/gitops-with-argo-cd.md)

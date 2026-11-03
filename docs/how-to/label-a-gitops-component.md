@@ -11,7 +11,7 @@ The guide uses `<component>` for the name of the component.
 
 ## Before you start
 
-- The component has a folder in `gitops/<group>/<component>/sources/` and an entry in `gitops/clusters/<cluster>/cluster.yaml`. Refer to [Add a GitOps component](add-gitops-component.md).
+- The component has a folder in `gitops/<group>/<component>/sources/` and an entry in `gitops/clusters/<cluster>/cluster.yaml`. Refer to [Add a GitOps component](add-a-gitops-component.md).
 - You ran `mise install`.
 
 ## Give the component a tenant
@@ -115,5 +115,5 @@ For the ID after the file path in each message, refer to [Checks](../reference/l
 ## Related pages
 
 - [Labels and annotations (reference)](../reference/labels-and-annotations.md)
-- [Why the label scheme has its form](../explanation/labels-and-annotations.md)
-- [Add a GitOps component](add-gitops-component.md)
+- [Why the label scheme has its form](../explanation/why-the-label-scheme-has-its-form.md)
+- [Add a GitOps component](add-a-gitops-component.md)

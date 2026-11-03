@@ -218,6 +218,6 @@ Each `Application` of a component has `ServerSideApply=true` in `spec.syncPolicy
 ## Related pages
 
 - [Label a GitOps component](../how-to/label-a-gitops-component.md)
-- [Why the label scheme has its form](../explanation/labels-and-annotations.md)
+- [Why the label scheme has its form](../explanation/why-the-label-scheme-has-its-form.md)
 - [Policies](policies.md)
-- [Add a GitOps component](../how-to/add-gitops-component.md)
+- [Add a GitOps component](../how-to/add-a-gitops-component.md)

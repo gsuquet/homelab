@@ -56,4 +56,4 @@ The second cost is the render step. A change to `sources/`, to `values/` or to `
 - [Render manifests](../how-to/render-manifests.md)
 - [GitOps layout](../reference/gitops-layout.md#rendered-files)
 - [Mise tasks](../reference/mise-tasks.md): the details of `manifests:render`, `manifests:check` and `manifests:validate`.
-- [GitOps with Argo CD](gitops-with-argocd.md)
+- [GitOps with Argo CD](gitops-with-argo-cd.md)

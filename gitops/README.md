@@ -1,6 +1,6 @@
 # GitOps
 
-Argo CD deploys the content of this folder. Refer to [GitOps with Argo CD](../docs/explanation/gitops-with-argocd.md) for the design.
+Argo CD deploys the content of this folder. Refer to [GitOps with Argo CD](../docs/explanation/gitops-with-argo-cd.md) for the design.
 
 | Folder | Content |
 | --- | --- |
@@ -27,7 +27,7 @@ gitops/
 
 Git does not track files in `sources/charts/`. Each dependency in `sources/Chart.yaml` has a `repository` that starts with `https://` or `oci://`. `mise run schemas:check` checks this. Else a chart that you copy into `sources/charts/` gets the prefix `upstream--`.
 
-Each component uses this pattern. Each component ships its own `Namespace`, with the Pod Security labels and the sync wave `-2`. Its CRDs have the sync wave `-1`. Refer to [Add a GitOps component](../docs/how-to/add-gitops-component.md).
+Each component uses this pattern. Each component ships its own `Namespace`, with the Pod Security labels and the sync wave `-2`. Its CRDs have the sync wave `-1`. Refer to [Add a GitOps component](../docs/how-to/add-a-gitops-component.md).
 
 ## Entry point of a cluster
 
