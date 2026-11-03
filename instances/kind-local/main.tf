@@ -6,6 +6,16 @@ module "kind_cluster" {
   worker_count        = 1
 
   extra_ca_certificate_paths = var.extra_ca_certificate_paths
+
+  # Host /proc of the Docker VM, for runtime security (Tetragon) that must see the
+  # VM root PID namespace. Read-only. A change replaces the cluster.
+  extra_mounts = [
+    {
+      host_path      = "/proc"
+      container_path = "/procHost"
+      read_only      = true
+    }
+  ]
 }
 
 module "gateway_api" {
