@@ -37,8 +37,6 @@ Task-oriented recipes that solve a specific problem. Assumes familiarity with th
 | [Configure Cloudflare](how-to/configure-cloudflare.md) | Set up the Cloudflare tunnel for external access |
 | [Use Kind behind a TLS-inspecting proxy](how-to/use-kind-behind-a-tls-proxy.md) | Make the Colima VM and the Kind nodes trust a company proxy CA |
 | [Resize the Colima VM](how-to/resize-the-colima-vm.md) | Give the Colima VM more CPUs or memory for a Kind instance |
-| [Rename the Repository](how-to/rename-the-repository.md) | Rename `gsuquet/homelab` to `gsuquet/infra` without a loss on `olympus` |
-| [Import Provider Resources](how-to/import-provider-resources.md) | Bring the resources of a provider account under Terraform |
 
 ---
 
@@ -58,7 +56,6 @@ Information-oriented documentation for looking up technical details.
 | [Schemas](reference/schemas.md) | The JSON Schemas of `module.yaml`, `instance.yaml` and `cluster.yaml` |
 | [How We Work](reference/how-we-work.md) | The rules for issues, PRs, labels, the review, commits and the merge |
 | [Labels and Annotations](reference/labels-and-annotations.md) | The Kubernetes and cloud label keys, and their checks |
-| [Provider Accounts](reference/provider-accounts.md) | The scope rule, `accounts/`, state, credentials, budgets and naming |
 
 ---
 

@@ -168,7 +168,6 @@ vale docs/how-to/render-manifests.md
 | Files | Styles |
 | --- | --- |
 | `docs/**/*.md` | `STE`, `Homelab` |
-| The pages that `.vale.ini` lists in its temporary section | `STE`. These pages still break the `Homelab` rules. Each rewrite of a page removes it from the list. |
 | The other `*.md` files | `STE` |
 | `CHANGELOG.md` | None. git-cliff makes it from the commit messages. |
 | `docs/reference/ansible-roles/` | None. A script makes these pages from the role tasks. |
