@@ -7,8 +7,8 @@ version: 1.0.0
 dependencies:
   # The CRDs of kgateway itself (gateway.kgateway.dev and related groups).
   - name: kgateway-crds
-    version: "v2.3.11"
+    version: "v2.5.0"
     repository: oci://cr.kgateway.dev/kgateway-dev/charts
   - name: kgateway
-    version: "v2.3.11"
+    version: "v2.5.0"
     repository: oci://cr.kgateway.dev/kgateway-dev/charts

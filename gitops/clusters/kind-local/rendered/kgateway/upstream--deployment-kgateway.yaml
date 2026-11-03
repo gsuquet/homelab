@@ -6,11 +6,11 @@ metadata:
   name: kgateway
   namespace: kgateway-system
   labels:
-    helm.sh/chart: kgateway-v2.3.11
+    helm.sh/chart: kgateway-v2.5.0
     kgateway: kgateway
     app.kubernetes.io/name: kgateway
     app.kubernetes.io/instance: kgateway
-    app.kubernetes.io/version: "v2.3.11"
+    app.kubernetes.io/version: "v2.5.0"
     app.kubernetes.io/component: controller
     app.kubernetes.io/managed-by: Helm
 spec:
@@ -44,7 +44,7 @@ spec:
             capabilities:
               drop:
                 - ALL
-          image: "cr.kgateway.dev/kgateway-dev/kgateway:v2.3.11@sha256:bf7a605d1eaafd7f7ccb759a67a096c5f9c313660fa100abb9935949b8cef8c0"
+          image: "cr.kgateway.dev/kgateway-dev/kgateway:v2.5.0@sha256:2c6695a308fa8fda0127b23fc2246e2f26c0d93f849736690912a932d72fd9d5"
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 9977
@@ -82,6 +82,8 @@ spec:
                   resource: limits.cpu
             - name: KGW_LOG_LEVEL
               value: "info"
+            - name: KGW_ADMIN_BIND_ADDRESS
+              value: "localhost"
             - name: KGW_XDS_SERVICE_NAME
               value: kgateway
             - name: KGW_XDS_SERVICE_PORT
@@ -89,7 +91,7 @@ spec:
             - name: KGW_DEFAULT_IMAGE_REGISTRY
               value: cr.kgateway.dev/kgateway-dev
             - name: KGW_DEFAULT_IMAGE_TAG
-              value: v2.3.11
+              value: v2.5.0
             - name: KGW_DEFAULT_IMAGE_PULL_POLICY
               value: IfNotPresent
             - name: KGW_DISCOVERY_NAMESPACE_SELECTORS
@@ -100,8 +102,10 @@ spec:
               value: "{}"
             - name: KGW_VALIDATION_MODE
               value: "standard"
-            - name: KGW_ENABLE_ENVOY
-              value: "true"
+            - name: KGW_ENABLE_AWS_EC2_DISCOVERY
+              value: "false"
+            - name: KGW_AWS_EC2_REFRESH_INTERVAL
+              value: "30s"
             - name: KGW_GATEWAY_CLASS_PARAMETERS_REFS
               value: "{}"
             - name: POD_NAMESPACE
