@@ -29,10 +29,12 @@ and Cloudflare DNS-01), and out-of-the-box ClusterIssuer resources.
   placeholders (`${VARIABLE_NAME}`) rendered via `templatefile()` in
   `main.tf`. All conditionals and defaults are computed in `locals.tf`
   under `local.cert_manager_values`.
-- **Cloudflare DNS-01 integration.** Supports both existing Secret reference
-  (`cloudflare_api_token_secret_name`) and optional direct token injection
-  (`cloudflare_api_token`), with optional DNS zone selectors to route wildcard/internal domains
-  to Cloudflare while routing standard public endpoints to Gateway API.
+- **Cloudflare DNS-01 integration.** The module takes the name of an existing Secret
+  (`cloudflare_api_token_secret_name`, key `api-token`) in its namespace. It never takes the
+  token and never creates the Secret: External Secrets Operator writes it from a seed, so the
+  token is not in a Terraform variable, plan or state. Refer to
+  [Secrets](../../docs/reference/secrets.md). Optional DNS zone selectors route wildcard/internal
+  domains to Cloudflare while standard public endpoints use Gateway API.
 
 ## Variables that require attention
 
@@ -42,6 +44,7 @@ and Cloudflare DNS-01), and out-of-the-box ClusterIssuer resources.
 | `enable_gateway_api_solver` | Directs HTTP-01 ACME challenge solving through Gateway API HTTPRoutes targeting `gateway_name`. |
 | `gateway_name` | Name of the Gateway resource (default: `cilium`). |
 | `enable_cloudflare_dns01_solver` | Enables DNS-01 challenge solver using Cloudflare API token. |
+| `cloudflare_api_token_secret_name` | Name of the Secret that ESO writes in the namespace, with the key `api-token`. The ClusterIssuers refer to it. |
 | `cloudflare_dns01_zones` | Specific DNS zones targeted by Cloudflare DNS-01 solver. |
 | `prometheus_servicemonitor_enabled` | Deploys Prometheus Operator `ServiceMonitor` for cert-manager metrics. |
 
@@ -62,10 +65,12 @@ that reference ClusterIssuers in Certificate resources or Gateway / Ingress anno
 - **`main.tf`** — single `helm_release.cert_manager` resource rendering values
   via `templatefile()` with `local.cert_manager_values`.
 - **`namespace.tf`** — conditional `kubernetes_namespace_v1` on `create_namespace`.
-- **`secret.tf`** — conditional `kubernetes_secret_v1` for Cloudflare API token.
 - **`outputs.tf`** — expose names, statuses, and issuer references.
 
 ## Do not
+
+- Add a variable that takes a secret value, or a `kubernetes_secret_v1` with `data`. A secret
+  goes through a seed namespace and ESO; the module takes only the name of the Secret.
 
 - Replace `kubectl_manifest` with `kubernetes_manifest` without accounting for plan-time
   CRD discovery issues on fresh clusters.
