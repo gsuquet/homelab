@@ -28,3 +28,51 @@ area/tooling:
           - .terraform-docs.yml
           - .tflint.hcl
           - .typos.toml
+          - .gitignore
+
+area/modules:
+  - changed-files:
+      - any-glob-to-any-file:
+          - modules/**
+
+area/instances:
+  - changed-files:
+      - any-glob-to-any-file:
+          - instances/**
+
+area/gitops:
+  - changed-files:
+      - any-glob-to-any-file:
+          - gitops/**
+
+area/policy:
+  - changed-files:
+      - any-glob-to-any-file:
+          - policy/**
+          - schemas/**
+
+area/legacy:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ansible/**
+          - kubernetes/**
+
+# kind/*: from the prefix of the head branch (head-branch matcher, actions/labeler v5.0.0).
+kind/feature:
+  - head-branch:
+      - '^feat/'
+
+kind/bug:
+  - head-branch:
+      - '^fix/'
+
+kind/docs:
+  - head-branch:
+      - '^docs/'
+
+kind/chore:
+  - head-branch:
+      - '^chore/'
+      - '^refactor/'
+      - '^ci/'
+      - '^renovate/'
