@@ -1,0 +1,270 @@
+# Runtime security components
+
+The `tetragon` and `falco` components install the two runtime security tools of the platform with Argo CD. Each component is an `infrastructure` component in `gitops/infrastructure/`, with its own Namespace. A cluster enables each component on its own, in `cluster.yaml`. The reasons are in [Runtime security with Tetragon and Falco](../explanation/runtime-security-with-tetragon-and-falco.md).
+
+| Item | File | Description |
+| --- | --- | --- |
+| `tetragon` | `gitops/infrastructure/tetragon/sources/` | Umbrella chart for Tetragon, its detection policies and its enforcement policies |
+| `falco` | `gitops/infrastructure/falco/sources/` | Umbrella chart for Falco and its local rules |
+| Kind values | `gitops/clusters/kind-local/values/tetragon.yaml` | The values of Tetragon for `kind-local` only |
+| Attack set | `.mise/tasks/security/attack-set.sh`, `tests/runtime-security/` | The task that runs the attack steps, and the manifests of the lab pods |
+| Measurement | `.mise/tasks/security/measure.sh` | The task that samples the memory, the CPU and the event volume |
+
+The syntax of the `security:*` tasks is in [Mise tasks](mise-tasks.md).
+
+## Switch
+
+Each tool is one item of the `infrastructure` list in `gitops/clusters/<cluster>/cluster.yaml`. A cluster can enable one tool, the two tools, or none.
+
+```yaml
+infrastructure:
+  - name: argocd
+    namespace: argocd
+  - name: tetragon
+    namespace: tetragon
+  - name: falco
+    namespace: falco
+```
+
+| Item | `name` | `namespace` | `dependsOn` |
+| --- | --- | --- | --- |
+| Tetragon | `tetragon` | `tetragon` | None |
+| Falco | `falco` | `falco` | None |
+
+## Versions and images
+
+| Item | Version | Source |
+| --- | --- | --- |
+| Tetragon chart | `tetragon` 1.8.0, `appVersion` 1.8.0 | `https://helm.cilium.io` ([install](https://tetragon.io/docs/installation/kubernetes/)) |
+| Falco chart | `falco` 9.2.2, `appVersion` 0.45.2 | `https://falcosecurity.github.io/charts` ([setup](https://falco.org/docs/setup/kubernetes/)) |
+| Falco | 0.45.2, libs 0.26.1, driver 11.0.1 | [Release 0.45.2](https://github.com/falcosecurity/falco/releases/tag/0.45.2) |
+| Falco rules | `falco_rules.yaml` of the Falco image, equal to [falco-rules 5.2.0](https://github.com/falcosecurity/rules/blob/falco-rules-5.2.0/rules/falco_rules.yaml) (stable rule set, 25 rules) | The Falco image |
+| Falco container plugin | `container` 0.7.6, `/usr/share/falco/plugins/libcontainer.so` | The Falco image |
+
+`Chart.yaml` of each component has the exact chart version. The values set each image with its tag and its digest. Each image is an OCI image index for `linux/amd64` and `linux/arm64`.
+
+```text
+quay.io/cilium/tetragon:v1.8.0@sha256:5ed9088a1582131d71b06c98e0d549a37a71ae63ab13aabefc7a47553c822a9d
+quay.io/cilium/tetragon-operator:v1.8.0@sha256:af2b6f0a8609d66190f1d5bbdea38a160d5460f2ea416beea42a615aadd8b35a
+quay.io/cilium/hubble-export-stdout:v1.1.1@sha256:cf701f96d1c8de30231792e35733e1ab07451e11751ef4f676f482836759da06
+docker.io/falcosecurity/falco:0.45.2@sha256:1562a643953f938e02f47319b5214d93a235f11f646d60e9b8a516fd5a64698e
+```
+
+The digest of the Falco image pins the Falco rules and the container plugin. The `falco_rules.yaml` file of this image has the sha256 `30a1a60263ab97650c851011468da03b17fc0096a7cfa3b6686eba5de73b865b`.
+
+## Namespaces
+
+`sources/templates/namespace.yaml` of each component ships its Namespace.
+
+| Label or annotation | Value |
+| --- | --- |
+| `pod-security.kubernetes.io/enforce`, `audit`, `warn` | `privileged` |
+| `tenant.infra.gsuquet.com/name` | `platform` |
+| `ownership.infra.gsuquet.com/owner` | `gsuquet` |
+| `app.kubernetes.io/*` | The labels of [Labels and annotations](labels-and-annotations.md) |
+| `argocd.argoproj.io/sync-wave` | `"-2"` |
+
+## Tetragon values
+
+| Value | Setting |
+| --- | --- |
+| `crds.installMethod` | `helm`. The three CRDs are templates of the release, with the sync wave `-1`. |
+| `tetragonOperator.enabled` | `true`. The operator manages the `PodInfo` objects. |
+| `export.mode` | `stdout`. The `export-stdout` container prints one JSON event on each line. |
+| `tetragon.enableProcessCred` | `true`. The fileless and SUID detections need the process credentials. |
+| `tetragon.exportDenyList` | The chart entries `{"health_check":true}` and the namespaces `""`, `kube-system` and `cilium`, plus the namespaces `tetragon` and `falco` |
+| `tetragon.prometheus.enabled` | `true`. Port 2112. |
+| `tetragon.grpc.enabled` | `true`, on a Unix socket of the host only |
+| `tetragon.hostProcPath` | `/procHost` on `kind-local`, in `gitops/clusters/kind-local/values/tetragon.yaml`. `/proc` on the other clusters. |
+| Resources | Refer to [Footprint](#footprint). The chart default is `{}`. |
+
+The component owns the CRDs `tracingpolicies.cilium.io`, `tracingpoliciesnamespaced.cilium.io` and `podinfo.cilium.io`. The `cilium*` CRDs stay with Terraform, in the `bootstrap-cilium` module. `helm uninstall` of the release deletes the three CRDs, and with them all the `TracingPolicy` and `TracingPolicyNamespaced` objects.
+
+## Falco values
+
+| Value | Setting |
+| --- | --- |
+| `driver.kind` | `modern_ebpf`. No driver loader init container. |
+| `containerSecurityContext` | `privileged: false`. Capabilities `BPF`, `SYS_RESOURCE`, `PERFMON`, `SYS_PTRACE` and `SYS_ADMIN`. |
+| `falco.json_output` | `true` |
+| `falco.stdout_output.enabled` | `true` |
+| `falco.syslog_output.enabled`, `falco.log_syslog` | `false` |
+| `falco.http_output.enabled` | `false` |
+| `falcosidekick.enabled` | `false` |
+| `responseActions.enabled` | `false` |
+| `collectors.kubernetes.enabled` | `false`. No k8s-metacollector. The container plugin reads the CRI socket. |
+| `collectors.containerEngine.engines` | `containerd` and `cri` on. `docker`, `podman`, `lxc`, `libvirt_lxc` and `bpm` off. |
+| `falcoctl.artifact.install.enabled`, `falcoctl.artifact.follow.enabled` | `false`. No `falcoctl` container. The rules and the plugin come from the image. |
+| `customRules` | The local rules. Refer to [Falco local rules](#falco-local-rules). |
+| `metrics.enabled`, `falco.webserver.prometheus_metrics_enabled` | `true`. Port 8765. |
+| Resources | Refer to [Footprint](#footprint). |
+
+## Tetragon policies
+
+All the policies of the component are `TracingPolicyNamespaced` objects in the namespace `rtsec-lab`. The component has no cluster-scoped `TracingPolicy` with an action.
+
+| Policy | Hook | Selector | Action |
+| --- | --- | --- | --- |
+| File read | `security_file_permission` | Path prefix `/etc/shadow`, `MAY_READ` | Event only |
+| File create below `/etc` | `security_path_mknod` | Dentry prefix `/etc` | Event only |
+| Log truncate | `security_file_truncate` | Files below `/var/log` | Event only |
+| API server connect | `tcp_connect` | The API server endpoint: the node IPs, port 6443 | Event only |
+| Lab connect | `tcp_connect` | The listener pod, port 4444 | Event only |
+| User namespace | `create_user_ns` | None | Event only |
+| Ptrace | `sys_ptrace` (`__arm64_sys_ptrace` on arm64) | None | Event only |
+| E1 | `security_file_permission` | Path prefix `/etc/shadow`, `MAY_READ` | `Sigkill` |
+| E2 | `security_socket_connect` | The listener port 4444 | `Override`, `argError: -1` |
+| E3 | `security_path_mknod` | Dentry prefix `/etc` | `Override`, `argError: -1` |
+
+The sources of the policies are the Tetragon [policy library](https://tetragon.io/docs/policy-library/observability/) and the [examples of v1.8.0](https://github.com/cilium/tetragon/tree/v1.8.0/examples).
+
+## Falco local rules
+
+`customRules` adds these rules to the stable rule set of the image:
+
+| Rule | Condition |
+| --- | --- |
+| `Write below etc` | A process in a container opens a file below `/etc` for a write. From the [Falco quickstart](https://falco.org/docs/getting-started/falco-kubernetes-quickstart/). |
+| API server endpoint | A connection from a container to a node IP on port 6443 (`fd.sport=6443`) |
+
+## Attack set
+
+The `security:attack-set` task runs these steps in the pod `target` of the namespace `rtsec-lab`. The table gives the Falco rule and the Tetragon signal of each step.
+
+| ID | Step | Falco rule | Tetragon signal |
+| --- | --- | --- | --- |
+| A1 | Shell with a TTY: `id` | `Terminal shell in container` | `process_exec` of `/bin/sh`. The event has no TTY field. |
+| A2 | `cat /etc/shadow` | `Read sensitive file untrusted` | File read policy |
+| A3 | `touch /etc/rtsec-<run-id>` | `Write below etc` (local) | File create policy |
+| A4 | Copy of busybox to `/tmp/<run-id>/true`, then its execution | `Drop and execute new binary in container` | `process_exec` of a binary below `/tmp/` |
+| A5 | The same below `/dev/shm/<run-id>/` | `Execution from /dev/shm` | `process_exec` of a binary below `/dev/shm/` |
+| A6 | Fileless execution through `memfd_create` (lab helper) | `Fileless execution via memfd_create` | `process_exec` of `/proc/self/fd/<n>`, with `binary_properties.file.inode.links: 0` |
+| A7 | `wget` to `https://kubernetes.default.svc/version` | API server endpoint (local) | API server connect policy |
+| A8 | `nc listener 4444 -e /bin/sh` | `Netcat Remote Code Execution in Container`, `Redirect STDOUT/STDIN to Network Connection in Container` | `process_exec` of `nc` with `-e /bin/sh`, and the lab connect policy |
+| A9 | `grep -r "BEGIN RSA PRIVATE" /etc` | `Search Private Keys or Passwords` | `process_exec` with its arguments |
+| A10 | Truncate of a file below `/var/log` | `Clear Log Activities` | Log truncate policy |
+| A11 | `unshare -U true` | None in the stable rule set | User namespace policy |
+| A12 | `PTRACE_ATTACH` of the lab helper on its own child | `PTRACE attached to process` | Ptrace policy |
+| E1 | `cat /etc/shadow` | None. Falco does not enforce. | `Sigkill`: exit status 137, action `KPROBE_ACTION_SIGKILL` |
+| E2 | Connection to the listener on port 4444 | None | `Override`: `Operation not permitted`, the process continues |
+| E3 | Create of a file below `/etc` | None | `Override`: `Operation not permitted`, no file |
+
+The task obeys these limits:
+
+- It runs only when the kubeconfig context is `kind-kind-local`.
+- It creates `rtsec-lab` with the Pod Security level `baseline`, outside GitOps, and it deletes the namespace at the end.
+- No step leaves `rtsec-lab`, needs a capability above the runtime default, touches a host path or connects to the internet.
+- It writes the run ID in an annotation of `rtsec-lab` and in each command line.
+- It collects the logs of the two tools one time, at least 35 seconds after the last step, with `--tail=-1`.
+
+| Output | Content |
+| --- | --- |
+| `tmp/rtsec/<run-id>/tetragon.jsonl` | The Tetragon events of the run |
+| `tmp/rtsec/<run-id>/falco.jsonl` | The Falco alerts of the run |
+| `tmp/rtsec/<run-id>/summary.tsv` | One row for each step and tool: step, tool, fired (`yes` or `no`), rule or policy, time to event |
+
+## Alerts
+
+The alerts are JSON lines on the standard output of the containers. No alert backend receives them.
+
+| Tool | Pod label | Container | Format |
+| --- | --- | --- | --- |
+| Tetragon agent | `app.kubernetes.io/name=tetragon` | `export-stdout` | One JSON event on each line: `process_exec`, `process_kprobe` and others |
+| Tetragon operator | `app.kubernetes.io/name=tetragon-operator` | | No events |
+| Falco | `app.kubernetes.io/name=falco` | `falco` | JSON alerts, mixed with plain log lines |
+
+| Field | Values |
+| --- | --- |
+| Tetragon `process_kprobe.action` | `KPROBE_ACTION_POST`, `KPROBE_ACTION_SIGKILL`, `KPROBE_ACTION_OVERRIDE` |
+| Tetragon `process.pod.namespace` | The namespace of the pod. `""` for a process that the agent cannot attribute to a pod. |
+| Falco `output_fields["k8s.ns.name"]` | The namespace of the pod. `null` on the copy of the alert from the other node, and for a process outside Kubernetes. |
+| Falco `output_fields["container.id"]` | The container ID. Equal on the two copies of an alert. |
+
+On `kind-local`, both agents see each event of the lab. These rules apply:
+
+- Tetragon: the agent of the other node emits the event with namespace `""`, about 30 seconds later. The entry `""` of `exportDenyList` drops it from the standard output. gRPC and `tetragon_events_total` keep it.
+- Tetragon: an exec event can reach the standard output up to about 30 seconds after the step (event cache, `eventCacheRetries` 15 times 2 seconds).
+- Falco: each alert occurs two times. A filter on `k8s.ns.name == "rtsec-lab"` keeps one copy. `container.id` is the key to remove duplicates.
+- Under load, the kubelet rotates the log of `export-stdout`. `kubectl logs` then returns only the current file.
+
+## Metrics
+
+| Port | Tool | Metrics | Exposure |
+| --- | --- | --- | --- |
+| 2112 | Tetragon agent | `tetragon_events_exported_total`, `tetragon_events_total` | `ClusterIP`. With `hostNetwork: true`, also on the node IP, in the Docker network only. |
+| 2113 | Tetragon operator | Operator metrics | `ClusterIP` |
+| 8765 | Falco | `falcosecurity_scap_n_evts_total`, `falcosecurity_scap_n_drops_total` | `ClusterIP` |
+
+The `security:measure` task reads the event volume from these metrics through a port-forward, not from the logs.
+
+## Privileges and host paths
+
+Both agents are DaemonSets on the host level. They read each process, file event and network event of the node. Tetragon can stop processes.
+
+| Item | Tetragon | Falco |
+| --- | --- | --- |
+| Agent security context | `privileged: false`. Capabilities `SYS_ADMIN`, `SYS_PTRACE`, `SYS_RESOURCE`, `DAC_OVERRIDE` and `SYSLOG`. AppArmor `Unconfined`. | `privileged: false`. Capabilities `BPF`, `SYS_RESOURCE`, `PERFMON`, `SYS_PTRACE` and `SYS_ADMIN`. AppArmor `Unconfined`, from the chart annotation. |
+| Privileged container | Init container `mount-bpf-fs` | None |
+| Host namespaces | `hostNetwork: true`, `hostUsers: true` | None |
+| Host paths | `/procHost` on `kind-local`, `/proc` on the other clusters; `/sys/fs/bpf`, `/var/run/cilium`, `/var/run/tetragon`, `/var/log/tetragon` | `/proc`, `/sys/kernel`, `/boot`, `/etc`, `/usr`, `/lib/modules`, the folders of the containerd socket |
+| Socket | Unix gRPC socket on the host | containerd socket |
+
+Tetragon pins its BPF maps below `/sys/fs/bpf/tetragon`. Cilium pins its maps below `/sys/fs/bpf/cilium` and `/sys/fs/bpf/tc`.
+
+## RBAC
+
+| Tool | Rules |
+| --- | --- |
+| Tetragon agent | `ClusterRole`: `get`, `list` and `watch` on `namespaces`, `nodes`, `pods`, `services`, the Tetragon kinds and the CRDs ([clusterrole.yaml](https://github.com/cilium/tetragon/blob/v1.8.0/install/kubernetes/tetragon/templates/clusterrole.yaml)) |
+| Tetragon operator | Read on `pods`, write on `podinfo`, and `update`, `get`, `list` and `watch` on the three CRDs by `resourceNames`. No `create` on CRDs. |
+| Falco | No `Role` and no `ClusterRole` |
+
+No rendered role of the two components has a rule on `secrets`.
+
+## Footprint
+
+Each pod has a memory request equal to its limit, a CPU request and no CPU limit, as [Add a GitOps component](../how-to/add-a-gitops-component.md) requires.
+
+| Pod (one on each node, except the operator) | CPU request | Memory request and limit |
+| --- | --- | --- |
+| Tetragon agent | `100m` | `768Mi` |
+| Tetragon `export-stdout` | `10m` | `32Mi` |
+| Tetragon operator (one pod) | `10m` | `128Mi` |
+| Falco | `50m` | `256Mi` |
+
+| Mode, on two nodes | CPU request | Memory request |
+| --- | --- | --- |
+| Tetragon | `230m` | `1728Mi` |
+| Falco | `100m` | `512Mi` |
+| Both | `330m` | `2240Mi` |
+
+The values come from short measurements on `kind-local`, with one run for each mode. Each run has 3 minutes idle, then a load of 20 000 execs and one attack set. The numbers are indicative only. The drift of the VM memory is about ±50 MiB.
+
+| Mode | Peak working set of one agent | Peak CPU of one agent |
+| --- | --- | --- |
+| Tetragon | 451 MiB | 65m |
+| Falco | 55 MiB | 21m |
+
+Kind nodes have no allocatable limit below the Colima VM. On `kind-local`, the requests are a reservation only, and the real use counts.
+
+## Checks
+
+| Rule | Check |
+| --- | --- |
+| A privileged Pod Security level on an `infrastructure` Namespace has a permit only for the namespaces of `pod_security_privileged` in `policy/data/labels.yaml`: `tetragon` and `falco`. | Conftest (K16) |
+| No cluster-scoped `TracingPolicy` has the action `Sigkill`, `Signal`, `Override` or `NotifyEnforcer`. | Conftest |
+| Each rendered CRD has the sync wave `-1`. | Conftest |
+| Each rendered image has an explicit tag that is not `latest`. | Conftest |
+| Each rendered Namespace is the namespace of its component in `cluster.yaml`. | Conftest (K15) |
+
+The rules and their messages are in [Policies](policies.md) and [Labels and annotations](labels-and-annotations.md#checks).
+
+## Related pages
+
+- [Runtime security with Tetragon and Falco](../explanation/runtime-security-with-tetragon-and-falco.md)
+- [Run the runtime security attack set](../how-to/run-the-runtime-security-attack-set.md)
+- [Remove a runtime security tool](../how-to/remove-a-runtime-security-tool.md)
+- [GitOps layout](gitops-layout.md): the files of a component, and the sync waves.
+- [Mise tasks](mise-tasks.md): the `security:*` tasks.
+- [Policies](policies.md): the Conftest rules.
+- [cluster-kind](terraform-modules/cluster-kind/index.md): the mount of the host `/proc` at `/procHost`.

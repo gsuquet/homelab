@@ -40,6 +40,13 @@ The pages have four types. Use the type that agrees with your need:
 | [Force a sync](how-to/force-a-sync.md) | Make Argo CD apply a merged change at once |
 | [Upgrade Argo CD](how-to/upgrade-argo-cd.md) | Upgrade Argo CD, or change its settings, on all the clusters |
 
+### Run the runtime security tools
+
+| Page | Description |
+| --- | --- |
+| [Run the runtime security attack set](how-to/run-the-runtime-security-attack-set.md) | Enable Tetragon or Falco, run the attack set, read the alerts and measure the overhead |
+| [Remove a runtime security tool](how-to/remove-a-runtime-security-tool.md) | Remove Tetragon or Falco, with its resources and its files on the nodes |
+
 ### Expose a service
 
 | Page | Description |
@@ -67,6 +74,7 @@ The pages have four types. Use the type that agrees with your need:
 | [Terraform modules](reference/terraform-modules/index.md) | The modules in `modules/`, with a page for each module |
 | [GitOps layout](reference/gitops-layout.md) | The files in `gitops/`, how they render, and the settings of the Applications |
 | [Labels and annotations](reference/labels-and-annotations.md) | The Kubernetes and cloud label keys, and their checks |
+| [Runtime security components](reference/runtime-security-components.md) | The `tetragon` and `falco` components: versions, values, policies, privileges, checks and footprint |
 
 The module pages come from terraform-docs. `mise run doc:generate` updates them:
 
@@ -103,6 +111,7 @@ The module pages come from terraform-docs. `mise run doc:generate` updates them:
 | [Repository scope](explanation/repository-scope.md) | What belongs in the repository, and why its metadata uses the word `infra` |
 | [How we work](explanation/how-we-work.md) | Why the work goes from a plan to the docs and then to the code |
 | [Automated updates](explanation/automated-updates.md) | Why Renovate keeps the exact versions current, and how it groups the updates |
+| [Runtime security with Tetragon and Falco](explanation/runtime-security-with-tetragon-and-falco.md) | Why the platform keeps two runtime security tools, how the comparison works, and what `kind-local` does not show |
 
 ## Page templates
 
