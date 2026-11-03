@@ -68,12 +68,14 @@ The digest of the Falco image pins the Falco rules and the container plugin. The
 
 ## Tetragon values
 
+The names are the values of the upstream chart. In the umbrella chart, they are below the key `tetragon`.
+
 | Value | Setting |
 | --- | --- |
 | `crds.installMethod` | `helm`. The three CRDs are templates of the release, with the sync wave `-1`. |
 | `tetragonOperator.enabled` | `true`. The operator manages the `PodInfo` objects. |
 | `export.mode` | `stdout`. The `export-stdout` container prints one JSON event on each line. |
-| `tetragon.enableProcessCred` | `true`. The fileless and SUID detections need the process credentials. |
+| `tetragon.enableProcessCred` | `true`. Adds the process credentials to the events. |
 | `tetragon.exportDenyList` | The chart entries `{"health_check":true}` and the namespaces `""`, `kube-system` and `cilium`, plus the namespaces `tetragon` and `falco` |
 | `tetragon.prometheus.enabled` | `true`. Port 2112. |
 | `tetragon.grpc.enabled` | `true`, on a Unix socket of the host only |
@@ -83,6 +85,8 @@ The digest of the Falco image pins the Falco rules and the container plugin. The
 The component owns the CRDs `tracingpolicies.cilium.io`, `tracingpoliciesnamespaced.cilium.io` and `podinfo.cilium.io`. The `cilium*` CRDs stay with Terraform, in the `bootstrap-cilium` module. `helm uninstall` of the release deletes the three CRDs, and with them all the `TracingPolicy` and `TracingPolicyNamespaced` objects.
 
 ## Falco values
+
+The names are the values of the upstream chart. In the umbrella chart, they are below the key `falco`.
 
 | Value | Setting |
 | --- | --- |
@@ -120,21 +124,36 @@ The `tetragon` component holds only the tool. It has no `TracingPolicy` and no `
 | Tetragon detection policies | `TracingPolicyNamespaced` objects in `rtsec-lab`, with the action `Post` only | For the full run | With `rtsec-lab` |
 | Tetragon enforcement policies | `TracingPolicyNamespaced` objects in `rtsec-lab`, with a `podSelector` on `rtsec.gsuquet.com/role: enforce` | For the E steps only | After the E steps, and with `rtsec-lab` |
 
-The Tetragon detection policies follow the paths and the arguments of the `event-generator` actions. The sources of the policies are the Tetragon [policy library](https://tetragon.io/docs/policy-library/observability/) and the [examples of v1.8.0](https://github.com/cilium/tetragon/tree/v1.8.0/examples).
+The Tetragon detection policies follow the paths and the arguments of the `event-generator` actions:
+
+| Step | Hook or event | Selector |
+| --- | --- | --- |
+| A1, A4, A5, A6, A9 | `process_exec`, no policy | The binary path or the arguments, in the `jq` filter |
+| A2 | `security_file_open` | Path prefix `/etc/shadow` |
+| A3 | `security_path_mknod` | Dentry prefix `/etc` |
+| A7 | `tcp_connect` | The API server endpoint: the node IPs, port 6443 |
+| A8 | `tcp_connect` | The `listener` pod, port 4444 |
+| A10 | `security_file_truncate` | The log file of the action |
+| A11 | `create_user_ns` | None |
+| A12 | `sys_ptrace` (`__arm64_sys_ptrace` on arm64) | None |
+
+No test result exists for the A2 hook and the A10 hook with the `event-generator` actions. This page makes no claim that they fire.
+
+The sources of the policies are the Tetragon [policy library](https://tetragon.io/docs/policy-library/observability/) and the [examples of v1.8.0](https://github.com/cilium/tetragon/tree/v1.8.0/examples).
 
 The enforcement policies act only on the pod `enforce-target`:
 
-| ID | Hook | Selector | Action | Result |
-| --- | --- | --- | --- | --- |
-| E1 | `security_file_permission` | Path prefix `/etc/shadow`, `MAY_READ` | `Sigkill` | Exit status 137, action `KPROBE_ACTION_SIGKILL` |
-| E2 | `security_socket_connect` | The listener port 4444 | `Override`, `argError: -1` | `Operation not permitted`. The process continues. |
-| E3 | `security_path_mknod` | Dentry prefix `/etc` | `Override`, `argError: -1` | `Operation not permitted`. No file. |
+| ID | Trigger in `enforce-target` | Hook | Selector | Action | Result |
+| --- | --- | --- | --- | --- | --- |
+| E1 | A plain read of `/etc/shadow` (shell) | `security_file_permission` | Path prefix `/etc/shadow`, `MAY_READ` | `Sigkill` | Exit status 137, action `KPROBE_ACTION_SIGKILL` |
+| E2 | A connection to the `listener` pod on port 4444 (shell) | `security_socket_connect` | The listener port 4444 | `Override`, `argError: -1` | `Operation not permitted`. The process continues. |
+| E3 | The create of a file below `/etc` (shell) | `security_path_mknod` | Dentry prefix `/etc` | `Override`, `argError: -1` | `Operation not permitted`. No file. |
 
 Falco has no enforcement. For the E steps, the summary records "detect only" for Falco.
 
 ## Attack set
 
-The attack steps come from [falcosecurity/event-generator](https://github.com/falcosecurity/event-generator), the test tool of the Falco project, or they are plain shell commands. The task pins the image by its tag and its digest. The repository has no attack code of its own. The task runs only the named actions of the `syscall` collection, never all the actions. It never runs an action that leaves the pod.
+The attack steps come from [falcosecurity/event-generator](https://github.com/falcosecurity/event-generator), the test tool of the Falco project, or they are plain shell commands. The task pins the image by its tag and its digest. The repository has no attack code of its own. The task runs each action of the `syscall` collection with `--all` and an anchored regular expression that names exactly one action, for example `'^syscall\.WriteBelowEtc$'`. `--all` is necessary for A3 and A11, because `event-generator` disables them by default. The task never uses `--all` with a different expression, and it never runs an action that leaves the pod.
 
 | ID | Behavior | Source |
 | --- | --- | --- |
@@ -210,7 +229,7 @@ Both agents are DaemonSets on the host level. They read each process, file event
 | Agent security context | `privileged: false`. Capabilities `SYS_ADMIN`, `SYS_PTRACE`, `SYS_RESOURCE`, `DAC_OVERRIDE` and `SYSLOG`. AppArmor `Unconfined`. | `privileged: false`. Capabilities `BPF`, `SYS_RESOURCE`, `PERFMON`, `SYS_PTRACE` and `SYS_ADMIN`. AppArmor `Unconfined`, from the chart annotation. |
 | Privileged container | Init container `mount-bpf-fs` | None |
 | Host namespaces | `hostNetwork: true`, `hostUsers: true` | None |
-| Host paths | `/procHost` on `kind-local`, `/proc` on the other clusters; `/sys/fs/bpf`, `/var/run/cilium`, `/var/run/tetragon`, `/var/log/tetragon` | `/proc`, `/sys/kernel`, `/boot`, `/etc`, `/usr`, `/lib/modules`, the folders of the containerd socket |
+| Host paths | `/procHost` on `kind-local`: a read-only bind of the `/proc` of the Colima VM. Read-only stops only the writes to the procfs files: `/procHost/<pid>/root` reaches the file system of the VM. `/proc` on the other clusters. Also `/sys/fs/bpf`, `/var/run/cilium`, `/var/run/tetragon`, `/var/log/tetragon` | `/proc`, `/sys/kernel`, `/boot`, `/etc`, `/usr`, `/lib/modules`, the folders of the containerd socket |
 | Socket | Unix gRPC socket on the host | containerd socket |
 
 Tetragon pins its BPF maps below `/sys/fs/bpf/tetragon`. Cilium pins its maps below `/sys/fs/bpf/cilium` and `/sys/fs/bpf/tc`.
@@ -255,9 +274,10 @@ Kind nodes have no allocatable limit below the Colima VM. On `kind-local`, the r
 
 | Rule | Check |
 | --- | --- |
-| A privileged Pod Security level on an `infrastructure` Namespace has a permit only for the namespaces of `pod_security_privileged` in `policy/data/labels.yaml`: `tetragon` and `falco`. | Conftest (K16) |
-| No cluster-scoped `TracingPolicy` has the action `Sigkill`, `Signal`, `Override` or `NotifyEnforcer`. | Conftest (K17) |
-| Each image in `tests/runtime-security/` ends with a `sha256` digest. | Conftest |
+| No container, init container or ephemeral container has `securityContext.privileged: true`, except when `metadata.namespace` and the component namespace are both in `pod_security_privileged` of `policy/data/labels.yaml` (`tetragon`, `falco`). An object with no known namespace fails. | Conftest (K16) |
+| No `TracingPolicy` (`cilium.io`) has `Sigkill`, `Override`, `Signal`, `NotifyEnforcer` or `Set` in a `matchActions` or `matchReturnActions` array, and `spec.enforcers` is empty. | Conftest (K17) |
+| Each lab pod is in its own file in `tests/runtime-security/`, and its image ends with a `sha256` digest. | Conftest |
+| A `hostPath` volume on `/procHost`, or on a parent path, is only in the namespace `tetragon`. | Conftest |
 | Each rendered CRD has the sync wave `-1`. | Conftest |
 | Each rendered image has an explicit tag that is not `latest`. | Conftest |
 | Each rendered Namespace is the namespace of its component in `cluster.yaml`. | Conftest (K15) |

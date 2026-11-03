@@ -30,21 +30,31 @@ Run the attack set when one of these occurs:
 
    To run one tool only, add only its item.
 
-2. Render the manifests:
+2. To enable Tetragon on `kind-local`, add `gitops/clusters/kind-local/values/tetragon.yaml`:
+
+   ```yaml
+   tetragon:
+     tetragon:
+       hostProcPath: /procHost
+   ```
+
+   The other values are in [Tetragon values](../reference/runtime-security-components.md#tetragon-values).
+
+3. Render the manifests:
 
    ```bash
    mise run manifests:render
    ```
 
-3. Merge the change. The Applications sync `main`. Refer to [Make a change](make-a-change.md).
-4. If the Applications do not sync in a few minutes, refer to [Force a sync](force-a-sync.md).
-5. Make sure that each Application is `Synced` and `Healthy`:
+4. Merge the change. The Applications sync `main`. Refer to [Make a change](make-a-change.md).
+5. If the Applications do not sync in a few minutes, refer to [Force a sync](force-a-sync.md).
+6. Make sure that each Application is `Synced` and `Healthy`. Name only the enabled tools:
 
    ```bash
    kubectl -n argocd get applications tetragon falco
    ```
 
-6. Make sure that each DaemonSet has a ready pod on each node:
+7. Make sure that each DaemonSet has a ready pod on each node:
 
    ```bash
    kubectl -n tetragon get daemonset
@@ -98,7 +108,7 @@ Do not read the alerts during a `security:measure` run. Its load rotates the log
 
 ## Measure the overhead
 
-1. Set `cluster.yaml` to the mode to measure: `tetragon`, `falco`, both, or none.
+1. Enable the tools of the mode, as in [Enable the tools](#enable-the-tools), up to the merge. For `none`, remove the tools as in [Remove a runtime security tool](remove-a-runtime-security-tool.md).
 2. Start from a new cluster:
 
    ```bash

@@ -9,7 +9,7 @@ The platform has two such tools, Tetragon and Falco. Both use eBPF, and both cov
 Tetragon and Falco answer the same need from two directions.
 
 - **Tetragon** attaches eBPF programs to kernel functions, for example `security_file_permission` or `tcp_connect`. A `TracingPolicy` names the hook and the selectors. A policy can also act: `Sigkill` stops the process, and `Override` makes the kernel function return an error. Tetragon is a Cilium project, and its events have the Kubernetes pod of each process.
-- **Falco** reads the system calls through its modern eBPF driver and matches them against rules. Its stable rule set has rules for many attack steps, with no authoring. Falco only detects. Its response options, Falco Talon and `program_output`, are separate programs.
+- **Falco** reads the system calls through its modern eBPF driver and matches them against rules. Its stable rule set has rules for many attack steps, with no authoring. Falco only detects. Falco Talon is a separate program, and `program_output` sends each alert to a program.
 
 The two tools thus have different strengths: Tetragon can enforce, and Falco has rules ready for use. A comparison on the same attack set gives facts for each of the four areas: detection, enforcement, overhead and operations. One tool is the default to run, and the comparison report chooses it from these facts.
 
@@ -47,13 +47,13 @@ The `tetragon` component holds only the tool. The Tetragon policies of the lab a
 
 First, the lab policies are objects in the namespace `rtsec-lab`, and the task deletes this namespace after each run. Argo CD cannot keep an object `Synced` in a namespace that does not exist. Its self-heal then fails until the next run.
 
-Second, an enforcement policy that is always on changes the detection results. A kill on each read of `/etc/shadow` stops the detection step that reads the same file. Thus the task applies the detection policies for the full run, and the enforcement policies only for the E steps.
+Second, an enforcement policy that is always on changes the detection results. A kill on each read of `/etc/shadow` stops the detection step that opens the same file. Thus the task applies the detection policies for the full run, and the enforcement policies only for the E steps.
 
 The Falco lab rules are different. They stay in `customRules` of the `falco` component, and each rule has a condition on the namespace `rtsec-lab`. Falco reads its rules from files. A change of the rules at run time patches a ConfigMap that Argo CD manages, and Falco must restart. A Falco rule also never blocks a process, so a lab rule that is always on does not change the results.
 
 ## Why Falco has its settings
 
-Falco uses the modern eBPF driver. The legacy eBPF probe does not exist in Falco 0.44.0 and later ([release 0.44.0](https://github.com/falcosecurity/falco/releases/tag/0.44.0)). The kernel module needs a driver for each kernel, a privileged loader and host folders. Talos forces a signature check on all modules, so the module cannot load on the Pi nodes. The modern driver needs BTF and a kernel 5.8 or later ([kernel event sources](https://falco.org/docs/concepts/event-sources/kernel/)).
+Falco uses the modern eBPF driver. The legacy eBPF probe does not exist in Falco 0.44.0 and later ([release 0.44.0](https://github.com/falcosecurity/falco/releases/tag/0.44.0)). The kernel module needs a driver for each kernel, a privileged loader and host folders. Talos forces a signature check on all modules, so an unsigned Falco module cannot load on the Pi nodes. The modern driver needs BTF and a kernel 5.8 or later ([kernel event sources](https://falco.org/docs/concepts/event-sources/kernel/)).
 
 Falco runs with capabilities, not as a privileged container. The `leastPrivileged` set of the chart alone does not start on Colima. The Colima VM has `kernel.perf_event_paranoid = 4`, and at this level `CAP_PERFMON` cannot open the tracepoints. With `SYS_ADMIN` added to the set, Falco starts with no dropped events.
 
@@ -63,9 +63,9 @@ The rules and the container plugin come from the Falco image, pinned by its dige
 
 The two kind nodes of `kind-local` are containers on one kernel, the kernel of the Colima VM. An eBPF program that one agent loads sees the system calls of the full VM. These include the two kind nodes, the Docker daemon and all the other containers of the laptop.
 
-Thus a cluster-scoped `TracingPolicy` with `Sigkill` loads on the two agents and acts on each process of the VM, also on the kind nodes. Each enforcement policy is a `TracingPolicyNamespaced` in `rtsec-lab`, with a `podSelector` on the label `rtsec.gsuquet.com/role: enforce`. Only the pod `enforce-target` has this label, so the enforcement steps do not stop the detection steps in the other lab pods. A Conftest check refuses a cluster-scoped `TracingPolicy` with `Sigkill`, `Signal`, `Override` or `NotifyEnforcer`. The same rule also protects a real node, where an error in a cluster-scoped kill policy can stop a system process.
+Thus a cluster-scoped `TracingPolicy` with `Sigkill` loads on the two agents and acts on each process of the VM, also on the kind nodes. Each enforcement policy is a `TracingPolicyNamespaced` in `rtsec-lab`, with a `podSelector` on the label `rtsec.gsuquet.com/role: enforce`. Only the pod `enforce-target` has this label, so the enforcement steps do not stop the detection steps in the other lab pods. The K17 check refuses a cluster-scoped `TracingPolicy` with an enforcement action or an enforcer. The full list is in [Checks](../reference/runtime-security-components.md#checks). The same rule also protects a real node, where an error in a cluster-scoped kill policy can stop a system process.
 
-The two agents are host-level DaemonSets. They read each process, file event and network event of the node, and Tetragon can stop processes. A compromise of an agent is a compromise of its node. The K16 check permits the `privileged` Pod Security level only in the namespaces `tetragon` and `falco`, so this privilege stays visible in the policy data.
+The two agents are host-level DaemonSets. They read each process, file event and network event of the node, and Tetragon can stop processes. A compromise of an agent is a compromise of its node. K16 permits a privileged container only in the namespaces `tetragon` and `falco`. In these components, the Tetragon init container `mount-bpf-fs` is the only privileged container. The allowlist in the policy data keeps this privilege visible.
 
 ## What `kind-local` does not show
 
@@ -73,7 +73,7 @@ The two agents are host-level DaemonSets. They read each process, file event and
 
 - **Duplicate events.** Each lab event reaches the two agents. Tetragon emits the copy of the other node with no pod, and its deny list drops it from the output. Falco prints each alert two times. The copy of the other node has no Kubernetes fields, and a filter on the namespace removes it.
 - **Host noise.** Falco also alerts on processes of the containers outside Kubernetes in the VM. The comparison counts only the events of `rtsec-lab`. Host-level detections on a kind node are not the same as on a real node, so they wait for the Pi nodes.
-- **PID namespaces.** A kind node has its own PID namespace, but the BPF events carry the PIDs of the VM. With the `/proc` of the node, Tetragon loses the parent of the processes older than the agent. `cluster-kind` thus mounts the `/proc` of the VM at `/procHost` in each node, and Tetragon reads it. A real node needs no such mount.
+- **PID namespaces.** A kind node has its own PID namespace, but the BPF events carry the PIDs of the VM. With the `/proc` of the node, Tetragon loses the parent of the processes older than the agent. `cluster-kind` thus mounts the `/proc` of the VM at `/procHost` in each node, and Tetragon reads it. The mount is read-only, but it is not an isolation boundary: `/procHost/<pid>/root` reaches the file system of the VM. A Conftest check permits this host path only in the namespace `tetragon`. A real node needs no such mount.
 - **Cilium socket load balancing.** Cilium changes a ClusterIP to a backend address at the connect. `tcp_connect` sees the backend, and `security_socket_connect` sees the ClusterIP. Thus a detection of the API server uses the node IPs on port 6443. The stable Falco rule on the service name does not match.
 - **Overhead.** Two agents on one VM double the kernel cost, when compared with one agent on each real node. The numbers on `kind-local` compare the two tools on the same base. They are not absolute numbers.
 - **Other kind clusters.** The VM has `fs.inotify.max_user_instances = 128`. A third kind node in the same VM, for example a throwaway test cluster, cannot start `kube-proxy`.
@@ -88,6 +88,8 @@ Other designs can also give runtime security. Each one is a worse match for the 
 - **One tool only, and the deletion of the other after the comparison** removes the material for demonstrations and for a new run of the comparison.
 - **Lab policies in the `tetragon` component** keep the policies in Git with the tool. But Argo CD cannot keep them `Synced` when the task deletes `rtsec-lab`, and the enforcement policies are then always on.
 - **Attack code in the repository** gives full control of each step. But the repository then keeps and reviews attack code. A pinned upstream test tool gives the same steps to each person who runs it.
+- **`hostProcPath: /proc` on kind** needs no cluster change, and pods that start after the agent keep their attribution. But processes older than the agent lose their parent, and `kubectl exec` shells show a wrong parent.
+- **A one-node `kind-local`** removes the duplicate events. But it does not show the behavior of two agents and two nodes, which the Pi cluster also has.
 - **Tetragon in the `kube-system` namespace**, as in the upstream guides, breaks the namespace rule of the components. Tetragon also filters the `kube-system` events by default.
 - **Tetragon CRDs from the operator** (the chart default) makes CRDs that Argo CD does not track, and the operator needs the right to create CRDs.
 - **Falco as a privileged container** (the chart default) gives more privileges than necessary. The capability set with `SYS_ADMIN` is enough.
