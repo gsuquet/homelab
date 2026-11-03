@@ -7,7 +7,7 @@ set -euo pipefail
 source "$MISE_PROJECT_ROOT/.mise/tasks/_base/log.sh"
 
 if ! command -v terraform-docs &> /dev/null; then
-    log_error "terraform-docs is not installed. Install it with: brew install terraform-docs"
+    log_error "terraform-docs is not installed. Install it with: mise install"
     exit 1
 fi
 
