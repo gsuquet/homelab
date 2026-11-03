@@ -31,13 +31,23 @@ Both tools install the same way: one Helm chart each, rendered and synced by Arg
 
 ## How the comparison works
 
-The `security:attack-set` task runs one scripted attack set against the two tools. Each step is harmless and stays in the namespace `rtsec-lab`. The task creates this namespace, starts two lab pods, runs each step with `kubectl exec`, and deletes the namespace at the end. No step needs a capability above the runtime default, touches a host path or connects to the internet. The set has no steps that touch the kernel or the host, for example a module load. These steps need privileges that a harmless lab must not have.
+The `security:attack-set` task runs one scripted attack set against the two tools. The steps come from [falcosecurity/event-generator](https://github.com/falcosecurity/event-generator), the test tool of the Falco project, pinned by its digest. An upstream test tool gives steps that other people use and review, and the repository keeps no attack code of its own. A step that `event-generator` does not cover is not in the set, or it is a plain shell command.
+
+Each step is harmless and stays in the namespace `rtsec-lab`. The task creates this namespace, applies the lab fixtures, runs the steps, and deletes the namespace at the end. No step needs a capability above the runtime default, touches a host path or connects to the internet. The set has no steps that touch the kernel or the host, for example a module load. These steps need privileges that a harmless lab must not have.
 
 The task collects the logs one time, at the end of the run. Tetragon can emit an exec event up to about 30 seconds after the step, because its event cache retries the pod lookup. A short window after each step misses these events.
 
 The `security:measure` task samples the memory and the CPU of the agents, the kind nodes and the Colima VM, in idle and under a fixed load. A clean number comes from one tool at a time, from a new cluster, against a run with no tool. The event volume comes from the metrics of each tool, not from the logs. Under load, the kubelet rotates the log files, and `kubectl logs` returns only the current file.
 
 The alerts go to the standard output as JSON lines. `kubectl logs` and `jq` read them. An alert backend, for example Falcosidekick with Grafana, adds components that the comparison does not need.
+
+## Why the lab policies are test fixtures
+
+The `tetragon` and `falco` components hold only the tools. The Tetragon policies and the Falco local rules of the lab are test fixtures in `tests/runtime-security/`, and the attack-set task applies them. There are two reasons.
+
+First, the lab policies are objects in the namespace `rtsec-lab`, and the task deletes this namespace after each run. Argo CD cannot keep an object `Synced` in a namespace that does not exist. Its self-heal then fails until the next run.
+
+Second, an enforcement policy that is always on changes the detection results. A kill on each read of `/etc/shadow` stops the detection step that reads the same file. Thus the task applies the detection policies for the full run, and the enforcement policies only for the E steps.
 
 ## Why Falco has its settings
 
@@ -51,7 +61,7 @@ The rules and the container plugin come from the Falco image, pinned by its dige
 
 The two kind nodes of `kind-local` are containers on one kernel, the kernel of the Colima VM. An eBPF program that one agent loads sees the system calls of the full VM. These include the two kind nodes, the Docker daemon and all the other containers of the laptop.
 
-Thus a cluster-scoped `TracingPolicy` with `Sigkill` loads on the two agents and acts on each process of the VM, also on the kind nodes. Each enforcement policy is a `TracingPolicyNamespaced` in `rtsec-lab`. A Conftest check refuses a cluster-scoped `TracingPolicy` with `Sigkill`, `Signal`, `Override` or `NotifyEnforcer`. The same rule also protects a real node, where an error in a cluster-scoped kill policy can stop a system process.
+Thus a cluster-scoped `TracingPolicy` with `Sigkill` loads on the two agents and acts on each process of the VM, also on the kind nodes. Each enforcement policy is a `TracingPolicyNamespaced` in `rtsec-lab`, with a `podSelector` on the label `rtsec.gsuquet.com/role: enforce`. Only the pod `enforce-target` has this label, so the enforcement steps do not stop the detection steps in the other lab pods. A Conftest check refuses a cluster-scoped `TracingPolicy` with `Sigkill`, `Signal`, `Override` or `NotifyEnforcer`. The same rule also protects a real node, where an error in a cluster-scoped kill policy can stop a system process.
 
 The two agents are host-level DaemonSets. They read each process, file event and network event of the node, and Tetragon can stop processes. A compromise of an agent is a compromise of its node. The K16 check permits the `privileged` Pod Security level only in the namespaces `tetragon` and `falco`, so this privilege stays visible in the policy data.
 
@@ -74,6 +84,8 @@ Other designs can also give runtime security. Each one is a worse match for the 
 
 - **One component with the two tools** cannot run one tool alone. The overhead numbers then mix the two tools.
 - **One tool only, and the deletion of the other after the comparison** removes the material for demonstrations and for a new run of the comparison.
+- **Lab policies in the `tetragon` component** keep the policies in Git with the tool. But Argo CD cannot keep them `Synced` when the task deletes `rtsec-lab`, and the enforcement policies are then always on.
+- **Attack code in the repository** gives full control of each step. But the repository then keeps and reviews attack code. A pinned upstream test tool gives the same steps to each person who runs it.
 - **Tetragon in the `kube-system` namespace**, as in the upstream guides, breaks the namespace rule of the components. Tetragon also filters the `kube-system` events by default.
 - **Tetragon CRDs from the operator** (the chart default) makes CRDs that Argo CD does not track, and the operator needs the right to create CRDs.
 - **Falco as a privileged container** (the chart default) gives more privileges than necessary. The capability set with `SYS_ADMIN` is enough.

@@ -66,7 +66,7 @@ Run the attack set when one of these occurs:
    column -t -s $'\t' tmp/rtsec/<run-id>/summary.tsv
    ```
 
-4. Compare each row with the expected signal in [Attack set](../reference/runtime-security-components.md#attack-set).
+4. Look at the rows with `no` in the fired column. The steps and the fixtures are in [Attack set](../reference/runtime-security-components.md#attack-set).
 
 The task prints the run ID. The events of the run are in `tmp/rtsec/<run-id>/tetragon.jsonl` and `tmp/rtsec/<run-id>/falco.jsonl`.
 

