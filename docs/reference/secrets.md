@@ -149,16 +149,19 @@ mise run secrets:destroy <instance>
 | `secrets:apply` | `terraform plan -replace=<seed address> ... -out=<plan-folder>/secrets.tfplan`, then `terraform apply <plan-folder>/secrets.tfplan` |
 | `secrets:destroy` | `terraform plan -destroy -out=<plan-folder>/secrets.tfplan`, then `terraform apply <plan-folder>/secrets.tfplan` |
 
-- `<plan-folder>` is a new temporary folder outside the repository. `secrets:plan` makes it and prints its path. The folder holds the plan file and the JSON output, and the person who runs the task deletes it. Terraform treats a saved plan file as a possible sensitive file.
+- `<plan-folder>` is a new temporary folder outside the repository. Each task makes it with `mktemp -d` under `umask 077`, so its mode is `0700`. Terraform treats a saved plan file as a possible sensitive file.
+- `secrets:plan` prints the path of its folder and keeps it. The folder holds the plan file and the JSON output, and the person who runs the task deletes it.
+- `secrets:apply` and `secrets:destroy` delete their folder on each exit, through a `trap` on `EXIT`, `INT` and `TERM`: after a success, a refused confirmation, a failed apply or Ctrl-C.
+- The mode `0700` protects the folder against other OS users only. An agent with the same OS user can read it. The plan file holds no value.
 - `secrets:plan` needs the scope key, and it decrypts in memory like `secrets:apply`.
 - `secrets:apply` and `secrets:destroy` do these steps in this order:
   1. Check the preconditions.
   2. Make the saved plan in a new temporary folder outside the repository.
-  3. Print a summary of the plan: the resource addresses and their actions, with no values.
+  3. Print a summary of the plan, with no values: `terraform show -json` of the plan, restricted to `.resource_changes[].address` and `.change.actions`.
   4. Ask for a typed confirmation on the terminal.
-  5. Apply the saved plan, then delete the temporary folder.
+  5. Apply the saved plan. The `trap` then deletes the temporary folder.
 - Terraform applies a saved plan with no prompt, because it takes the plan file as the approval ([`terraform apply`](https://developer.hashicorp.com/terraform/cli/commands/apply)). The typed confirmation of the task is thus the approval, after the review of the diffs.
-- `secrets:apply` and `secrets:destroy` refuse to run with no terminal (TTY). Thus no agent can run them unattended.
+- `secrets:apply` and `secrets:destroy` read the confirmation from `/dev/tty`, and stop when the process has no terminal. This stops a run from a plain tool call, CI or a pipe, for example `yes |`. It does not stop a process that makes a pseudo-terminal, for example `script` or `expect`, and it does not stop a direct `terraform` command. The controls stay the agent rules, a scope key that agents do not get for production values, and a person who runs the task.
 
 The three tasks have the same preconditions. A task stops with a message when one of them fails:
 
@@ -408,7 +411,7 @@ Agents run as the same OS user as the person who applies the secrets. These rule
 
 | Rule | Detail |
 | --- | --- |
-| Agents never run a `secrets:*` task. `secrets:apply` and `secrets:destroy` also refuse to run with no TTY, so an agent cannot run them unattended. | Also never `sops decrypt`, `sops edit`, `sops exec-env`, `kubectl get secret -o yaml`, or a `terraform` command in `instances/*/secrets/`. |
+| Agents never run a `secrets:*` task. | The terminal check of `secrets:apply` and `secrets:destroy` stops only a run with no terminal. Also never `sops decrypt`, `sops edit`, `sops exec-env`, `kubectl get secret -o yaml`, or a `terraform` command in `instances/*/secrets/`. |
 | Agents never read or delete a key or a state. | `keys.txt` and each `.tfstate` file. |
 | Agents never apply account changes. | No `terraform` command in `accounts/`, no provider tokens. |
 | Agents never merge. | Also not a pull request that changes `accounts/`. |

@@ -39,26 +39,27 @@ Agents never do the tasks of this guide. Do them by hand.
    ```
 
 5. If the task stops on a precondition, correct the cause and run the task again.
-6. Read the summary of the plan: each seed shows a replace.
-7. Type the confirmation that the task asks for.
-8. List the `ExternalSecret` objects of each consumer:
+6. Read the summary of the plan. Each seed shows a replace, or a create for a new seed.
+7. Stop if the summary shows another address or another action.
+8. Type the confirmation that the task asks for.
+9. List the `ExternalSecret` objects of each consumer:
 
    ```bash
    kubectl -n <consumer> get externalsecret
    ```
 
-9. Make sure that each `ExternalSecret` has the `Ready` condition.
-10. Make sure that the Application of the component of each consumer stays `Synced`:
+10. Make sure that each `ExternalSecret` has the `Ready` condition.
+11. Make sure that the Application of the component of each consumer stays `Synced`:
 
-   ```bash
-   kubectl -n argocd get application <component>
-   ```
+    ```bash
+    kubectl -n argocd get application <component>
+    ```
 
-11. Write down the applied commit, because nothing records it:
+12. Write down the applied commit, because nothing records it:
 
-   ```bash
-   git rev-parse HEAD
-   ```
+    ```bash
+    git rev-parse HEAD
+    ```
 
 For the preconditions, refer to [Secrets](../reference/secrets.md#secretsplan-secretsapply-and-secretsdestroy).
 
@@ -109,6 +110,8 @@ Do this check with a dummy value in the SOPS file, before the first real value, 
      instances/<instance>/secrets/terraform.tfstate \
      instances/<instance>/secrets/terraform.tfstate.backup <plan-folder>
    ```
+
+   `grep` exits with `1` when it finds nothing: this is a pass. Remove the backup path if the file does not exist.
 
 6. Search the terminal output of each task for the same two strings.
 7. Delete the plan folder.

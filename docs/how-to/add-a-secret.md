@@ -19,7 +19,10 @@ To give a new component its first secret, refer to [Add a secret consumer](add-a
 
 An agent can do these steps. Skip them when only the value changes.
 
-1. Add the name of the seed to the seed map of `instances/<instance>/secrets/main.tf`, under its consumer. For a tenant, use the key `oc-<tenant>`.
+1. Add the seed name to the seed map of `instances/<instance>/secrets/main.tf`, under its consumer.
+
+   For a tenant, the key is `oc-<tenant>`.
+
 2. For a namespaced consumer, add a `data` item to the `ExternalSecret` of its component, on the store `secrets`.
 3. For a namespaced consumer, set `remoteRef.key` to the seed name, and `remoteRef.property` to `value`.
 4. Render the manifests:
