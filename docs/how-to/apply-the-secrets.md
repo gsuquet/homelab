@@ -39,20 +39,22 @@ Agents never do the tasks of this guide. Do them by hand.
    ```
 
 5. If the task stops on a precondition, correct the cause and run the task again.
-6. List the `ExternalSecret` objects of each consumer:
+6. Read the summary of the plan: each seed shows a replace.
+7. Type the confirmation that the task asks for.
+8. List the `ExternalSecret` objects of each consumer:
 
    ```bash
    kubectl -n <consumer> get externalsecret
    ```
 
-7. Make sure that each `ExternalSecret` has the `Ready` condition.
-8. Make sure that the Application of the component of each consumer stays `Synced`:
+9. Make sure that each `ExternalSecret` has the `Ready` condition.
+10. Make sure that the Application of the component of each consumer stays `Synced`:
 
    ```bash
    kubectl -n argocd get application <component>
    ```
 
-9. Write down the applied commit, because nothing records it:
+11. Write down the applied commit, because nothing records it:
 
    ```bash
    git rev-parse HEAD
@@ -143,7 +145,8 @@ Do this only when the state check fails. Real values then never go into Terrafor
    mise run secrets:destroy <instance>
    ```
 
-5. Keep the SOPS file, or remove it in a pull request.
+5. Read the summary of the plan, and type the confirmation that the task asks for.
+6. Keep the SOPS file, or remove it in a pull request.
 
 Do not delete an `ExternalSecret` by hand, because Argo CD self-heal makes it again.
 
