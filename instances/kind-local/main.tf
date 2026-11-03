@@ -7,8 +7,11 @@ module "kind_cluster" {
 
   extra_ca_certificate_paths = var.extra_ca_certificate_paths
 
-  # Host /proc of the Docker VM, for runtime security (Tetragon) that must see the
-  # VM root PID namespace. Read-only. A change replaces the cluster.
+  # /proc of the Docker host (the Colima VM), for Tetragon, which must see the
+  # VM root PID namespace. read_only stops writes to procfs files only. It is not
+  # an isolation boundary: /procHost/<pid>/root reaches the whole VM. Not verified
+  # that Tetragon works with a read-only mount (checked in step 6). A change
+  # replaces the cluster.
   extra_mounts = [
     {
       host_path      = "/proc"

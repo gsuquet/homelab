@@ -143,7 +143,7 @@ variable "extra_ca_certificate_paths" {
 }
 
 variable "extra_mounts" {
-  description = "Extra host paths to mount into every node, for example the /proc of the Docker VM. The Docker daemon reads host_path, so the path is on the Docker VM, not always on your machine. The module does not check that host_path exists. A change replaces the cluster."
+  description = "Extra host paths to mount into every node, for example the /proc of the Docker VM. read_only (default true) only stops writes to the mounted files. It is not an isolation boundary: for /proc, /proc/<pid>/root still reaches the whole Docker host. The Docker daemon reads host_path, so the path is on the Docker VM, not always on your machine. The module does not check that host_path exists. A change replaces the cluster."
   type = list(object({
     host_path      = string
     container_path = string
@@ -157,7 +157,15 @@ variable "extra_mounts" {
   }
 
   validation {
-    condition     = length(distinct([for m in var.extra_mounts : m.container_path])) == length(var.extra_mounts)
+    condition = alltrue([
+      for m in var.extra_mounts :
+      !contains(["", "/proc", "/sys", "/dev", "/etc", "/usr", "/bin", "/lib", "/var", "/var/lib", "/var/lib/containerd", "/var/lib/kubelet"], trimsuffix(m.container_path, "/"))
+    ])
+    error_message = "A container_path in extra_mounts must not be / or a path that the node needs, for example /proc, /sys, /dev, /etc or /var/lib/containerd."
+  }
+
+  validation {
+    condition     = length(distinct([for m in var.extra_mounts : trimsuffix(m.container_path, "/")])) == length(var.extra_mounts)
     error_message = "Each container_path in extra_mounts must be unique."
   }
 
