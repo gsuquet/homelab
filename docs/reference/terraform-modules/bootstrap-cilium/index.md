@@ -1,7 +1,7 @@
 # cilium
 
 Installs [Cilium](https://cilium.io/) as the cluster's CNI via its official Helm chart, providing CNI networking, eBPF-based kube-proxy replacement, network policies, transparent pod-to-pod encryption, and Hubble observability.
-See [AGENTS.md](AGENTS.md) for key architectural and design decisions.
+See [AGENTS.md](../../../../modules/bootstrap-cilium/AGENTS.md) for key architectural and design decisions.
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements

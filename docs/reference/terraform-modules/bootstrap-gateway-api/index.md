@@ -1,7 +1,7 @@
 # gateway-api
 
 Deploys official Kubernetes [Gateway API](https://gateway-api.sigs.k8s.io/) CustomResourceDefinitions (`gateway.networking.k8s.io`) using official release manifests and the `kubectl` provider.
-See [AGENTS.md](AGENTS.md) for key architectural and design decisions.
+See [AGENTS.md](../../../../modules/bootstrap-gateway-api/AGENTS.md) for key architectural and design decisions.
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
