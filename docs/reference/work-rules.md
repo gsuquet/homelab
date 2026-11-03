@@ -72,6 +72,17 @@ The prefix is a [Conventional Commits](https://www.conventionalcommits.org/en/v1
 | `state/needs-decision` | The item waits for a decision. |
 | `renovate`, `security` | Renovate sets them. Refer to [Renovate settings](renovate-settings.md). |
 
+`.github/labeler.yml` adds labels to each PR. It adds the `area/*` labels from the changed paths. It adds the `kind/*` label from the prefix of the branch:
+
+| Branch prefix | Label |
+| --- | --- |
+| `feat/` | `kind/feature` |
+| `fix/` | `kind/bug` |
+| `docs/` | `kind/docs` |
+| `chore/`, `refactor/`, `ci/`, `renovate/` | `kind/chore` |
+
+The prefixes `build/` and `test/` get no `kind/*` label. The labeler never removes a label, so a label stays when the matching change leaves the PR.
+
 ## Atomic PRs
 
 An atomic PR:

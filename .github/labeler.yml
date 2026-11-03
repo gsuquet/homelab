@@ -1,41 +1,82 @@
-# PR labeler configuration file
-ci:
-- any:
+# PR labeler configuration file.
+# Syntax: https://github.com/actions/labeler/tree/v5.0.0#usage
+# Each key is a label of .github/labels.yml.
+area/ci:
   - changed-files:
-    - all-globs-to-any-file: [.github/**/*, '!.github/ISSUE_TEMPLATE/*', '!.github/pull_request_template.md']
-    - any-glob-to-any-file:
-      - .pre-commit-config.yaml
-      - .pre-commit-config
-      - .semrelrc
+      - any-glob-to-any-file:
+          - .github/**
+          - .pre-commit-config.yaml
+          - renovate.json
 
-gitignore:
-- changed-files:
-  - any-glob-to-any-file:
-    - .gitignore
-
-github_actions:
-- any:
+area/docs:
   - changed-files:
-    - all-globs-to-any-file: [.github/**/*, '!.github/ISSUE_TEMPLATE/*', '!.github/pull_request_template.md']
+      - any-glob-to-any-file:
+          - docs/**
+          - '*.md'
+          - '**/README.md'
+          - LICENSE
 
-documentation:
-- any:
+area/tooling:
   - changed-files:
-    - any-glob-to-any-file:
-      - CHANGELOG.md
-      - CODE_OF_CONDUCT.md
-      - CONTRIBUTING.md
-      - LICENSE
-      - SECURITY.md
-      - .github/ISSUE_TEMPLATE/**/*
-      - .github/pull_request_template.md
-      - '**/README.md'
+      - any-glob-to-any-file:
+          - .mise/**
+          - .vale/**
+          - .vale.ini
+          - .editorconfig
+          - .yamllint.yaml
+          - .shellcheckrc
+          - .terraform-docs.yml
+          - .tflint.hcl
+          - .typos.toml
+          - .gitignore
+          - .claude/**
+          - .gemini/**
+          - .entire/**
+          - .vscode/**
 
-configuration:
-- any:
+area/modules:
   - changed-files:
-    - any-glob-to-any-file:
-      - .devcontainer/**/*
-      - .pre-commit-config.yaml
-      - .editorconfig
-      - justfile
+      - any-glob-to-any-file:
+          - modules/**
+
+area/instances:
+  - changed-files:
+      - any-glob-to-any-file:
+          - instances/**
+
+area/gitops:
+  - changed-files:
+      - any-glob-to-any-file:
+          - gitops/**
+
+area/policy:
+  - changed-files:
+      - any-glob-to-any-file:
+          - policy/**
+          - schemas/**
+
+area/legacy:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ansible/**
+          - kubernetes/**
+
+# kind/*: from the prefix of the head branch (head-branch matcher, actions/labeler v5.0.0).
+kind/feature:
+  - head-branch:
+      - '^feat/'
+
+kind/bug:
+  - head-branch:
+      - '^fix/'
+
+kind/docs:
+  - head-branch:
+      - '^docs/'
+
+kind/chore:
+  - head-branch:
+      - '^chore/'
+      - '^refactor/'
+      - '^ci/'
+      - '^renovate/'

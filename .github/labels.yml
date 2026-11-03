@@ -19,13 +19,13 @@
 # area/: which part of the repository does it change?
 - name: area/docs
   color: "8250DF"
-  description: Changes under docs/ and *.md at the root
+  description: Changes under docs/, *.md at the root, every README.md and LICENSE
 - name: area/ci
   color: "8250DF"
   description: Changes under .github/, .pre-commit-config.yaml, renovate.json
 - name: area/tooling
   color: "8250DF"
-  description: Changes under .mise/, .vale/, .vale.ini, the linter configuration files
+  description: Changes under .mise/, .vale/, agent and editor config, .gitignore, the linter configuration files
 - name: area/modules
   color: "8250DF"
   description: Changes under modules/
