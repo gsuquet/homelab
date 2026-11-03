@@ -68,6 +68,8 @@ SOPS reads the scope key from `keys.txt` in `$XDG_CONFIG_HOME/sops/age/`. On mac
 | `SOPS_AGE_KEY` | The key itself. It overrides `keys.txt`. |
 | `SOPS_AGE_KEY_CMD` | A command that prints the key. It overrides `keys.txt`. |
 
+The `secrets:*` tasks pass each of these variables that is set. When the shell sets `SOPS_AGE_KEY_FILE` for another use, SOPS reads that file and not `keys.txt`.
+
 A SOPS file with production values uses a hardware key through an age plugin, with a touch for each decryption.
 
 ## Secrets root module
@@ -77,8 +79,8 @@ A SOPS file with production values uses a hardware key through an age plugin, wi
 | File | Content |
 | --- | --- |
 | `terraform.tf` | The `terraform` block, with `carlpett/sops` and `hashicorp/kubernetes`. |
-| `providers.tf` | `provider "kubernetes"` with `config_path` only. |
-| `main.tf` | `ephemeral "sops_file"`, and `module "secret_seeds"` with the seed map. |
+| `providers.tf` | `provider "kubernetes"` with `config_path = var.kubeconfig_path` only. The tasks set `TF_VAR_kubeconfig_path` to the kubeconfig that they make. |
+| `main.tf` | `ephemeral "sops_file"`, and `module "secret_seeds"` with the seed map in its `seeds` argument. The seed map is a literal map, because the tasks read its keys from the file. |
 | `.terraform.lock.hcl` | The provider checksums. |
 | `secrets.sops.yaml` | The SOPS file. |
 
@@ -124,7 +126,7 @@ A change to the version of `carlpett/sops` or `hashicorp/kubernetes` needs the s
 
 | Task | Use | Who runs it |
 | --- | --- | --- |
-| `secrets:edit <instance>` | Open the SOPS file of the instance in an editor with swap, backup and undo files off. | A person, by hand, with no agent session |
+| `secrets:edit <instance>` | Open the SOPS file of the instance in vim with no vimrc, no plugins, no viminfo and no modeline, and with swap, backup and undo files off. SOPS writes its temporary file into a new folder with mode `0700`. | A person, by hand, with no agent session |
 | `secrets:plan <instance>` | Show the drift between the state and the cluster, as a saved refresh-only plan and its JSON, in the clean environment. It changes nothing in the cluster or the state. It does not show a hand edit of a seed value. | A person, by hand, with no agent session |
 | `secrets:apply <instance>` | Apply the secrets root module of the instance in the clean environment. | A person, by hand, with no agent session |
 | `secrets:destroy <instance>` | Destroy the secrets root module of the instance, and thus its seeds, in the clean environment. | A person, by hand, with no agent session |
@@ -158,7 +160,7 @@ mise run secrets:destroy <instance>
   1. Check the preconditions.
   2. Make the saved plan in a new temporary folder outside the repository.
   3. Print a summary of the plan, with no values: `terraform show -json` of the plan, restricted to `.resource_changes[].address` and `.change.actions`.
-  4. Ask for a typed confirmation on the terminal.
+  4. Ask for a typed confirmation on the terminal: `apply <instance>` or `destroy <instance>`. Each other answer stops the task with no change. A plan with no change stops the task before the question.
   5. Apply the saved plan. The `trap` then deletes the temporary folder.
 - Terraform applies a saved plan with no prompt, because it takes the plan file as the approval ([`terraform apply`](https://developer.hashicorp.com/terraform/cli/commands/apply)). The typed confirmation of the task is thus the approval, after the review of the diffs.
 - `secrets:apply` and `secrets:destroy` read the confirmation from `/dev/tty`, and stop when the process has no terminal. This stops a run from a plain tool call, CI or a pipe, for example `yes |`. It does not stop a process that makes a pseudo-terminal, for example `script` or `expect`, and it does not stop a direct `terraform` command. The controls stay the agent rules, a scope key that agents do not get for production values, and a person who runs the task.
@@ -169,18 +171,18 @@ The three tasks have the same preconditions. A task stops with a message when on
 | --- | --- |
 | The working tree is clean. | Git shows no change and no untracked file. |
 | The commit is on `main`. | The checked-out commit is on `origin/main`. A task runs only after the merge. |
-| The cluster is up. | The task gets a kubeconfig from the cluster. |
-| The kubeconfig is clean. | `server` is a loopback address. The file has no `exec` and no `proxy-url`. |
+| The cluster is up. | The task gets a kubeconfig from the cluster with `kind get kubeconfig`, and `/readyz` of the API server answers. The cluster name is the `cluster_name` output of the instance root module. |
+| The kubeconfig is clean. | The file has exactly one cluster. `server` is a loopback address: `127.0.0.1`, `localhost` or `[::1]`. The file has no `exec` and no `proxy-url`. |
 | Each seed namespace exists. | The seed namespace of each consumer in the seed map is in the cluster. |
 
 The three tasks build the same environment:
 
 | Item | Value |
 | --- | --- |
-| Environment | Minimal: `PATH`, `HOME`, the key variable and `TF_INPUT=0`. Standard input of Terraform from `/dev/null`. The task reads the confirmation from the terminal, not Terraform. |
-| `TF_CLI_CONFIG_FILE` | An empty file in the repository. No `provider_installation` and no `dev_overrides`. |
-| `TF_DATA_DIR` | A new folder, with `terraform init` against the lock file. |
-| Kubeconfig | A temporary file from `kind get kubeconfig --name <cluster>`. |
+| Environment | Minimal, with `env -i`: `PATH` (the folder of `terraform`, `/usr/bin` and `/bin`), `HOME`, `TF_INPUT=0`, and each of `SOPS_AGE_KEY_FILE`, `SOPS_AGE_KEY`, `SOPS_AGE_KEY_CMD` and `XDG_CONFIG_HOME` that is set. Standard input of Terraform from `/dev/null`. The task reads the confirmation from the terminal, not Terraform. |
+| `TF_CLI_CONFIG_FILE` | `.mise/tasks/secrets/empty.tfrc`, an empty file. No `provider_installation` and no `dev_overrides`. The task stops if the file is not empty. |
+| `TF_DATA_DIR` | A new folder, with `terraform init -lockfile=readonly`. |
+| Kubeconfig | A temporary file from `kind get kubeconfig --name <cluster>`, in `TF_VAR_kubeconfig_path`. |
 
 Without a key, `terraform plan` stops at the ephemeral resource before any write, with `Error getting data key: 0 successful groups required, got 0`.
 

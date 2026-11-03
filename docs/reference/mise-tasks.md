@@ -11,6 +11,7 @@ The files in `.mise/tasks/_base/` are not executable, so they are not tasks. The
 | `_base/log.sh` | `log_info`, `log_warn` and `log_error`. They print `[INFO]`, `[WARN]` or `[ERROR]` before the message. |
 | `_base/instance.sh` | The shared functions of the instance tasks. |
 | `_base/instance-checks.sh` | The checks of the instance folders and of the `gitops/` tree. `schemas:check` and `schemas:test` use them. |
+| `_base/secrets.sh` | The shared functions of the `secrets:*` tasks: the preconditions, the clean environment, the summary and the confirmation. |
 
 `.mise/config.toml` defines no task. It sets the tools, the environment variables and the settings. Refer to [Tools](tools.md).
 
@@ -32,6 +33,7 @@ The files in `.mise/tasks/_base/` are not executable, so they are not tasks. The
 | `manifests:check` | `manifests/check.sh` | Check that the rendered manifests are current. |
 | `manifests:render` | `manifests/render.sh` | Render the Helm charts to plain manifests. |
 | `manifests:validate` | `manifests/validate.sh` | Validate the rendered manifests against the Kubernetes schemas. |
+| `secrets:edit`, `secrets:plan`, `secrets:apply`, `secrets:destroy`, `secrets:rotate` | `secrets/edit.sh`, `plan.sh`, `apply.sh`, `destroy.sh`, `rotate.sh` | Edit, plan, apply, destroy or rotate the secrets of one instance. Only a person runs them. Refer to [Secrets](secrets.md#tasks). |
 | `schemas:check` | `schemas/check.sh` | Validate the `module.yaml`, `instance.yaml` and `cluster.yaml` files, and the `gitops/` tree. |
 | `schemas:test` | `schemas/test.sh` | Test the JSON schemas and the checks against their fixtures. |
 | `tf:docs` | `tf/docs.sh` | Write the terraform-docs tables into the `README.md` of each module. |
@@ -43,7 +45,7 @@ The files in `.mise/tasks/_base/` are not executable, so they are not tasks. The
 mise run <task> [<flag>...]
 ```
 
-Only `labels:sync` and the instance tasks take arguments. The other tasks take no argument and no flag.
+Only `labels:sync`, the instance tasks and the `secrets:*` tasks take arguments. The other tasks take no argument and no flag.
 
 ## `changelog`
 
@@ -222,6 +224,22 @@ The task runs `manifests:render`. It fails if `kubernetes/**/manifests/**` or `g
 The task runs `kubeconform -summary -ignore-missing-schemas` on each `.yaml` file in a `manifests/` or `rendered/` folder of `kubernetes/` and `gitops/`.
 
 The `Validate Kubernetes Manifests` workflow runs `manifests:check`, then `manifests:validate`. It runs on a pull request that changes `gitops/`, `kubernetes/`, `.mise/tasks/manifests/`, `.mise/config.toml` or the workflow, and on a push to `main` that changes `gitops/` or `kubernetes/`.
+
+## `secrets`
+
+The `secrets:*` tasks take the instance name as their argument. `secrets:rotate` also takes exactly one of `--recipients` and `--data-key`. Agents never run these tasks. The steps, the preconditions and the environment are in [Secrets](secrets.md#tasks).
+
+```bash
+mise run secrets:rotate <instance> --recipients
+mise run secrets:rotate <instance> --data-key
+```
+
+| Status | Condition |
+| --- | --- |
+| `0` | The task completed, or the plan has no change, or the answer to the confirmation was not the expected text. |
+| `1` | A precondition failed, `.sops.yaml` has a placeholder recipient, the terminal is missing, or a `terraform` or `sops` command failed. |
+
+No hook or workflow runs these tasks.
 
 ## `schemas`
 
