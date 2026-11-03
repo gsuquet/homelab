@@ -154,7 +154,7 @@ variable "enable_cloudflare_dns01_solver" {
 }
 
 variable "cloudflare_api_token_secret_name" {
-  description = "Name of the Secret in the namespace that holds the Cloudflare API token in the key 'api-token'. The module does not create this Secret: External Secrets Operator writes it from a seed."
+  description = "Name of the Secret that holds the Cloudflare API token in the key 'api-token'. It must be in the module namespace (var.namespace), which is the cluster resource namespace of the ClusterIssuers. The module does not create this Secret: External Secrets Operator writes it from a seed. Until it exists, DNS-01 challenges fail; the apply and the issuers do not need it."
   type        = string
   default     = "cloudflare-api-token-secret"
 }
