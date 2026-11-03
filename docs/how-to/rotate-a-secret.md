@@ -21,6 +21,8 @@ Do the tasks of this guide by hand. Agents never do them.
 
 - No agent session runs on the computer.
 - The scope key of the SOPS file is on the computer, except in the tasks for a lost key.
+- Each step that uses the recovery key runs on the offline system that holds it. The recovery key never goes onto the computer that agents use.
+- On the offline system, the commands run with no other age key: no `keys.txt`, no SSH key and no other `SOPS_AGE_*` variable. `env -i` gives this.
 
 ## Add a recipient
 
@@ -68,10 +70,10 @@ Do the steps in this order.
 ## Test the recovery key
 
 1. Start the offline system that holds the recovery key.
-2. Decrypt the SOPS file with the recovery key only:
+2. On the offline system, decrypt the SOPS file with the recovery key only:
 
    ```bash
-   SOPS_AGE_KEY_FILE=<recovery-key-file> sops decrypt <file> > /dev/null
+   env -i PATH="$PATH" SOPS_AGE_KEY_FILE=<recovery-key-file> sops decrypt <file> > /dev/null
    ```
 
 3. Make sure that the command exits with `0`.
@@ -84,22 +86,39 @@ Do the steps in this order.
 
 ## Replace a lost scope key
 
-1. Make a new scope key:
+1. On the computer, make a new scope key in the SOPS key folder:
 
    ```bash
-   age-keygen -o <file>
+   age-keygen -o <key-folder>/keys.txt
    ```
 
-2. In the rule of the file in `.sops.yaml`, replace the public key of the lost key with the new public key.
-3. Set `SOPS_AGE_KEY_FILE` to the recovery key file.
-4. Do steps 2 to 6 of [Remove a recipient](#remove-a-recipient).
+2. In `.sops.yaml`, replace the lost public key with the new one.
+3. Copy `.sops.yaml` and the SOPS file to the offline system, at the same paths relative to the repository root.
+4. On the offline system, in that folder, update the recipients with the recovery key only:
+
+   ```bash
+   env -i PATH="$PATH" SOPS_AGE_KEY_FILE=<recovery-key-file> sops updatekeys <file>
+   ```
+
+5. On the offline system, rotate the data key:
+
+   ```bash
+   env -i PATH="$PATH" SOPS_AGE_KEY_FILE=<recovery-key-file> sops rotate --in-place <file>
+   ```
+
+6. Copy only the SOPS file back to the computer.
+7. Commit `.sops.yaml` and the SOPS file, and open a pull request.
+8. Rotate each value of the file at its issuer.
+9. Do [Add a secret](add-a-secret.md#write-the-value) for each new value.
+
+For `<key-folder>`, refer to [Key location](../reference/secrets.md#key-location).
 
 ## Recreate the values
 
 When the scope key and the recovery key are both lost, nobody can decrypt the SOPS file.
 
-1. Make a new scope key with `age-keygen -o <file>`.
-2. Make a new recovery key with `age-keygen` on a machine that no agent uses, or on an offline live system.
+1. On the computer, make a new scope key with `age-keygen -o <key-folder>/keys.txt`.
+2. On an offline live system, make a new recovery key with `age-keygen -o <recovery-key-file>`.
 3. Put their public keys in the rule of the file in `.sops.yaml`.
 4. Delete the old SOPS file.
 5. Recreate each value at its issuer.

@@ -19,9 +19,9 @@ To give a new component its first secret, refer to [Add a secret consumer](add-a
 
 An agent can do these steps. Skip them when only the value changes.
 
-1. Add the name of the seed to the seed map of `instances/<instance>/secrets/main.tf`, under its consumer.
-2. In the component of the consumer, add a `data` item to its `ExternalSecret`, on the store `secrets`.
-3. Set `remoteRef.key` to the name of the seed, and `remoteRef.property` to `value`.
+1. Add the name of the seed to the seed map of `instances/<instance>/secrets/main.tf`, under its consumer. For a tenant, use the key `oc-<tenant>`.
+2. For a namespaced consumer, add a `data` item to the `ExternalSecret` of its component, on the store `secrets`.
+3. For a namespaced consumer, set `remoteRef.key` to the seed name, and `remoteRef.property` to `value`.
 4. Render the manifests:
 
    ```bash
@@ -29,6 +29,8 @@ An agent can do these steps. Skip them when only the value changes.
    ```
 
 5. Run `mise run lint`, and open a pull request.
+
+For a tenant, only the seed map changes in this pull request.
 
 ## Write the value
 
@@ -41,17 +43,18 @@ Do these steps by hand. No agent writes or reads a value.
    mise run secrets:edit <instance>
    ```
 
-3. Add or change the value under the block of its consumer, with the name of its seed as the key. Save and close the editor:
+3. Add or change the value under the block of its consumer. Use the seed name as the key:
 
    ```yaml
    <consumer>:
      <seed>: <value>
    ```
 
-4. Run `mise run lint:secrets`. SC4 and SC5 must pass.
-5. Commit the SOPS file, and open a pull request. Git holds only the ciphertext.
-6. Merge the pull request.
-7. Do [Apply the secrets](apply-the-secrets.md#apply-the-secrets) from a clean checkout of `main` at the merged commit.
+4. Save and close the editor.
+5. Run `mise run lint:secrets`. SC4 and SC5 must pass.
+6. Commit the SOPS file, and open a pull request. Git holds only the ciphertext.
+7. Merge the pull request.
+8. Do [Apply the secrets](apply-the-secrets.md#apply-the-secrets) from a clean checkout of `main` at the merged commit.
 
 ## Related pages
 

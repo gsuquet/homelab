@@ -46,7 +46,7 @@ For the fields of each object, refer to [Namespaced stores](../reference/secrets
 7. Run `mise run lint`. SC9 must pass.
 8. Open the pull request.
 
-The component renders the seed namespace `secret-seeds-oc-<tenant>`, its ServiceAccount, its RBAC and the store `oc-<tenant>`. For the fields, refer to [OpenChoreo tenant stores](../reference/secrets.md#openchoreo-tenant-stores).
+The `external-secrets` component renders the seed namespace `secret-seeds-oc-<tenant>`, its ServiceAccount, its RBAC and the store `oc-<tenant>`. For the fields, refer to [OpenChoreo tenant stores](../reference/secrets.md#openchoreo-tenant-stores).
 
 ## Add the values
 
@@ -67,7 +67,7 @@ Do these steps by hand, after the merge.
    kubectl -n <consumer> get externalsecret
    ```
 
-   For a tenant, check the store with `kubectl get clustersecretstore oc-<tenant>`.
+   For a tenant, check the store with `kubectl get clustersecretstore oc-<tenant>`. Its `ExternalSecret` objects are in the cell namespaces: `kubectl get externalsecret -A | grep '^dp-<tenant>-'`.
 
 ## Related pages
 

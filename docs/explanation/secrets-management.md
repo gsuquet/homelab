@@ -26,7 +26,7 @@ SOPS encrypts the values of a YAML file and keeps its keys readable. A diff of a
 
 age is the encryption backend. It is free, it works offline, and SOPS recommends it over PGP. A cloud KMS needs a billed project and a network call for each decryption. It also protects a value only while nobody is signed in to the cloud account. A lost laptop must not stop the work: with age, another machine decrypts with the recovery key, and it needs no network.
 
-Each SOPS file has its own scope key, and the recovery key is a recipient of each file. A leaked scope key opens only its own file. One key for all files would open each file at the same time. The recovery key stays offline, for example on paper. It is not on a machine that agents use, because a deleted key file can stay on the disk, and an agent can read it first.
+Each SOPS file has its own scope key, and the recovery key is a recipient of each file. A leaked scope key opens only its own file. One key for all files would open each file at the same time. The recovery key stays offline, for example on paper. It is not on a machine that agents use. A deleted key file can stay on the disk, and an agent can read it first. Each task that needs the recovery key thus runs on the offline system.
 
 The design uses no SSH recipients and no PGP. Without another key, SOPS reads `~/.ssh/id_ed25519` or `~/.ssh/id_rsa`. These keys also sign commits and push to GitHub, so they must not open the secrets too.
 
@@ -57,7 +57,7 @@ Thus each consumer has its own seed namespace, `secret-seeds-<consumer>`, and it
 
 Each seed has one data key, `value`. Each `ExternalSecret` sets `property: value`. Without it, ESO writes the JSON of all the pairs of the seed.
 
-The store name `secrets` is the same in each namespace and on each instance. A cloud instance can put GCP Secret Manager behind the stores with no change to the `ExternalSecret` objects. Only the store template of `external-secrets` changes.
+The store name `secrets` is the same in each namespace and on each instance. A cloud instance can put GCP Secret Manager behind the stores with no change to the `ExternalSecret` objects. Only the shared store template and its copies in the consumer components change. The `ExternalSecret` objects do not change.
 
 ## Why Argo CD ignores the consumer Secrets
 
@@ -65,7 +65,7 @@ Argo CD syncs each `ExternalSecret`, but ESO makes the consumer Secret. If Argo 
 
 Argo CD uses annotation tracking. It counts a resource only when the tracking annotation of the resource names that resource. ESO does not copy the Argo CD tracking metadata to the Secret. It adds its own `reconcile.external-secrets.io/*` metadata, the metadata of the template, and an owner reference to the `ExternalSecret`. Argo CD thus does not track the Secret. The Application stays `Synced`, and a sync with prune keeps the Secret.
 
-This holds only when no `ExternalSecret` template copies `argocd.argoproj.io/*` metadata. A copied tracking annotation would make the Secret look like a resource of the Application. The `annotation+label` tracking method is not used, because it gives a short `OutOfSync` on the first refresh.
+This holds only when no `ExternalSecret` template copies `argocd.argoproj.io/*` metadata. A copied tracking annotation can make the Secret look like a resource of the Application. The `annotation+label` tracking method is not used, because it gives a short `OutOfSync` on the first refresh.
 
 ## Why OpenChoreo tenants get a cluster store
 
@@ -79,7 +79,7 @@ The store has exactly one condition. ESO accepts a namespace when any condition 
 
 ESO must read the seeds and write the consumer Secrets. Some other controllers, for example Argo CD, agentgateway and the OpenChoreo controllers, read each Secret of the cluster, and their charts cannot narrow this access.
 
-The stores keep the consumers apart from each other. They do not keep the consumers apart from these controllers. The repository thus keeps a short list of trusted platform components, each at a chart version and on an instance. A check refuses each other cluster-wide Secret reader. On `kind-local`, this risk is accepted. Upstream patches that narrow these controllers are follow-ups.
+The stores keep the consumers apart from each other. They do not keep the consumers apart from these controllers. The repository thus keeps a short list of trusted platform components, each at a chart version and on an instance. A check refuses each other cluster-wide Secret reader. The design accepts this risk on `kind-local`. Upstream patches that narrow these controllers are follow-ups.
 
 ## What agents can and cannot reach
 
@@ -87,7 +87,7 @@ Agents run as the same OS user as the person who applies the secrets. Thus the a
 
 An agent writes all the code around a secret: the consumer list, the store, the `ExternalSecret`, the seed map. It never writes or reads a value, and it never runs `secrets:apply`.
 
-| An agent can read | Why this is accepted |
+| An agent can read | Why the design accepts it |
 | --- | --- |
 | The SOPS files, `.sops.yaml` and the public keys | They are public. |
 | The scope key file of `kind-local` | It opens only test values. A SOPS file with production values needs a hardware key, with a touch for each decryption. |
@@ -103,7 +103,7 @@ The kagent model access through Vertex AI needs no secret. Workload Identity Fed
 
 ## What the design does not do
 
-- **No encryption at rest on `kind-local`.** Each value is two times in etcd: in its seed and in the consumer Secret. Each user of the Docker socket can read etcd. This is accepted for a test cluster. A cluster with production values turns on encryption at rest.
+- **No encryption at rest on `kind-local`.** Each value is two times in etcd: in its seed and in the consumer Secret. Each user of the Docker socket can read etcd. The design accepts this for a test cluster. A cluster with production values turns on encryption at rest.
 - **No protection against an agent with the same OS user.** A same-user agent can replace a binary on `PATH`, or change a file that runs during the apply. The review before each apply and the clean environment limit this risk. They do not remove it.
 - **Public ciphertext stays public.** A leaked old key decrypts the old versions of a file in the Git history. Each leak of a recipient thus also rotates each value at its issuer.
 - **Push protection is not a wall.** GitHub refuses a push that matches a turned-on pattern, but a writer can bypass it with a reason. The CI scan only finds a value after the push. A value found in a pull request is public, so it gets a rotation.

@@ -6,7 +6,7 @@ Apply the secrets when one of these occurs:
 
 - a pull request that changes a value in the SOPS file merged;
 - a pull request that adds a consumer or a seed merged;
-- after a re-create of the cluster, the `ExternalSecret` objects show `SecretSyncedError`.
+- after a re-create of the cluster, the `ExternalSecret` objects show `SecretSyncedError`, and the consumer Secrets are missing.
 
 Agents never do the tasks of this guide. Do them by hand.
 
@@ -25,7 +25,12 @@ Agents never do the tasks of this guide. Do them by hand.
 ## Apply the secrets
 
 1. Stop all the agent sessions on the computer.
-2. Read each diff since the last apply under `instances/`, `modules/` and `.mise/`.
+2. Read each diff since the last apply under `instances/`, `modules/` and `.mise/`:
+
+   ```bash
+   git diff <last-applied-commit>..HEAD -- instances modules .mise
+   ```
+
 3. Read the diffs of the mise configuration and of each `.terraform.lock.hcl` file.
 4. Run the task:
 
@@ -47,7 +52,13 @@ Agents never do the tasks of this guide. Do them by hand.
    kubectl -n argocd get application <component>
    ```
 
-The task stops when the working tree is not clean, when the commit is not on `origin/main`, when the cluster is down, when a seed namespace is missing, or when the kubeconfig is not clean. For the preconditions, refer to [Secrets](../reference/secrets.md#secretsplan-secretsapply-and-secretsdestroy).
+9. Write down the applied commit, because nothing records it:
+
+   ```bash
+   git rev-parse HEAD
+   ```
+
+For the preconditions, refer to [Secrets](../reference/secrets.md#secretsplan-secretsapply-and-secretsdestroy).
 
 ## Copy a new value at once
 
@@ -59,7 +70,7 @@ kubectl -n <consumer> annotate externalsecret <name> force-sync=$(date +%s) --ov
 
 ## Apply the secrets after a re-create of the cluster
 
-A re-created cluster has no seeds. Each consumer Secret keeps its last value, and its `ExternalSecret` shows `SecretSyncedError`.
+A re-created cluster has no seeds and no consumer Secrets. Each `ExternalSecret` shows `SecretSyncedError` until the apply.
 
 1. Wait for the message of the agent that re-created the cluster, or look at the `Ready` condition of each `ExternalSecret`.
 2. Do [Apply the secrets](#apply-the-secrets). Terraform makes each seed again.
@@ -76,14 +87,29 @@ Do this check with a dummy value in the SOPS file, before the first real value, 
    mise run secrets:apply <instance>
    ```
 
-2. Make a saved plan, and save the output of the task:
+2. Make a saved plan. Note the plan folder that the task prints:
 
    ```bash
-   mise run secrets:plan <instance> > <output-file>
+   mise run secrets:plan <instance>
    ```
 
-3. Run `mise run secrets:apply <instance>` again, to refresh the state.
-4. Search the state, its backup, the saved plan and each output for the dummy value and for its base64 form.
+3. Run `mise run secrets:apply <instance>` again, to write the seeds again and refresh the state.
+4. Unzip the saved plan in the plan folder:
+
+   ```bash
+   unzip -d <plan-folder>/unzipped <plan-folder>/secrets.tfplan
+   ```
+
+5. Search the state, its backup and the plan folder for the dummy value and its base64 form:
+
+   ```bash
+   grep -r -F -e '<dummy>' -e '<dummy-base64>' \
+     instances/<instance>/secrets/terraform.tfstate \
+     instances/<instance>/secrets/terraform.tfstate.backup <plan-folder>
+   ```
+
+6. Search the terminal output of each task for the same two strings.
+7. Delete the plan folder.
 
 The check passes when no search finds the value. If a search finds it, do [Create the seeds by hand](#create-the-seeds-by-hand).
 
@@ -91,7 +117,7 @@ The check passes when no search finds the value. If a search finds it, do [Creat
 
 Do this only when the state check fails. Real values then never go into Terraform.
 
-1. Delete the state and the plan file of the secrets root module.
+1. Delete the state, its backup and the plan folder of the secrets root module.
 2. For each seed, write the value from the SOPS file into its seed namespace:
 
    ```bash
@@ -103,10 +129,14 @@ Do this only when the state check fails. Real values then never go into Terrafor
 
 ## Remove the secrets of an instance
 
-1. Remove the `ExternalSecret` objects from their components in a pull request, and merge it. Kubernetes deletes each consumer Secret through its owner reference.
-   Do not delete an `ExternalSecret` by hand: Argo CD self-heal makes it again.
+1. Remove the `ExternalSecret` objects from their components in a pull request, and merge it.
 2. Stop all the agent sessions.
-3. Update the checkout to the merged commit of `main`.
+3. Update the checkout to the merged commit of `main`:
+
+   ```bash
+   git switch main && git pull --ff-only
+   ```
+
 4. Destroy the secrets root module. This deletes the seeds:
 
    ```bash
@@ -114,6 +144,8 @@ Do this only when the state check fails. Real values then never go into Terrafor
    ```
 
 5. Keep the SOPS file, or remove it in a pull request.
+
+Do not delete an `ExternalSecret` by hand, because Argo CD self-heal makes it again.
 
 ## Related pages
 

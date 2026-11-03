@@ -125,7 +125,7 @@ A change to the version of `carlpett/sops` or `hashicorp/kubernetes` needs the s
 | Task | Use | Who runs it |
 | --- | --- | --- |
 | `secrets:edit <instance>` | Open the SOPS file of the instance in an editor with swap, backup and undo files off. | A person, by hand, with no agent session |
-| `secrets:plan <instance>` | Show the changes and the state of the secrets root module, in the clean environment. It changes nothing. | A person, by hand, with no agent session |
+| `secrets:plan <instance>` | Show the drift between the state and the cluster, as a saved refresh-only plan and its JSON, in the clean environment. It changes nothing in the cluster or the state. It does not show a hand edit of a seed value. | A person, by hand, with no agent session |
 | `secrets:apply <instance>` | Apply the secrets root module of the instance in the clean environment. | A person, by hand, with no agent session |
 | `secrets:destroy <instance>` | Destroy the secrets root module of the instance, and thus its seeds, in the clean environment. | A person, by hand, with no agent session |
 | `secrets:rotate <instance> --recipients` | Run `sops updatekeys` on the SOPS file of the instance, after a change to its rule in `.sops.yaml`. | A person, by hand, with no agent session |
@@ -145,9 +145,13 @@ mise run secrets:destroy <instance>
 
 | Task | Terraform commands |
 | --- | --- |
-| `secrets:plan` | `terraform plan -refresh-only -out=<file>`, then `terraform show -json <file>` |
-| `secrets:apply` | `terraform apply`, with `-replace` of each seed address |
-| `secrets:destroy` | `terraform destroy` |
+| `secrets:plan` | `terraform plan -refresh-only -out=<plan-folder>/secrets.tfplan`, then `terraform show -json <plan-folder>/secrets.tfplan` |
+| `secrets:apply` | `terraform apply -auto-approve`, with `-replace` of each seed address |
+| `secrets:destroy` | `terraform destroy -auto-approve` |
+
+- `<plan-folder>` is a new temporary folder outside the repository. `secrets:plan` makes it and prints its path. The folder holds the plan file and the JSON output, and the person who runs the task deletes it. Terraform treats a saved plan file as a possible sensitive file.
+- `secrets:plan` needs the scope key, and it decrypts in memory like `secrets:apply`.
+- `TF_INPUT=0` turns off each prompt, so Terraform cannot ask for approval. Without `-auto-approve`, an apply or a destroy fails ([`terraform apply`](https://developer.hashicorp.com/terraform/cli/commands/apply)). The review of the diffs before the task is the approval.
 
 The three tasks have the same preconditions. A task stops with a message when one of them fails:
 
@@ -258,7 +262,7 @@ The prefixed `external-secrets.io/force-sync` annotation is for `ClusterExternal
 
 | Item | Value |
 | --- | --- |
-| Tracking method | `annotation`, the default: `application.resourceTrackingMethod` in `argocd-cm`. K9 checks it. `annotation+label` is not used. |
+| Tracking method | `annotation`, the default: `application.resourceTrackingMethod` in `argocd-cm`. K9 warns when it is not `annotation`. `annotation+label` is not used. |
 | Metadata of a consumer Secret | The `reconcile.external-secrets.io/*` metadata of ESO, the metadata of the template, and an owner reference to the `ExternalSecret`. No `argocd.argoproj.io/tracking-id` and no `argocd.argoproj.io/instance`. |
 | Sync status | The consumer Secret is not in `status.resources` of the Application. The Application stays `Synced` and `Healthy` after ESO makes the Secret. |
 | Prune | A sync with prune does not delete the consumer Secret. |
@@ -333,7 +337,7 @@ The OpenChoreo API is the service for the tenants, and it can read each seed.
 | SC11 | Secret resources in a local state | Conftest `terraform` | No resource of the list, for example `google_service_account_key`, in an instance with a local state. It covers each secrets root module through the `instance.yaml` of its parent. | Fail |
 | SC12 | Secret variables | Conftest `terraform` | A variable with `sensitive = true` also has `ephemeral = true`. | Fail |
 | SC13 | No CI secrets | Conftest `actions` | No `secrets.<name>` except `GITHUB_TOKEN`, no `secrets: inherit`, no `toJSON(secrets)`. | Fail |
-| SC14 | Required check | Ruleset on `main` | `Run every linter and check` is required. | Server |
+| SC14 | Required check | Ruleset on `main` | The ruleset requires `Run every linter and check`. | Server |
 | SC15 | Path of the decrypted values | Conftest `terraform --combine` | Refer to [SC15 rules](#sc15-rules). | Fail |
 | SC16 | RBAC of Secrets and workloads | Conftest `kubernetes` on `gitops/**/rendered/` | Refer to [SC16 rules](#sc16-rules). | Fail |
 
@@ -377,7 +381,7 @@ SC16 reads each `Role`, `ClusterRole`, `RoleBinding` and `ClusterRoleBinding`, a
 
 - Only a trusted platform component, at its chart version and on its instance, can read Secrets in all namespaces.
 - No role of the kagent tool server has `*`, `secrets` or `nonResourceURLs`.
-- The kagent getter and writer `Role` objects with `""/*` are permitted in `kagent` only, by name.
+- SC16 permits the kagent getter and writer `Role` objects with `""/*` only in `kagent`, by name.
 - Outside the allowlist, no ServiceAccount gets these rights in a protected namespace: `create`, `update` or `patch` on pods or workload kinds, `create` on `serviceaccounts/token`, `pods/exec`, the RBAC kinds, `impersonate`.
 
 The workload kinds are `deployments`, `statefulsets`, `daemonsets`, `replicasets`, `jobs` and `cronjobs`.
@@ -414,7 +418,7 @@ Agents run as the same OS user as the person who applies the secrets. These rule
 | The scope key `keys.txt` | Yes | It opens only test values. A hardware key protects production values. |
 | The recovery key | No | It is offline. |
 | States and plans | Yes | They hold no value: the Terraform rules and the state test. |
-| The kind kubeconfig and the Secrets of `kind-local` | Yes | A test cluster with test values. |
+| The kind kubeconfig and the Secrets of `kind-local` | Yes | A test cluster with test values. It can also mint a token for the agentgateway proxy. |
 | The plaintext during `sops edit` | Yes, also the swap, backup and undo files of the editor | No agent session. An editor without these files. |
 | The plaintext during `secrets:apply` | Yes, if agent code or a changed file sends it out | Only a person applies, after a review. SC15. The clean environment. |
 | CI logs | Yes | No secret in CI (SC13). |
