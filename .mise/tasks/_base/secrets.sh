@@ -57,7 +57,8 @@ secrets_check_rules() {
         log_error ".sops.yaml does not exist."
         exit 1
     fi
-    if grep -q 'PLACEHOLDER' "$file"; then
+    # Only the recipients count: the comment of the file also has the word.
+    if yq '.creation_rules[].age' "$file" | grep -q 'PLACEHOLDER'; then
         log_error ".sops.yaml has a placeholder recipient. Put the public keys of the scope key and the recovery key in it first."
         exit 1
     fi
