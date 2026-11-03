@@ -36,11 +36,11 @@ Argo CD tries a failed sync up to 5 times. After that, the automated sync does n
    ```
 
 2. Fix the cause in Git through a pull request. The new commit starts a new sync.
-3. If the cause was outside Git, for example a node that was not available, open the UI and click **Sync** on the Application. Refer to [Open the Argo CD UI](open-argocd-ui.md).
+3. If the cause was outside Git, for example a node that was not available, open the UI and click **Sync** on the Application. Refer to [Open the Argo CD UI](open-the-argo-cd-ui.md).
 
 ## Related pages
 
 - [GitOps layout](../reference/gitops-layout.md#applications): the sync policy and the retry settings.
-- [GitOps with Argo CD](../explanation/gitops-with-argocd.md)
+- [GitOps with Argo CD](../explanation/gitops-with-argo-cd.md)
 - [Run your first local cluster](../tutorials/run-your-first-local-cluster.md): Argo CD repairs a deleted resource.
 - [Instance tasks](../reference/instance-tasks.md#kubeconfig): the kubectl context of a Kind instance.

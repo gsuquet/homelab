@@ -126,4 +126,4 @@ The first line of each validated file and of each schema fixture names its schem
 - [Instance tasks](instance-tasks.md): the tasks that read `instance.yaml`.
 - [Mise tasks](mise-tasks.md): all the tasks.
 - [Change a schema](../how-to/change-a-schema.md)
-- [Add a GitOps component](../how-to/add-gitops-component.md)
+- [Add a GitOps component](../how-to/add-a-gitops-component.md)

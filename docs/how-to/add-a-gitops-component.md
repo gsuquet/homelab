@@ -67,5 +67,5 @@ When the pull request merges, Argo CD deletes the Application. The Application h
 
 - [GitOps layout](../reference/gitops-layout.md): the fields of `cluster.yaml`, the values order and the sync waves.
 - [Labels and annotations](../reference/labels-and-annotations.md#required-keys): the required labels.
-- [GitOps with Argo CD](../explanation/gitops-with-argocd.md): why each component ships its Namespace, and why a removed component keeps its resources.
+- [GitOps with Argo CD](../explanation/gitops-with-argo-cd.md): why each component ships its Namespace, and why a removed component keeps its resources.
 - [Render manifests](render-manifests.md)

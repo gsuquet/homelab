@@ -1,6 +1,6 @@
 # GitOps layout
 
-This page describes the files in `gitops/`, how they render, and the settings of the Argo CD Applications. The reasons are in [GitOps with Argo CD](../explanation/gitops-with-argocd.md). The place of `gitops/` in the repository is in [Repository structure](repository-structure.md).
+This page describes the files in `gitops/`, how they render, and the settings of the Argo CD Applications. The reasons are in [GitOps with Argo CD](../explanation/gitops-with-argo-cd.md). The place of `gitops/` in the repository is in [Repository structure](repository-structure.md).
 
 ## Folders
 
@@ -120,7 +120,7 @@ The wave of an Application is `1` without `dependsOn`. Else it is the wave of it
 
 ## Argo CD settings
 
-The values are in `gitops/infrastructure/argocd/sources/values.yaml`. The reasons are in [GitOps with Argo CD](../explanation/gitops-with-argocd.md#why-these-argo-cd-settings).
+The values are in `gitops/infrastructure/argocd/sources/values.yaml`. The reasons are in [GitOps with Argo CD](../explanation/gitops-with-argo-cd.md#why-these-argo-cd-settings).
 
 | Setting | Value |
 | --- | --- |
@@ -186,9 +186,9 @@ The label rules are in [Labels and annotations](labels-and-annotations.md#checks
 
 ## Related pages
 
-- [GitOps with Argo CD](../explanation/gitops-with-argocd.md)
+- [GitOps with Argo CD](../explanation/gitops-with-argo-cd.md)
 - [Rendered manifests pattern](../explanation/rendered-manifests-pattern.md)
-- [Add a GitOps component](../how-to/add-gitops-component.md)
+- [Add a GitOps component](../how-to/add-a-gitops-component.md)
 - [Render manifests](../how-to/render-manifests.md)
 - [Mise tasks](mise-tasks.md)
 - [Policies](policies.md)

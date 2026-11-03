@@ -167,4 +167,4 @@ When another command fails, for example `terraform`, the task stops at once with
 - [Mise tasks](mise-tasks.md): all the other tasks.
 - [Schemas](schemas.md): the fields of `instance.yaml`.
 - [Run your first local cluster](../tutorials/run-your-first-local-cluster.md)
-- [Use Kind behind a TLS-inspecting proxy](../how-to/use-kind-behind-a-tls-proxy.md)
+- [Use Kind behind a TLS-inspecting proxy](../how-to/use-kind-behind-a-tls-inspecting-proxy.md)

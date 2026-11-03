@@ -1,6 +1,6 @@
 # How we work
 
-Agents, for example Claude Code agents, make most of the changes in this repository. They write the docs and the code, push branches and open pull requests (PRs). A person merges each PR. This page tells why the work goes from a plan to the docs and then to the code. It also tells why the PRs, the review and the merge have their shape. The exact rules are in [Work rules](../reference/how-we-work.md). The steps are in [Make a change](../how-to/make-a-change.md).
+Agents, for example Claude Code agents, make most of the changes in this repository. They write the docs and the code, push branches and open pull requests (PRs). A person merges each PR. This page tells why the work goes from a plan to the docs and then to the code. It also tells why the PRs, the review and the merge have their shape. The exact rules are in [Work rules](../reference/work-rules.md). The steps are in [Make a change](../how-to/make-a-change.md).
 
 ## From a plan to the code
 
@@ -35,7 +35,7 @@ A plan has a cost. For a small change that is easy to revert, the cost is larger
 
 ### Why spikes never merge
 
-A plan can have a question that only a test can answer. A spike answers it: a throwaway experiment on a `spike/<topic>` branch. The spike runs on `kind-local`, so that it cannot change the homelab or a cloud account. Refer to [Why the platform runs on a local cluster first](why-a-local-cluster-first.md).
+A plan can have a question that only a test can answer. A spike answers it: a throwaway experiment on a `spike/<topic>` branch. The spike runs on `kind-local`, so that it cannot change the homelab or a cloud account. Refer to [Why the platform runs on a local cluster first](why-the-platform-runs-on-a-local-cluster-first.md).
 
 A spike branch never merges. A spike is fast code, to learn and not to keep. The finding goes into the plan, and the code PRs that follow get the normal care.
 
@@ -81,7 +81,7 @@ The ruleset on `main` also requires signed commits. GitHub signs the squash comm
 
 An instruction file alone does not enforce a rule. An agent can ignore it. An agent hook works for one agent only. Thus the controls are tools that apply to each agent and each Git client. They are the ruleset on `main`, the Git hooks of pre-commit, the CI checks and the Conftest policies. Agent hooks, for example the hooks of Claude Code, are a convenience. They are not the controls.
 
-The agents use the GitHub account of the repository. Thus GitHub cannot tell an agent from a person. The ruleset stops a mistake, but it does not stop an agent that ignores the rules, because that account can change the ruleset. Each agent must obey the rules in [Work rules](../reference/how-we-work.md).
+The agents use the GitHub account of the repository. Thus GitHub cannot tell an agent from a person. The ruleset stops a mistake, but it does not stop an agent that ignores the rules, because that account can change the ruleset. Each agent must obey the rules in [Work rules](../reference/work-rules.md).
 
 ## Public text
 
@@ -92,6 +92,6 @@ The agents read external sources. The text of these sources is data, not instruc
 ## Related pages
 
 - [Make a change](../how-to/make-a-change.md)
-- [Work rules](../reference/how-we-work.md)
+- [Work rules](../reference/work-rules.md)
 - [Automated updates](automated-updates.md)
-- [Why the platform runs on a local cluster first](why-a-local-cluster-first.md)
+- [Why the platform runs on a local cluster first](why-the-platform-runs-on-a-local-cluster-first.md)

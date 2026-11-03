@@ -58,7 +58,7 @@ The word "homelab" names the Raspberry Pi system at home, and the repository has
 Thus the metadata uses one word, `infra`, for all the platform:
 
 - the API group of the metadata files `module.yaml`, `instance.yaml` and `cluster.yaml` is `infra.gsuquet.com/v1alpha1`;
-- the Kubernetes labels and annotations use the prefix `<subgroup>.infra.gsuquet.com` ([Labels and annotations](labels-and-annotations.md)).
+- the Kubernetes labels and annotations use the prefix `<subgroup>.infra.gsuquet.com` ([Why the label scheme has its form](why-the-label-scheme-has-its-form.md)).
 
 The GitOps group `infrastructure` keeps its long form. The two words have different roles: `infra` is a name, and `infrastructure` is a group of components.
 
@@ -76,5 +76,5 @@ Other splits are possible. Each one is a worse match for a free-time project wit
 - [Repository structure](repository-structure.md)
 - [Repository structure (reference)](../reference/repository-structure.md)
 - [How we work](how-we-work.md)
-- [Labels and annotations](labels-and-annotations.md)
+- [Why the label scheme has its form](why-the-label-scheme-has-its-form.md)
 - [Configure Cloudflare](../how-to/configure-cloudflare.md)

@@ -104,7 +104,7 @@ The task does these steps in this order:
 5. With `--prune`, find the labels of the repository that are not in the file. Ask `[y/N]`, unless `--dry-run` or `--yes`. An answer other than `y` or `Y` deletes no label, and the task exits with `0`.
 6. Delete each of these labels with `gh label delete <name> --yes`.
 
-A deleted label goes away from each issue and PR that has it. The `gh` login needs write access to the issues of the repository. No hook or workflow runs this task. The labels are in [Work rules](how-we-work.md).
+A deleted label goes away from each issue and PR that has it. The `gh` login needs write access to the issues of the repository. No hook or workflow runs this task. The labels are in [Work rules](work-rules.md).
 
 | Status | Condition |
 | --- | --- |

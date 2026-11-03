@@ -9,7 +9,7 @@ Sync the labels when one of these occurs:
 
 ## Before you start
 
-- A person runs this task. An agent does not. Refer to [Work rules](../reference/how-we-work.md).
+- A person runs this task. An agent does not. Refer to [Work rules](../reference/work-rules.md).
 - You ran `mise install`. Refer to [Install the tools](install-the-tools.md).
 - Your `gh` login has write access to the issues of `gsuquet/homelab`.
 - The change to `.github/labels.yml` is on `main`.
@@ -51,4 +51,4 @@ A deleted label goes away from each issue and PR. You cannot undo it.
 ## Related pages
 
 - [Mise tasks](../reference/mise-tasks.md#labelssync): the steps, the flags and the errors of `labels:sync`.
-- [Work rules](../reference/how-we-work.md): the labels of the repository.
+- [Work rules](../reference/work-rules.md): the labels of the repository.

@@ -67,6 +67,6 @@ Renovate changes `Chart.yaml`, but it does not render. Its pull request fails `m
 
 ## Related pages
 
-- [GitOps with Argo CD](../explanation/gitops-with-argocd.md#why-argo-cd-manages-itself): why a pull request upgrades Argo CD.
+- [GitOps with Argo CD](../explanation/gitops-with-argo-cd.md#why-argo-cd-manages-itself): why a pull request upgrades Argo CD.
 - [GitOps layout](../reference/gitops-layout.md#argo-cd-settings): the settings in `values.yaml`.
 - [Render manifests](render-manifests.md)
