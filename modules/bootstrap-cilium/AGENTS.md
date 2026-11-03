@@ -39,6 +39,13 @@ observability.
   `bandwidth_manager_bbr = true`) to give eBPF EDT (Earliest Departure Time)
   packet pacing and BBR TCP congestion control for Pods.
 
+- **The LB IPAM pool is optional and lives here (`lb_ip_pool.tf`).** Cilium
+  owns the `CiliumLoadBalancerIPPool` CRD, so the pool follows the Cilium
+  release. The module takes a start and a stop address and reads nothing from
+  Docker. The caller computes the range (the `kind-local` instance reads the
+  Docker network `kind`). L2 announcements stay off. The pool is a
+  `kubectl_manifest` because the CRD does not exist at plan time.
+
 ## Variables that require attention
 
 | Variable | Notes |
@@ -47,6 +54,7 @@ observability.
 | `host_firewall_enabled` | Enables eBPF host firewall to protect host/node network namespace. |
 | `egress_gateway_enabled` | Enables egress gateway to redirect/SNAT pod traffic leaving the cluster via dedicated gateway nodes. |
 | `k8s_service_host` / `k8s_service_port` | Set explicitly for kind; leave empty on managed clouds unless proven necessary. |
+| `lb_ip_pool` | Null by default (no pool). Start and stop addresses of the one pool. Keep the range outside the node addresses. |
 | `policy_enforcement_mode` | Allows explicit `CiliumNetworkPolicy` resources per workload without enforcing global default-deny upfront. |
 
 ## Outputs consumed by downstream modules

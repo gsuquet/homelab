@@ -32,3 +32,8 @@ output "egress_gateway_enabled" {
   description = "Whether Cilium Egress Gateway is enabled on this release."
   value       = var.egress_gateway_enabled
 }
+
+output "lb_ip_pool_name" {
+  description = "Name of the CiliumLoadBalancerIPPool, or null when the module made no pool."
+  value       = var.lb_ip_pool == null ? null : var.lb_ip_pool.name
+}

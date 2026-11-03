@@ -207,6 +207,25 @@ variable "egress_gateway_enabled" {
 
 
 # ─────────────────────────────────────────────
+# Load balancer IP pool (Cilium LB IPAM)
+# ─────────────────────────────────────────────
+
+variable "lb_ip_pool" {
+  description = "One CiliumLoadBalancerIPPool with one address range. Null means no pool. L2 announcements stay off, so the addresses are not reachable from outside the cluster. On kind, use a range inside the subnet of the Docker network `kind`, outside the node addresses."
+  type = object({
+    name  = optional(string, "default")
+    start = string
+    stop  = string
+  })
+  default = null
+
+  validation {
+    condition     = var.lb_ip_pool == null ? true : can(cidrhost("${var.lb_ip_pool.start}/32", 0)) && can(cidrhost("${var.lb_ip_pool.stop}/32", 0))
+    error_message = "lb_ip_pool.start and lb_ip_pool.stop must be IPv4 addresses."
+  }
+}
+
+# ─────────────────────────────────────────────
 # Helm release behavior
 # ─────────────────────────────────────────────
 

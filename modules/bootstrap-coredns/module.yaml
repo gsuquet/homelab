@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=../../schemas/module.schema.json
+---
+apiVersion: infra.gsuquet.com/v1alpha1
+kind: Module
+name: bootstrap-coredns
+layer: bootstrap
+tool: terraform
+description: Adds CoreDNS rewrite rules that send host names to a Service of the cluster.
+maturity: experimental
+contract:
+  provides:
+    - rewritten_hostnames
