@@ -1,7 +1,9 @@
 # gateway-api
 
 Deploys official Kubernetes [Gateway API](https://gateway-api.sigs.k8s.io/) CustomResourceDefinitions (`gateway.networking.k8s.io`) using official release manifests and the `kubectl` provider.
-See [AGENTS.md](AGENTS.md) for key architectural and design decisions.
+See [AGENTS.md](../../../../modules/bootstrap-gateway-api/AGENTS.md) for key architectural and design decisions.
+
+The files in `manifests/` are copies of the [kubernetes-sigs/gateway-api](https://github.com/kubernetes-sigs/gateway-api) release manifests, version v1.6.2. They keep their own license, Apache-2.0. The license file is `manifests/LICENSE`.
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements

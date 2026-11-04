@@ -40,6 +40,15 @@ The pages have four types. Use the type that agrees with your need:
 | [Force a sync](how-to/force-a-sync.md) | Make Argo CD apply a merged change at once |
 | [Upgrade Argo CD](how-to/upgrade-argo-cd.md) | Upgrade Argo CD, or change its settings, on all the clusters |
 
+### Manage the secrets
+
+| Page | Description |
+| --- | --- |
+| [Apply the secrets](how-to/apply-the-secrets.md) | Write the values of the SOPS file into the seed namespaces, and check the `ExternalSecret` objects |
+| [Add a secret](how-to/add-a-secret.md) | Add a secret value for a consumer, or change a value |
+| [Rotate a secret](how-to/rotate-a-secret.md) | Rotate the age keys, the data key or a leaked value, and test the recovery key |
+| [Add a secret consumer](how-to/add-a-secret-consumer.md) | Give a component or an OpenChoreo tenant its secrets through a seed namespace and ESO |
+
 ### Run the runtime security tools
 
 | Page | Description |
@@ -74,6 +83,7 @@ The pages have four types. Use the type that agrees with your need:
 | [Terraform modules](reference/terraform-modules/index.md) | The modules in `modules/`, with a page for each module |
 | [GitOps layout](reference/gitops-layout.md) | The files in `gitops/`, how they render, and the settings of the Applications |
 | [Labels and annotations](reference/labels-and-annotations.md) | The Kubernetes and cloud label keys, and their checks |
+| [Secrets](reference/secrets.md) | The SOPS file, the secrets root module, the stores, the consumers, the checks and the agent rules |
 | [Runtime security components](reference/runtime-security-components.md) | The `tetragon` and `falco` components: versions, values, policies, privileges, checks and footprint |
 
 The module pages come from terraform-docs. `mise run doc:generate` updates them:
@@ -107,6 +117,7 @@ The module pages come from terraform-docs. `mise run doc:generate` updates them:
 | [GitOps with Argo CD](explanation/gitops-with-argo-cd.md) | Why Git deploys the workloads, why `gitops/` has its shape, and why Argo CD manages itself |
 | [Rendered manifests pattern](explanation/rendered-manifests-pattern.md) | Why the repository commits the output of Helm, and what this costs |
 | [Why the label scheme has its form](explanation/why-the-label-scheme-has-its-form.md) | Why the key prefix, the sub-groups and the checks have their form |
+| [Secrets management](explanation/secrets-management.md) | Why the secrets use SOPS, age, a separate root module and one store for each consumer, and what agents can reach |
 | [Repository structure](explanation/repository-structure.md) | Why the tree, the layouts and the naming rules have their form |
 | [Repository scope](explanation/repository-scope.md) | What belongs in the repository, and why its metadata uses the word `infra` |
 | [How we work](explanation/how-we-work.md) | Why the work goes from a plan to the docs and then to the code |
