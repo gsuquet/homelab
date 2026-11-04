@@ -6,6 +6,17 @@
   "customManagers": [
     {
       "customType": "regex",
+      "datasourceTemplate": "docker",
+      "description": "cert-manager images: a '# renovate: depName=<image>' comment, then the tag and the digest in values.yaml",
+      "managerFilePatterns": [
+        "/^gitops/infrastructure/cert-manager/sources/values\\.yaml$/"
+      ],
+      "matchStrings": [
+        "#\\s*renovate:\\s*depName=(?<depName>\\S+)\\s*\\n\\s*tag:\\s*\"(?<currentValue>v[^\"]+)\"\\s*\\n\\s*digest:\\s*\"(?<currentDigest>sha256:[a-f0-9]{64})\""
+      ]
+    },
+    {
+      "customType": "regex",
       "description": "Versions annotated with a trailing '# renovate: datasource=... depName=...' comment",
       "managerFilePatterns": [
         "/(^|/)\\.mise/config\\.toml$/",
@@ -91,6 +102,15 @@
       ],
       "platformAutomerge": false,
       "semanticCommitScope": "tools"
+    },
+    {
+      "description": "cert-manager: the chart and the five images move together",
+      "groupName": "cert-manager",
+      "groupSlug": "cert-manager",
+      "matchFileNames": [
+        "gitops/infrastructure/cert-manager/**"
+      ],
+      "semanticCommitScope": "kubernetes"
     },
     {
       "description": "Terraform providers: one weekly PR; no automerge until Kind tests exist (Phase 4)",

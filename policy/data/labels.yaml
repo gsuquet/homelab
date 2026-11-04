@@ -187,8 +187,8 @@ labels:
     # level other than restricted or baseline.
     pod_security_apps: []
     # K15: the namespaces that an apps component cannot use. Glob patterns.
-    # cert-manager: the default of the Terraform module bootstrap-cert-manager,
-    # which creates it. bootstrap-cilium uses kube-system.
+    # These are platform namespaces that Terraform or an infrastructure
+    # component creates. K15 applies this list only to apps components.
     reserved_namespaces:
       - default
       - kube-*

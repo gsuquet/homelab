@@ -1,0 +1,79 @@
+# Values for all clusters. gitops/clusters/<cluster>/values/cert-manager.yaml can
+# override them for one cluster.
+#
+# Each image has a tag and the digest of its multi-arch index (read from
+# quay.io/jetstack). The tag must equal the chart version; renovate.json moves
+# the chart and the five images together.
+# The resource numbers are guesses: measure them on the live cluster.
+
+cert-manager:
+  # The CRDs come from templates/ of the chart. manifests:render sets the sync
+  # wave -1 on them. The chart has no value for CRD annotations, so the CRDs
+  # do not have Prune=false as the argocd component's CRDs do. Residual risk:
+  # a chart bump that drops a CRD would delete its custom resources (issue #305).
+  crds:
+    enabled: true
+
+  global:
+    logLevel: 2
+
+  image:
+    # renovate: depName=quay.io/jetstack/cert-manager-controller
+    tag: "v1.21.2"
+    digest: "sha256:70f532fd9cfde0b09d55687200942399d89838bc2d5d5b45152eb799a15912b8"
+  # Memory request equal to the limit, a CPU request, no CPU limit.
+  resources:
+    requests:
+      cpu: 20m
+      memory: 64Mi
+    limits:
+      memory: 64Mi
+
+  webhook:
+    image:
+      # renovate: depName=quay.io/jetstack/cert-manager-webhook
+      tag: "v1.21.2"
+      digest: "sha256:a60e2dac46dbb8a7f3df95c54ce941012f54c2fe022f0ee55aaa1ab40ed957ae"
+    # Memory request equal to the limit, a CPU request, no CPU limit.
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        memory: 32Mi
+
+  cainjector:
+    image:
+      # renovate: depName=quay.io/jetstack/cert-manager-cainjector
+      tag: "v1.21.2"
+      digest: "sha256:c85268c64f2e0e76684bf5fe8906caff34b82523561c6affe0fae3546bd87562"
+    # Memory request equal to the limit, a CPU request, no CPU limit.
+    resources:
+      requests:
+        cpu: 20m
+        memory: 128Mi
+      limits:
+        memory: 128Mi
+
+  acmesolver:
+    image:
+      # renovate: depName=quay.io/jetstack/cert-manager-acmesolver
+      tag: "v1.21.2"
+      digest: "sha256:699b40d622211ab7accad8a21b04c5fbaa1841ef7a12621e8de492dbe27b2503"
+
+  startupapicheck:
+    # No Helm hooks under Argo CD: the check Job is a post-install hook that
+    # Argo CD would run as a PostSync gate on every sync. The PR test plan checks
+    # the webhook with a test Certificate instead.
+    enabled: false
+    image:
+      # renovate: depName=quay.io/jetstack/cert-manager-startupapicheck
+      tag: "v1.21.2"
+      digest: "sha256:46e75b6866359ffb5d82624f41e3ed1c70b2994982702ced547ce5edb418a8f5"
+    # Memory request equal to the limit, a CPU request, no CPU limit.
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        memory: 32Mi

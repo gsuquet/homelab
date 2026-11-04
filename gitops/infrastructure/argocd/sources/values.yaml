@@ -18,8 +18,6 @@ argo-cd:
     annotations:
       # Argo CD must not delete its own CRDs. A deleted CRD deletes all the Applications.
       argocd.argoproj.io/sync-options: ServerSideApply=true,Prune=false
-      # Sync waves: -2 Namespace, -1 CRDs, 0 the rest, 1 and more the Applications.
-      argocd.argoproj.io/sync-wave: "-1"
 
   global:
     logging:

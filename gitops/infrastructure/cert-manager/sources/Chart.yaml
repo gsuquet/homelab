@@ -1,0 +1,13 @@
+apiVersion: v2
+name: cert-manager
+description: Umbrella chart for cert-manager. It issues the webhook, gateway and agent certificates of the platform.
+type: application
+version: 1.0.0
+
+# Helm takes a version, not a digest, for a dependency, and Chart.lock is not
+# tracked. The OCI digest at the pull of v1.21.2 is recorded here:
+#   cert-manager v1.21.2  sha256:634dce9c13b56677a2c05e2ab76c312d0be2664022d5dd05815da67e1fd5f610
+dependencies:
+  - name: cert-manager
+    version: "v1.21.2"
+    repository: oci://quay.io/jetstack/charts

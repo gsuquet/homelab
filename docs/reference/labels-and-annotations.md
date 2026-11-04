@@ -127,7 +127,7 @@ components:
 | --- | --- | --- | --- |
 | `Namespace` in `gitops/` | `pod-security.kubernetes.io/enforce`, `audit` and `warn`, each `privileged`, `baseline` or `restricted` | `argocd.argoproj.io/sync-wave: "-2"` | Namespace checks, `deny` |
 | `Namespace` in `gitops/` | `tenant.<p>/name`, `ownership.<p>/owner` | None | K5, `warn` |
-| `CustomResourceDefinition` in `gitops/` | None | `argocd.argoproj.io/sync-wave: "-1"` | Sync wave check, `deny` |
+| `CustomResourceDefinition` in `gitops/` | None | `argocd.argoproj.io/sync-wave: "-1"`. `manifests:render` sets it. | Sync wave check, `deny` |
 | The pod template of a workload or a `CronJob` | `app.kubernetes.io/name`, `app.kubernetes.io/instance`, `app.kubernetes.io/part-of` | None | K6 or K7, `warn` |
 | The `metadata` block of each object in `gitops/` | `app.kubernetes.io/name`, `app.kubernetes.io/instance`, `app.kubernetes.io/managed-by` | None | K6 or K7, `warn` |
 
@@ -150,7 +150,7 @@ components:
 | K9 Argo CD tracking | The `ConfigMap` `argocd-cm` in `gitops/` | `data` has `application.resourceTrackingMethod: annotation`. | `warn` |
 | K10 Sync options | The annotation `argocd.argoproj.io/sync-options` of all objects in `gitops/`, and `spec.syncPolicy.syncOptions` of an `Application` | No option of `data.labels.forbidden_sync_options`: `Replace=true`, `Force=true`. The K10 allowlist permits options of upstream objects. | `deny` |
 | K14 Pod Security of applications | Each `Namespace` of an `apps` component | `pod-security.kubernetes.io/enforce` is in `data.labels.apps_pod_security_levels`: `restricted` or `baseline`. The K14 allowlist permits other levels. | `deny` |
-| K15 Namespace of a component | Each `Namespace` in `rendered/<component>/`, and `cluster.yaml` | The name of the `Namespace` is the `namespace` of the component in `cluster.yaml`. The K15 upstream allowlist permits other names. Two components of one cluster do not have the same namespace. An `apps` component does not use a namespace of the K15 reserved list. | `deny` |
+| K15 Namespace of a component | Each `Namespace` in `rendered/<component>/`, and `cluster.yaml` | The name of the `Namespace` is the `namespace` of the component in `cluster.yaml`. The K15 upstream allowlist permits other names. Two components of one cluster do not have the same namespace. An `apps` component does not use a namespace of the K15 reserved list: the platform namespaces that Terraform or an `infrastructure` component creates. | `deny` |
 
 "Workload" is a `Deployment`, a `StatefulSet`, a `DaemonSet`, a `Job` or a `ReplicaSet`. K6 and K7 also read the pod template of a `CronJob`. The legacy files in `kubernetes/` get only K1.
 
@@ -183,7 +183,7 @@ These checks are `deny`. They check `policy/data/labels.yaml` itself.
 | `allowlists.custom_keys_upstream` | K4 | Empty. Each entry: `{component, kind, name, key}`. |
 | `allowlists.sync_options_upstream` | K10 | Empty. Each entry: `{component, kind, name, option}`. |
 | `allowlists.pod_security_apps` | K14 | Empty. Each entry: a namespace name. |
-| `allowlists.reserved_namespaces` | K15 | `default`, `kube-*`, `argocd`, `cert-manager`. Glob patterns. |
+| `allowlists.reserved_namespaces` | K15 | `default`, `kube-*`, `argocd`, `cert-manager`. Glob patterns. The platform namespaces that Terraform or an `infrastructure` component creates. K15 applies the list only to `apps` components. |
 | `allowlists.upstream_namespaces` | K15 | Empty. Each entry: `{component, namespace}`. |
 
 The entries of `custom_keys_upstream`, `sync_options_upstream` and `upstream_namespaces` apply only to upstream objects.
