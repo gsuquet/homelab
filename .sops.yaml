@@ -1,0 +1,16 @@
+---
+# SOPS creation rules. Refer to docs/reference/secrets.md.
+# - One rule for each SOPS file. Each path_regex starts with ^, ends with $ and matches one file.
+# - Each rule has the scope key of its file and the recovery key.
+# - No rule without path_regex. Public keys only: never put a private key here.
+#
+# PLACEHOLDER: the two recipients below are not age keys. The owner makes the keys by hand with
+# age-keygen and puts the public keys (age1...) here. Until then, sops refuses to encrypt, and the
+# secrets:* tasks stop.
+creation_rules:
+  # instances/kind-local/secrets/secrets.sops.yaml
+  - path_regex: ^instances/kind-local/secrets/secrets\.sops\.yaml$
+    # 1. The kind-local scope key. 2. The recovery key.
+    age: >-
+      PLACEHOLDER-kind-local-scope-public-key,
+      PLACEHOLDER-recovery-public-key
