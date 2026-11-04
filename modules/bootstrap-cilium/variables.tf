@@ -207,6 +207,46 @@ variable "egress_gateway_enabled" {
 
 
 # ─────────────────────────────────────────────
+# Load balancer IP pool (Cilium LB IPAM)
+# ─────────────────────────────────────────────
+
+variable "lb_ip_pool" {
+  description = "One CiliumLoadBalancerIPPool with one address range. Null means no pool. L2 announcements stay off, so the addresses are not reachable from outside the cluster. On kind, use a range inside the subnet of the Docker network `kind`, outside the node addresses."
+  type = object({
+    name  = optional(string, "default")
+    start = string
+    stop  = string
+  })
+  default = null
+
+  validation {
+    condition     = var.lb_ip_pool == null ? true : can(cidrhost("${var.lb_ip_pool.start}/32", 0)) && can(cidrhost("${var.lb_ip_pool.stop}/32", 0))
+    error_message = "lb_ip_pool.start and lb_ip_pool.stop must be IPv4 addresses."
+  }
+
+  # Compare the addresses as numbers. The start and stop may be unknown at plan time.
+  validation {
+    condition = (var.lb_ip_pool == null || !can(cidrhost("${var.lb_ip_pool.start}/32", 0)) || !can(cidrhost("${var.lb_ip_pool.stop}/32", 0))) ? true : (
+      sum([for i, o in split(".", var.lb_ip_pool.start) : tonumber(o) * pow(256, 3 - i)]) <=
+      sum([for i, o in split(".", var.lb_ip_pool.stop) : tonumber(o) * pow(256, 3 - i)])
+    )
+    error_message = "lb_ip_pool.start must be lower than or equal to lb_ip_pool.stop."
+  }
+}
+
+variable "kubeconfig_path" {
+  description = "Kubeconfig of the cluster. When set with lb_ip_pool, the module runs `kubectl wait` for the CRD of the pool before it makes the pool. Needs the kubectl CLI on the host. Empty means no wait."
+  type        = string
+  default     = ""
+}
+
+variable "lb_ip_pool_crd_timeout" {
+  description = "Seconds to wait for the CRD ciliumloadbalancerippools.cilium.io."
+  type        = number
+  default     = 120
+}
+
+# ─────────────────────────────────────────────
 # Helm release behavior
 # ─────────────────────────────────────────────
 

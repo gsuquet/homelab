@@ -13,3 +13,4 @@ contract:
     - release_name
     - hubble_relay_enabled
     - hubble_ui_enabled
+    - lb_ip_pool_name

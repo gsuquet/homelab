@@ -10,6 +10,7 @@ See [AGENTS.md](../../../../modules/bootstrap-cilium/AGENTS.md) for key architec
 | ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | > 1.15.0 |
 | <a name="requirement_helm"></a> [helm](#requirement\_helm) | 3.1.1 |
+| <a name="requirement_kubectl"></a> [kubectl](#requirement\_kubectl) | 2.2.0 |
 | <a name="requirement_kubernetes"></a> [kubernetes](#requirement\_kubernetes) | 3.1.0 |
 
 ## Providers
@@ -17,7 +18,9 @@ See [AGENTS.md](../../../../modules/bootstrap-cilium/AGENTS.md) for key architec
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_helm"></a> [helm](#provider\_helm) | 3.1.1 |
+| <a name="provider_kubectl"></a> [kubectl](#provider\_kubectl) | 2.2.0 |
 | <a name="provider_kubernetes"></a> [kubernetes](#provider\_kubernetes) | 3.1.0 |
+| <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
 
 ## Inputs
 
@@ -45,6 +48,9 @@ See [AGENTS.md](../../../../modules/bootstrap-cilium/AGENTS.md) for key architec
 | <a name="input_k8s_service_host"></a> [k8s\_service\_host](#input\_k8s\_service\_host) | Kubernetes API server address, required when kube\_proxy\_replacement is true and the API server isn't otherwise reachable via the in-cluster service (e.g. on kind). Leave empty to let the chart use its own default detection. | `string` | `""` | no |
 | <a name="input_k8s_service_port"></a> [k8s\_service\_port](#input\_k8s\_service\_port) | Kubernetes API server port, paired with k8s\_service\_host. Leave empty to let the chart use its own default detection. | `string` | `""` | no |
 | <a name="input_kube_proxy_replacement"></a> [kube\_proxy\_replacement](#input\_kube\_proxy\_replacement) | Replace kube-proxy with Cilium's eBPF datapath (fewer moving parts, faster L3-L4 enforcement). | `bool` | `true` | no |
+| <a name="input_kubeconfig_path"></a> [kubeconfig\_path](#input\_kubeconfig\_path) | Kubeconfig of the cluster. When set with lb\_ip\_pool, the module runs `kubectl wait` for the CRD of the pool before it makes the pool. Needs the kubectl CLI on the host. Empty means no wait. | `string` | `""` | no |
+| <a name="input_lb_ip_pool"></a> [lb\_ip\_pool](#input\_lb\_ip\_pool) | One CiliumLoadBalancerIPPool with one address range. Null means no pool. L2 announcements stay off, so the addresses are not reachable from outside the cluster. On kind, use a range inside the subnet of the Docker network `kind`, outside the node addresses. | <pre>object({<br/>    name  = optional(string, "default")<br/>    start = string<br/>    stop  = string<br/>  })</pre> | `null` | no |
+| <a name="input_lb_ip_pool_crd_timeout"></a> [lb\_ip\_pool\_crd\_timeout](#input\_lb\_ip\_pool\_crd\_timeout) | Seconds to wait for the CRD ciliumloadbalancerippools.cilium.io. | `number` | `120` | no |
 | <a name="input_namespace"></a> [namespace](#input\_namespace) | Namespace to install Cilium into. Defaults to kube-system, which already exists on every cluster and is therefore not created by this module. Any other value is created automatically. | `string` | `"kube-system"` | no |
 | <a name="input_policy_enforcement_mode"></a> [policy\_enforcement\_mode](#input\_policy\_enforcement\_mode) | Cilium network policy enforcement mode: 'default' (deny only for endpoints selected by a policy), 'always' (deny-by-default for every endpoint), or 'never'. | `string` | `"default"` | no |
 | <a name="input_release_name"></a> [release\_name](#input\_release\_name) | Name of the Helm release. | `string` | `"cilium"` | no |
@@ -59,6 +65,7 @@ See [AGENTS.md](../../../../modules/bootstrap-cilium/AGENTS.md) for key architec
 | <a name="output_host_firewall_enabled"></a> [host\_firewall\_enabled](#output\_host\_firewall\_enabled) | Whether Cilium Host Firewall is enabled on this release. |
 | <a name="output_hubble_relay_enabled"></a> [hubble\_relay\_enabled](#output\_hubble\_relay\_enabled) | Whether Hubble Relay is enabled on this release. Consumed by the hubble module to know whether it still needs to flip this on. |
 | <a name="output_hubble_ui_enabled"></a> [hubble\_ui\_enabled](#output\_hubble\_ui\_enabled) | Whether the Hubble UI is enabled on this release. Consumed by the hubble module to know whether it still needs to flip this on. |
+| <a name="output_lb_ip_pool_name"></a> [lb\_ip\_pool\_name](#output\_lb\_ip\_pool\_name) | Name of the CiliumLoadBalancerIPPool, or null when the module made no pool. |
 | <a name="output_namespace"></a> [namespace](#output\_namespace) | Namespace Cilium was installed into. |
 | <a name="output_release_name"></a> [release\_name](#output\_release\_name) | Name of the Helm release. |
 | <a name="output_release_status"></a> [release\_status](#output\_release\_status) | Status of the Helm release, as reported by Helm. |
