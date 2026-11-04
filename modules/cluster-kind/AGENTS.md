@@ -11,7 +11,7 @@ It is used for two purposes in this repository:
 
 ## Provider
 
-`tehcyx/kind` 0.11.0 — pinned for reproducibility.
+`tehcyx/kind` 0.13.0 — pinned for reproducibility.
 
 ## Key design decisions
 
