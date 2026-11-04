@@ -27,6 +27,13 @@ It is used for two purposes in this repository:
   bind-mounted read-only into `/etc/ssl/certs/extra-ca-<hash>.pem`, where `<hash>` comes from the path. The module sorts the paths. Thus a new order of the list does not replace the cluster. containerd reads every file
   in that folder, so image pulls behind a TLS-inspecting proxy work with no `docker exec`.
   The empty default gives the same cluster as before.
+- **Extra mounts are opt-in** — `extra_mounts` bind-mounts host paths into every node. `read_only`
+  defaults to `true`, but it stops writes to the mounted files only. It is not an isolation
+  boundary. Example: a pod that can mount `/procHost` sees all processes of the Docker host, and
+  `/procHost/<pid>/root` reaches the writable root filesystem of the host. Refer to #283 for
+  the `hostPath` restriction. The Docker daemon reads `host_path`, so the module cannot check that
+  it exists (for example `/proc` of the Docker VM). A change replaces the cluster. The empty default gives
+  the same cluster as before.
 - **Port mappings apply to all control-plane nodes** — this is the standard Kind pattern
   for exposing an ingress controller.
 
@@ -39,6 +46,7 @@ It is used for two purposes in this repository:
 | `disable_default_cni` | `false` | Set `true` before installing Cilium/Calico. |
 | `pod_subnet` / `service_subnet` | Kind defaults | Override for staging environments. |
 | `extra_ca_certificate_paths` | `[]` | CA files for a TLS-inspecting proxy. Mounted into `/etc/ssl/certs` of each node. A change replaces the cluster. |
+| `extra_mounts` | `[]` | Host paths mounted into each node (`host_path`, `container_path`, `read_only` default `true`). Paths must be absolute. `read_only` is not an isolation boundary. A change replaces the cluster. |
 
 ## Outputs consumed by downstream modules
 
