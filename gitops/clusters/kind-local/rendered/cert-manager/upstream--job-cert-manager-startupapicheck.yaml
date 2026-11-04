@@ -1,0 +1,67 @@
+---
+# Source: cert-manager/charts/cert-manager/templates/startupapicheck-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cert-manager-startupapicheck
+  namespace: cert-manager
+  labels:
+    app: startupapicheck
+    app.kubernetes.io/name: startupapicheck
+    app.kubernetes.io/instance: cert-manager
+    app.kubernetes.io/component: "startupapicheck"
+    app.kubernetes.io/version: "v1.21.2"
+    app.kubernetes.io/managed-by: Helm
+    helm.sh/chart: cert-manager-v1.21.2
+  annotations:
+    helm.sh/hook: post-install
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    helm.sh/hook-weight: "1"
+spec:
+  backoffLimit: 4
+  template:
+    metadata:
+      labels:
+        app: startupapicheck
+        app.kubernetes.io/name: startupapicheck
+        app.kubernetes.io/instance: cert-manager
+        app.kubernetes.io/component: "startupapicheck"
+        app.kubernetes.io/version: "v1.21.2"
+        app.kubernetes.io/managed-by: Helm
+        helm.sh/chart: cert-manager-v1.21.2
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: cert-manager-startupapicheck
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: cert-manager-startupapicheck
+          image: "quay.io/jetstack/cert-manager-startupapicheck:v1.21.2@sha256:46e75b6866359ffb5d82624f41e3ed1c70b2994982702ced547ce5edb418a8f5"
+          imagePullPolicy: IfNotPresent
+          args:
+            - check
+            - api
+            - --wait=1m
+            - -v
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          resources:
+            limits:
+              memory: 32Mi
+            requests:
+              cpu: 10m
+              memory: 32Mi
+      nodeSelector:
+        kubernetes.io/os: "linux"

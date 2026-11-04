@@ -25,6 +25,7 @@
 | Dependency | Files | Manager |
 | --- | --- | --- |
 | Tools | `.mise/config.toml` | `mise` |
+| The images of cert-manager, with a tag and a digest after a `# renovate: depName=<image>` comment | `gitops/infrastructure/cert-manager/sources/values.yaml` | `custom.regex` |
 | Pre-commit hooks, pinned to a commit SHA | `.pre-commit-config.yaml` | `pre-commit` |
 | GitHub Actions, pinned to a commit SHA | `.github/workflows/*.yml` | `github-actions` |
 | Terraform providers and lock files | `*.tf`, `.terraform.lock.hcl` | `terraform` |
@@ -40,6 +41,7 @@ The comment of the second custom manager can also set `versioning=<versioning>`.
 | --- | --- | --- |
 | Major updates | `matchUpdateTypes: major` | `dependencyDashboardApproval: true`: the PR opens only after an approval on the Dependency Dashboard. |
 | Dev tools | One rule. An update must match all three: one of the files `.mise/config.toml`, `.pre-commit-config.yaml` and `.github/workflows/**`, one of the managers `mise`, `pre-commit`, `github-actions` and `custom.regex`, and one of the update types `minor`, `patch`, `digest`, `pin` and `pinDigest`. | One group, `dev tools`. Automerge. Commit scope `tools`. |
+| cert-manager | The files `gitops/infrastructure/cert-manager/**` | One group, `cert-manager`: the chart and the five images change in one PR. Commit scope `kubernetes`. |
 | Terraform providers | `matchManagers: terraform` | One group, `terraform providers`. Commit scope `terraform`. |
 | Charts and images | The files `gitops/**` and `kubernetes/**` | Commit scope `kubernetes`. |
 | Ansible | Two rules. Each one turns the updates off alone: one for the files `ansible/**`, one for the packages `ansible` and `ansible-creator`. | `enabled: false`: no updates. |
