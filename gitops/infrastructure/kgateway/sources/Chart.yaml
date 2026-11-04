@@ -1,0 +1,20 @@
+apiVersion: v2
+name: kgateway
+description: Umbrella chart for kgateway, the Gateway API implementation of the platform. The Gateway API CRDs come from Terraform (bootstrap-gateway-api), not from this chart.
+type: application
+version: 1.0.0
+
+# Helm takes a version, not a digest, for a dependency, and Chart.lock is not
+# tracked. The OCI digests at the pull of v2.5.0 are recorded here, so a bump
+# shows them in the same lines. Compare them with `helm pull` output:
+#   kgateway-crds v2.5.0  sha256:b7ab79b723c7ca12b88497e1d8b69ae6176ee960076bf80980da10aae9efc3be
+#   kgateway      v2.5.0  sha256:36cc89ece321f25dae7ece782d0679762b6b47ab107b17e9814e3fd3810457af
+# TODO(#302): a check that compares them.
+dependencies:
+  # The CRDs of kgateway itself (gateway.kgateway.dev and related groups).
+  - name: kgateway-crds
+    version: "v2.5.0"
+    repository: oci://cr.kgateway.dev/kgateway-dev/charts
+  - name: kgateway
+    version: "v2.5.0"
+    repository: oci://cr.kgateway.dev/kgateway-dev/charts

@@ -27,6 +27,7 @@ The files in `.mise/tasks/_base/` are not executable, so they are not tasks. The
 | `lint:policy` | `lint/policy.sh` | Test the Conftest policies, then check the repository against them. |
 | `lint:records` | `lint/records.sh` | Refuse references to the old proposal and decision record files. |
 | `lint:records-test` | `lint/records-test.sh` | Test the exit status of `lint:records`. |
+| `lint:render-test` | `lint/render-test.sh` | Test that `manifests:render` adds the sync wave `-1` to each CRD. |
 | `lint:shell` | `lint/shell.sh` | Check the shell scripts with ShellCheck and shfmt. |
 | `lint:terraform` | `lint/terraform.sh` | Check the format of the Terraform files, and run TFLint. |
 | `manifests:check` | `manifests/check.sh` | Check that the rendered manifests are current. |
@@ -117,9 +118,9 @@ A deleted label goes away from each issue and PR that has it. The `gh` login nee
 
 The task runs these tasks as dependencies, then prints `✓ All linters and checks passed.`:
 
-`lint:terraform`, `lint:policy`, `lint:actions`, `lint:shell`, `lint:docs`, `lint:records`, `lint:records-test`, `schemas:test`, `schemas:check`.
+`lint:terraform`, `lint:policy`, `lint:actions`, `lint:shell`, `lint:docs`, `lint:records`, `lint:records-test`, `lint:render-test`, `schemas:test`, `schemas:check`.
 
-The `Lint` workflow runs `mise run lint` on each pull request and on each push to `main`. A `lint-*` pre-commit hook runs each `lint:*` task, except `lint:records-test`.
+The `Lint` workflow runs `mise run lint` on each pull request and on each push to `main`. A `lint-*` pre-commit hook runs each `lint:*` task, except `lint:records-test` and `lint:render-test`.
 
 ### `lint:actions`
 
@@ -161,6 +162,10 @@ The `lint-records` pre-commit hook runs the task on each commit.
 
 The task puts a fake `git` first in `PATH`. The fake `git` exits with `1`, `0`, `2` and then `128`. The test passes when `lint:records` passes only with `1`.
 
+### `lint:render-test`
+
+The task splits a fixture of `helm template` output with the function that `manifests:render` uses. The fixture has a Namespace, a ConfigMap and three CRDs: one with no annotation, one with another annotation, and one with the wave `"5"`. The test passes when each CRD has the wave `"-1"` and keeps its other annotations, and the other resources keep their annotations.
+
 ### `lint:shell`
 
 The task runs `shellcheck` on each `.sh` file that Git tracks, then `shfmt -d` on the same files. `.shellcheckrc` holds the ShellCheck settings. shfmt reads its style from `.editorconfig`.
@@ -198,7 +203,7 @@ First, `helm repo update`. A failure prints a warning, and the task continues.
 2. For each item of `infrastructure`, then of `apps`, `gitops/<group>/<component>/sources/Chart.yaml` must exist.
 3. Run `helm dependency update` on the chart. A chart that two clusters use updates one time.
 4. Run `helm template <component> <chart> --include-crds --namespace=<namespace>`, with these values, in this order: `gitops.cluster` set to the content of `cluster.yaml`, then `gitops/clusters/<cluster>/values/<component>.yaml` if it exists. The `values.yaml` of the chart applies first.
-5. Write one file for each resource. The file names are in [GitOps layout](gitops-layout.md#rendered-files).
+5. Write one file for each resource. The file names are in [GitOps layout](gitops-layout.md#rendered-files). Each `CustomResourceDefinition` gets the annotation `argocd.argoproj.io/sync-wave: "-1"`. The task sets it also when the chart sets another value, and it keeps the other annotations. The functions are in `.mise/tasks/_base/render.sh`.
 
 | Status | Condition |
 | --- | --- |

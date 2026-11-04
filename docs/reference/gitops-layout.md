@@ -81,7 +81,7 @@ The `argocd` chart has these GitOps values:
 | --- | --- |
 | File name | `<kind>-<name>.yaml`, in lowercase. One file for each resource. |
 | Prefix of an upstream resource | `upstream--`. A resource comes from an upstream chart when the second segment of its `# Source:` path is `charts`. |
-| CRDs | The render includes the CRDs of the `crds/` folder of a chart. |
+| CRDs | The render includes the CRDs of the `crds/` folder of a chart. It sets `argocd.argoproj.io/sync-wave: "-1"` on each CRD, also when the chart sets another value. Argo CD applies the CRDs after the Namespace (wave `"-2"`) and before the resources with no wave (wave `"0"`). Refer to [Argo CD: sync waves](https://argo-cd.readthedocs.io/en/stable/user-guide/sync-waves/). |
 | Duplicates | Two resources with the same kind and name stop the task. |
 | Removed components | The task deletes `rendered/` before it renders, thus the folder of a removed component goes away. |
 
