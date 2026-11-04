@@ -334,7 +334,7 @@ test_configmap_with_data_is_allowed if {
 }
 
 # ---------------------------------------------------------------------------
-# Label and annotation keys: K1 to K10, K14 and K15.
+# Label and annotation keys: K1 to K10 and K14 to K17.
 
 # The messages of one check.
 check(messages, id) := {m | some m in messages; contains(m, sprintf(": %s: ", [id]))}
@@ -951,4 +951,211 @@ test_k15_terraform_namespace_of_an_apps_component_is_denied if {
 
 test_k15_reserved_namespace_of_an_infrastructure_component_is_allowed if {
 	count(check(kubernetes.deny, "K15")) == 0 with input as [kind_cluster]
+}
+
+# K16 Privileged containers
+
+privileged_container := {"name": "agent", "image": "quay.io/cilium/tetragon:v1.8.0@sha256:0000000000000000000000000000000000000000000000000000000000000000", "securityContext": {"privileged": true}}
+
+plain_container := {"name": "agent", "image": "quay.io/cilium/tetragon:v1.8.0@sha256:0000000000000000000000000000000000000000000000000000000000000000", "securityContext": {"privileged": false}}
+
+daemon_set(namespace, container) := {
+	"apiVersion": "apps/v1",
+	"kind": "DaemonSet",
+	"metadata": {"name": "agent", "namespace": namespace},
+	"spec": {"template": {"spec": {"containers": [container]}}},
+}
+
+k16_file(contents) := [{"path": "gitops/clusters/kind/rendered/tetragon/daemonset-agent.yaml", "contents": contents}]
+
+test_k16_privileged_pod_in_allowlisted_namespaces_is_allowed if {
+	count(check(kubernetes.deny, "K16")) == 0 with input as k16_file(daemon_set("tetragon", privileged_container))
+	count(check(kubernetes.deny, "K16")) == 0 with input as k16_file(daemon_set("falco", privileged_container))
+}
+
+test_k16_privileged_pod_outside_the_allowlist_is_denied if {
+	count(check(kubernetes.deny, "K16")) == 1 with input as k16_file(daemon_set("web", privileged_container))
+	count(check(kubernetes.deny, "K16")) == 1 with input as k16_file({
+		"apiVersion": "v1",
+		"kind": "Pod",
+		"metadata": {"name": "agent", "namespace": "web"},
+		"spec": {"containers": [privileged_container]},
+	})
+}
+
+test_k16_non_privileged_pod_is_allowed if {
+	count(check(kubernetes.deny, "K16")) == 0 with input as k16_file(daemon_set("web", plain_container))
+	count(check(kubernetes.deny, "K16")) == 0 with input as k16_file(daemon_set("web", {"name": "agent", "image": "x:1"}))
+}
+
+test_k16_privileged_init_container_is_denied if {
+	count(check(kubernetes.deny, "K16")) == 1 with input as k16_file({
+		"apiVersion": "apps/v1",
+		"kind": "Deployment",
+		"metadata": {"name": "agent", "namespace": "web"},
+		"spec": {"template": {"spec": {"initContainers": [privileged_container], "containers": [plain_container]}}},
+	})
+}
+
+cronjob(namespace) := {
+	"apiVersion": "batch/v1",
+	"kind": "CronJob",
+	"metadata": {"name": "agent", "namespace": namespace},
+	"spec": {"jobTemplate": {"spec": {"template": {"spec": {"containers": [privileged_container]}}}}},
+}
+
+test_k16_privileged_cronjob_pod_template_is_denied if {
+	count(check(kubernetes.deny, "K16")) == 1 with input as k16_file(cronjob("web"))
+	count(check(kubernetes.deny, "K16")) == 0 with input as k16_file(cronjob("falco"))
+}
+
+test_k16_namespace_comes_from_the_component_when_metadata_has_none if {
+	cluster := cluster_file([{"name": "tetragon", "namespace": "tetragon"}, {"name": "other", "namespace": "other"}], [])
+	object := {
+		"apiVersion": "apps/v1",
+		"kind": "DaemonSet",
+		"metadata": {"name": "agent"},
+		"spec": {"template": {"spec": {"containers": [privileged_container]}}},
+	}
+	count(check(kubernetes.deny, "K16")) == 0 with input as [cluster, {"path": rendered("tetragon", "daemonset-agent.yaml"), "contents": object}]
+	count(check(kubernetes.deny, "K16")) == 1 with input as [cluster, {"path": rendered("other", "daemonset-agent.yaml"), "contents": object}]
+}
+
+test_k16_unknown_namespace_is_denied if {
+	object := {
+		"apiVersion": "apps/v1",
+		"kind": "DaemonSet",
+		"metadata": {"name": "agent"},
+		"spec": {"template": {"spec": {"containers": [privileged_container]}}},
+	}
+	count(check(kubernetes.deny, "K16")) == 1 with input as k16_file(object)
+}
+
+# K17 Enforcement scope of TracingPolicy
+
+tracing_policy(kind, action) := {
+	"apiVersion": "cilium.io/v1alpha1",
+	"kind": kind,
+	"metadata": {"name": "file-monitoring"},
+	"spec": {"kprobes": [{
+		"call": "security_file_permission",
+		"syscall": false,
+		"selectors": [{"matchActions": [{"action": action}]}],
+	}]},
+}
+
+k17_file(contents) := [{"path": "gitops/clusters/kind/rendered/tetragon/tracingpolicy.yaml", "contents": contents}]
+
+test_k17_cluster_policy_with_enforcement_is_denied if {
+	count(check(kubernetes.deny, "K17")) == 1 with input as k17_file(tracing_policy("TracingPolicy", "Sigkill"))
+	count(check(kubernetes.deny, "K17")) == 1 with input as k17_file(tracing_policy("TracingPolicy", "Override"))
+	count(check(kubernetes.deny, "K17")) == 1 with input as k17_file(tracing_policy("TracingPolicy", "Signal"))
+	count(check(kubernetes.deny, "K17")) == 1 with input as k17_file(tracing_policy("TracingPolicy", "NotifyEnforcer"))
+}
+
+test_k17_cluster_policy_without_enforcement_is_allowed if {
+	count(check(kubernetes.deny, "K17")) == 0 with input as k17_file(tracing_policy("TracingPolicy", "Post"))
+}
+
+test_k17_namespaced_policy_with_enforcement_is_allowed if {
+	count(check(kubernetes.deny, "K17")) == 0 with input as k17_file(tracing_policy("TracingPolicyNamespaced", "Sigkill"))
+}
+
+hook_policy(field) := {
+	"apiVersion": "cilium.io/v1alpha1",
+	"kind": "TracingPolicy",
+	"metadata": {"name": "p"},
+	"spec": {field: [{"selectors": [{"matchActions": [{"action": "Sigkill"}]}]}]},
+}
+
+test_k17_enforcement_in_a_tracepoint_or_lsm_hook_is_denied if {
+	count(check(kubernetes.deny, "K17")) == 1 with input as k17_file(hook_policy("tracepoints"))
+	count(check(kubernetes.deny, "K17")) == 1 with input as k17_file(hook_policy("lsmhooks"))
+}
+
+test_k17_policy_in_a_multi_document_file_is_denied if {
+	count(check(kubernetes.deny, "K17")) == 1 with input as k17_file([tracing_policy("TracingPolicy", "Sigkill"), tracing_policy("TracingPolicyNamespaced", "Sigkill")])
+}
+
+# Review round 1
+
+test_k16_component_cannot_pass_with_an_allowlisted_metadata_namespace if {
+	cluster := cluster_file([{"name": "other", "namespace": "other"}], [])
+	object := daemon_set("tetragon", privileged_container)
+	count(check(kubernetes.deny, "K16")) == 1 with input as [cluster, {"path": rendered("other", "daemonset-agent.yaml"), "contents": object}]
+}
+
+test_k16_component_in_the_allowlist_with_metadata_namespace_in_the_allowlist_is_allowed if {
+	cluster := cluster_file([{"name": "falco", "namespace": "falco"}], [])
+	count(check(kubernetes.deny, "K16")) == 0 with input as [cluster, {"path": rendered("falco", "daemonset-agent.yaml"), "contents": daemon_set("falco", privileged_container)}]
+}
+
+test_k16_object_without_metadata_is_denied if {
+	count(check(kubernetes.deny, "K16")) == 1 with input as k16_file({
+		"apiVersion": "v1",
+		"kind": "Pod",
+		"spec": {"containers": [privileged_container]},
+	})
+}
+
+test_k16_privileged_ephemeral_container_is_denied if {
+	count(check(kubernetes.deny, "K16")) == 1 with input as k16_file({
+		"apiVersion": "v1",
+		"kind": "Pod",
+		"metadata": {"name": "agent", "namespace": "web"},
+		"spec": {"containers": [plain_container], "ephemeralContainers": [privileged_container]},
+	})
+}
+
+test_k16_component_without_namespace_is_denied if {
+	cluster := cluster_file([{"name": "tetragon"}], [])
+	object := {
+		"apiVersion": "apps/v1",
+		"kind": "DaemonSet",
+		"metadata": {"name": "agent"},
+		"spec": {"template": {"spec": {"containers": [privileged_container]}}},
+	}
+	count(check(kubernetes.deny, "K16")) == 1 with input as [cluster, {"path": rendered("tetragon", "daemonset-agent.yaml"), "contents": object}]
+}
+
+test_k17_match_return_actions_are_denied if {
+	count(check(kubernetes.deny, "K17")) == 1 with input as k17_file({
+		"apiVersion": "cilium.io/v1alpha1",
+		"kind": "TracingPolicy",
+		"metadata": {"name": "p"},
+		"spec": {"kprobes": [{"call": "x", "selectors": [{"matchReturnActions": [{"action": "Sigkill"}]}]}]},
+	})
+}
+
+test_k17_fentries_are_denied if {
+	count(check(kubernetes.deny, "K17")) == 1 with input as k17_file(hook_policy("fentries"))
+}
+
+test_k17_selectors_macros_are_denied if {
+	count(check(kubernetes.deny, "K17")) == 1 with input as k17_file({
+		"apiVersion": "cilium.io/v1alpha1",
+		"kind": "TracingPolicy",
+		"metadata": {"name": "p"},
+		"spec": {
+			"selectorsMacros": {"kill": {"matchActions": [{"action": "Sigkill"}]}},
+			"kprobes": [{"call": "x", "selectors": [{"macros": ["kill"]}]}],
+		},
+	})
+}
+
+test_k17_enforcers_are_denied if {
+	count(check(kubernetes.deny, "K17")) == 1 with input as k17_file({
+		"apiVersion": "cilium.io/v1alpha1",
+		"kind": "TracingPolicy",
+		"metadata": {"name": "p"},
+		"spec": {"enforcers": [{"calls": ["list:x"]}]},
+	})
+}
+
+test_k17_set_action_is_denied if {
+	count(check(kubernetes.deny, "K17")) == 1 with input as k17_file(tracing_policy("TracingPolicy", "Set"))
+}
+
+test_k17_other_api_group_is_ignored if {
+	count(check(kubernetes.deny, "K17")) == 0 with input as k17_file(object.union(tracing_policy("TracingPolicy", "Sigkill"), {"apiVersion": "example.com/v1"}))
 }
