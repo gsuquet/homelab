@@ -5,7 +5,7 @@ kind: Namespace
 metadata:
   name: kgateway-system
   labels:
-    # TODO: the control plane pod complies with restricted (to check on the live cluster).
+    # TODO(#303): the pod complies with restricted by a static check. Verify on the live cluster.
     # The Envoy proxies that kgateway makes for a Gateway run in the namespace of the Gateway.
     pod-security.kubernetes.io/enforce: restricted
     pod-security.kubernetes.io/audit: restricted

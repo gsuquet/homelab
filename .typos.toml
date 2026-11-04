@@ -1,3 +1,8 @@
 [default.extend-words]
 aks = "aks"
 mosquitto = "mosquitto"
+
+[default]
+# "ANDed" is upstream wording in CRD descriptions. typos reads it as AND + ed
+# and rewrites the rendered files.
+extend-ignore-re = ["ANDed"]

@@ -107,7 +107,7 @@ spec:
             - name: KGW_AWS_EC2_REFRESH_INTERVAL
               value: "30s"
             - name: KGW_GATEWAY_CLASS_PARAMETERS_REFS
-              value: "{}"
+              value: "{\"kgateway\":{\"name\":\"default\",\"namespace\":\"kgateway-system\"}}"
             - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:

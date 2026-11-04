@@ -2824,7 +2824,7 @@ spec:
                                       items:
                                         description: |-
                                           A null or empty node selector term matches no objects. The requirements of
-                                          them are ANDead.
+                                          them are ANDed.
                                           The TopologySelectorTerm type implements a subset of the NodeSelectorTerm.
                                         properties:
                                           matchExpressions:
@@ -2926,7 +2926,7 @@ spec:
                                               If it's null, this PodAffinityTerm matches with no Pods.
                                             properties:
                                               matchExpressions:
-                                                description: matchExpressions is a list of label selector requirements. The requirements are ANDead.
+                                                description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
                                                 items:
                                                   description: |-
                                                     A label selector requirement is a selector that contains values, a key, and an operator that
@@ -2962,7 +2962,7 @@ spec:
                                                 description: |-
                                                   matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
                                                   map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                                  operator is "In", and the values array contains only "value". The requirements are ANDead.
+                                                  operator is "In", and the values array contains only "value". The requirements are ANDed.
                                                 type: object
                                             type: object
                                             x-kubernetes-map-type: atomic
@@ -3003,7 +3003,7 @@ spec:
                                               An empty selector ({}) matches all namespaces.
                                             properties:
                                               matchExpressions:
-                                                description: matchExpressions is a list of label selector requirements. The requirements are ANDead.
+                                                description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
                                                 items:
                                                   description: |-
                                                     A label selector requirement is a selector that contains values, a key, and an operator that
@@ -3039,7 +3039,7 @@ spec:
                                                 description: |-
                                                   matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
                                                   map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                                  operator is "In", and the values array contains only "value". The requirements are ANDead.
+                                                  operator is "In", and the values array contains only "value". The requirements are ANDed.
                                                 type: object
                                             type: object
                                             x-kubernetes-map-type: atomic
@@ -3100,7 +3100,7 @@ spec:
                                           If it's null, this PodAffinityTerm matches with no Pods.
                                         properties:
                                           matchExpressions:
-                                            description: matchExpressions is a list of label selector requirements. The requirements are ANDead.
+                                            description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
                                             items:
                                               description: |-
                                                 A label selector requirement is a selector that contains values, a key, and an operator that
@@ -3136,7 +3136,7 @@ spec:
                                             description: |-
                                               matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
                                               map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                              operator is "In", and the values array contains only "value". The requirements are ANDead.
+                                              operator is "In", and the values array contains only "value". The requirements are ANDed.
                                             type: object
                                         type: object
                                         x-kubernetes-map-type: atomic
@@ -3177,7 +3177,7 @@ spec:
                                           An empty selector ({}) matches all namespaces.
                                         properties:
                                           matchExpressions:
-                                            description: matchExpressions is a list of label selector requirements. The requirements are ANDead.
+                                            description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
                                             items:
                                               description: |-
                                                 A label selector requirement is a selector that contains values, a key, and an operator that
@@ -3213,7 +3213,7 @@ spec:
                                             description: |-
                                               matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
                                               map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                              operator is "In", and the values array contains only "value". The requirements are ANDead.
+                                              operator is "In", and the values array contains only "value". The requirements are ANDed.
                                             type: object
                                         type: object
                                         x-kubernetes-map-type: atomic
@@ -3267,7 +3267,7 @@ spec:
                                               If it's null, this PodAffinityTerm matches with no Pods.
                                             properties:
                                               matchExpressions:
-                                                description: matchExpressions is a list of label selector requirements. The requirements are ANDead.
+                                                description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
                                                 items:
                                                   description: |-
                                                     A label selector requirement is a selector that contains values, a key, and an operator that
@@ -3303,7 +3303,7 @@ spec:
                                                 description: |-
                                                   matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
                                                   map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                                  operator is "In", and the values array contains only "value". The requirements are ANDead.
+                                                  operator is "In", and the values array contains only "value". The requirements are ANDed.
                                                 type: object
                                             type: object
                                             x-kubernetes-map-type: atomic
@@ -3344,7 +3344,7 @@ spec:
                                               An empty selector ({}) matches all namespaces.
                                             properties:
                                               matchExpressions:
-                                                description: matchExpressions is a list of label selector requirements. The requirements are ANDead.
+                                                description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
                                                 items:
                                                   description: |-
                                                     A label selector requirement is a selector that contains values, a key, and an operator that
@@ -3380,7 +3380,7 @@ spec:
                                                 description: |-
                                                   matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
                                                   map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                                  operator is "In", and the values array contains only "value". The requirements are ANDead.
+                                                  operator is "In", and the values array contains only "value". The requirements are ANDed.
                                                 type: object
                                             type: object
                                             x-kubernetes-map-type: atomic
@@ -3441,7 +3441,7 @@ spec:
                                           If it's null, this PodAffinityTerm matches with no Pods.
                                         properties:
                                           matchExpressions:
-                                            description: matchExpressions is a list of label selector requirements. The requirements are ANDead.
+                                            description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
                                             items:
                                               description: |-
                                                 A label selector requirement is a selector that contains values, a key, and an operator that
@@ -3477,7 +3477,7 @@ spec:
                                             description: |-
                                               matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
                                               map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                              operator is "In", and the values array contains only "value". The requirements are ANDead.
+                                              operator is "In", and the values array contains only "value". The requirements are ANDed.
                                             type: object
                                         type: object
                                         x-kubernetes-map-type: atomic
@@ -3518,7 +3518,7 @@ spec:
                                           An empty selector ({}) matches all namespaces.
                                         properties:
                                           matchExpressions:
-                                            description: matchExpressions is a list of label selector requirements. The requirements are ANDead.
+                                            description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
                                             items:
                                               description: |-
                                                 A label selector requirement is a selector that contains values, a key, and an operator that
@@ -3554,7 +3554,7 @@ spec:
                                             description: |-
                                               matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
                                               map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                              operator is "In", and the values array contains only "value". The requirements are ANDead.
+                                              operator is "In", and the values array contains only "value". The requirements are ANDed.
                                             type: object
                                         type: object
                                         x-kubernetes-map-type: atomic
@@ -4230,7 +4230,7 @@ spec:
                                             description: selector is a label query over volumes to consider for binding.
                                             properties:
                                               matchExpressions:
-                                                description: matchExpressions is a list of label selector requirements. The requirements are ANDead.
+                                                description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
                                                 items:
                                                   description: |-
                                                     A label selector requirement is a selector that contains values, a key, and an operator that
@@ -4266,7 +4266,7 @@ spec:
                                                 description: |-
                                                   matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
                                                   map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                                  operator is "In", and the values array contains only "value". The requirements are ANDead.
+                                                  operator is "In", and the values array contains only "value". The requirements are ANDed.
                                                 type: object
                                             type: object
                                             x-kubernetes-map-type: atomic
@@ -4755,7 +4755,7 @@ spec:
                                                 everything".
                                               properties:
                                                 matchExpressions:
-                                                  description: matchExpressions is a list of label selector requirements. The requirements are ANDead.
+                                                  description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
                                                   items:
                                                     description: |-
                                                       A label selector requirement is a selector that contains values, a key, and an operator that
@@ -4791,7 +4791,7 @@ spec:
                                                   description: |-
                                                     matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
                                                     map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                                    operator is "In", and the values array contains only "value". The requirements are ANDead.
+                                                    operator is "In", and the values array contains only "value". The requirements are ANDed.
                                                   type: object
                                               type: object
                                               x-kubernetes-map-type: atomic
@@ -6357,7 +6357,7 @@ spec:
                                   in their corresponding topology domain.
                                 properties:
                                   matchExpressions:
-                                    description: matchExpressions is a list of label selector requirements. The requirements are ANDead.
+                                    description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
                                     items:
                                       description: |-
                                         A label selector requirement is a selector that contains values, a key, and an operator that
@@ -6393,7 +6393,7 @@ spec:
                                     description: |-
                                       matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
                                       map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                      operator is "In", and the values array contains only "value". The requirements are ANDead.
+                                      operator is "In", and the values array contains only "value". The requirements are ANDed.
                                     type: object
                                 type: object
                                 x-kubernetes-map-type: atomic
@@ -6401,7 +6401,7 @@ spec:
                                 description: |-
                                   MatchLabelKeys is a set of pod label keys to select the pods over which
                                   spreading will be calculated. The keys are used to lookup values from the
-                                  incoming pod labels, those key-value labels are ANDead with labelSelector
+                                  incoming pod labels, those key-value labels are ANDed with labelSelector
                                   to select the group of existing pods over which spreading will be calculated
                                   for the incoming pod. The same key is forbidden to exist in both MatchLabelKeys and LabelSelector.
                                   MatchLabelKeys cannot be set when LabelSelector isn't set.
