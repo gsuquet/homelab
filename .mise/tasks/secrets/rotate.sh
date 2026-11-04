@@ -44,6 +44,7 @@ secrets_clean_env "$work" "$(dirname "$sops_bin")"
 
 # sops reads .sops.yaml from the working folder. Refer to edit.sh.
 cd "$MISE_PROJECT_ROOT"
+before="$(git hash-object "$SECRETS_FILE_REL")"
 status=0
 if [ "$recipients" = "true" ]; then
     log_info "Updating the recipients of $SECRETS_FILE_REL from .sops.yaml..."
@@ -58,4 +59,9 @@ if [ "$status" -ne 0 ]; then
     exit "$status"
 fi
 
+# sops updatekeys returns 0 also when the answer is no or the keys are current.
+if [ "$(git hash-object "$SECRETS_FILE_REL")" = "$before" ]; then
+    log_info "No change to $SECRETS_FILE_REL."
+    exit 0
+fi
 log_info "✓ Done. Next: mise run lint, then commit .sops.yaml and the SOPS file."

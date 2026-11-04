@@ -15,6 +15,11 @@ SECRETS_STATE_FILES='terraform\.tfstate|terraform\.tfstate\.backup|\.terraform\.
 # The child module of the seeds. Its ignored files are refused too.
 SECRETS_SEEDS_MODULE="modules/bootstrap-secret-seeds"
 
+# The repository on GitHub. The tip of its main is the only commit that the tasks run.
+# The tasks set these values, and no variable of the environment changes them.
+SECRETS_MAIN_URL="https://github.com/gsuquet/homelab.git"
+SECRETS_MAIN_PROTOCOL="https"
+
 # secrets_load <instance>
 # Loads the instance and sets SECRETS_REL (the secrets root module, relative to the
 # repository root), SECRETS_DIR and SECRETS_FILE_REL (the SOPS file).
@@ -138,6 +143,11 @@ secrets_key_file() {
 
     if [ -n "${HOMELAB_SOPS_AGE_KEY_FILE:-}" ]; then
         file="$HOMELAB_SOPS_AGE_KEY_FILE"
+        # Terraform runs the provider in another folder, so a relative path fails there.
+        if [ "${file#/}" = "$file" ]; then
+            log_error "HOMELAB_SOPS_AGE_KEY_FILE must be an absolute path, got '$file'." >&2
+            exit 1
+        fi
     else
         if [ -n "${XDG_CONFIG_HOME:-}" ]; then
             config="$XDG_CONFIG_HOME"
@@ -157,14 +167,14 @@ secrets_key_file() {
 
 # secrets_clean_env <work folder> <PATH folder>
 # Sets SECRETS_ENV: an env -i command prefix with PATH (<PATH folder>, /usr/bin and
-# /bin), an empty HOME in <work folder>, and SOPS_AGE_KEY_FILE set to the key file of
+# /bin), an empty HOME and a TMPDIR in <work folder>, and SOPS_AGE_KEY_FILE set to the key file of
 # secrets_key_file. With the empty HOME, SOPS finds no keys.txt and no SSH key
 # (~/.ssh/id_ed25519, ~/.ssh/id_rsa), and Terraform finds no plugin folder in HOME.
 secrets_clean_env() {
     local key
     key="$(secrets_key_file)" || exit 1
-    mkdir -p "$1/home"
-    SECRETS_ENV=(env -i "PATH=$2:/usr/bin:/bin" "HOME=$1/home" "SOPS_AGE_KEY_FILE=$key")
+    mkdir -p "$1/home" "$1/tmp"
+    SECRETS_ENV=(env -i "PATH=$2:/usr/bin:/bin" "HOME=$1/home" "TMPDIR=$1/tmp" "SOPS_AGE_KEY_FILE=$key")
 }
 
 # secrets_terraform_env <work folder> <kubeconfig>
@@ -204,15 +214,50 @@ secrets_tf() {
     "${SECRETS_ENV[@]}" "$TF_BIN" -chdir="$SECRETS_DIR" "$@" < /dev/null
 }
 
-# secrets_check_tree
-# Stops if the working tree has a change or an untracked file, if the secrets root
-# module or the seeds module has an ignored file other than the local state, or if the
-# checked-out commit is not the tip of main on GitHub. The tasks run only after the
-# merge, from the merged commit.
-secrets_check_tree() {
-    local root="$MISE_PROJECT_ROOT" changes ignored head tip
+# secrets_git <git args...>
+# Runs git in the repository with core.fsmonitor and the untracked cache off, so that
+# no hook or cache of .git/config can hide a file from status or ls-files.
+secrets_git() {
+    git -C "$MISE_PROJECT_ROOT" -c core.fsmonitor=false -c core.untrackedCache=false "$@"
+}
 
-    changes="$(git -C "$root" status --porcelain --untracked-files=all)"
+# secrets_main_tip
+# Prints the commit of refs/heads/main at SECRETS_MAIN_URL. git runs with no
+# environment, no system or global config, and outside the repository, so that no
+# insteadOf rewrite, remote URL or ref of the clone applies. Only the protocol of
+# SECRETS_MAIN_PROTOCOL is allowed.
+secrets_main_tip() {
+    local git_bin out
+    git_bin="$(command -v git)"
+    if ! out="$(env -i PATH=/usr/bin:/bin HOME=/nonexistent GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null \
+        "$git_bin" -C / -c protocol.allow=never -c "protocol.$SECRETS_MAIN_PROTOCOL.allow=always" \
+        ls-remote "$SECRETS_MAIN_URL" refs/heads/main 2> /dev/null)"; then
+        return 1
+    fi
+    out="${out%%[[:space:]]*}"
+    [[ "$out" =~ ^[0-9a-f]{40}$ ]] || return 1
+    echo "$out"
+}
+
+# secrets_check_tree
+# Stops if an index entry has the skip-worktree or assume-unchanged bit, if the working
+# tree has a change or an untracked file, if the secrets root module or the seeds
+# module has an ignored file other than the local state, or if the checked-out commit
+# is not the tip of main at SECRETS_MAIN_URL. The tasks run only after the merge, from
+# the merged commit.
+secrets_check_tree() {
+    local changes flagged ignored head tip
+
+    # git status does not compare a file with the skip-worktree (S) or the
+    # assume-unchanged (lowercase) bit. Each entry must have the flag H.
+    flagged="$(secrets_git ls-files -v | { grep -v '^H ' || true; })"
+    if [ -n "$flagged" ]; then
+        log_error "Files have the skip-worktree or assume-unchanged bit. Clear it first (git update-index --no-skip-worktree --no-assume-unchanged):"
+        echo "$flagged" >&2
+        exit 1
+    fi
+
+    changes="$(secrets_git status --porcelain --untracked-files=all)"
     if [ -n "$changes" ]; then
         log_error "The working tree is not clean. Commit, stash or remove these files first:"
         echo "$changes" >&2
@@ -221,7 +266,7 @@ secrets_check_tree() {
 
     # git status does not show ignored files, but Terraform loads *.tfvars and
     # override files from the folder.
-    ignored="$(git -C "$root" ls-files --others --ignored --exclude-standard --directory -- "$SECRETS_REL" "$SECRETS_SEEDS_MODULE" |
+    ignored="$(secrets_git ls-files --others --ignored --exclude-standard --directory -- "$SECRETS_REL" "$SECRETS_SEEDS_MODULE" |
         { grep -vxE "$SECRETS_REL/($SECRETS_STATE_FILES)" || true; })"
     if [ -n "$ignored" ]; then
         log_error "The Terraform folders of the secrets have ignored files. Remove them first:"
@@ -229,15 +274,14 @@ secrets_check_tree() {
         exit 1
     fi
 
-    # A local ref can move, so the task fetches main and compares with that commit.
-    if ! git -C "$root" fetch --quiet origin main; then
-        log_error "Cannot fetch main from origin. The task needs the tip of main on GitHub."
+    # The remote and the refs of the clone can change, so the task asks the pinned URL.
+    if ! tip="$(secrets_main_tip)"; then
+        log_error "Cannot read main from $SECRETS_MAIN_URL. The task needs the tip of main on GitHub."
         exit 1
     fi
-    head="$(git -C "$root" rev-parse HEAD)"
-    tip="$(git -C "$root" rev-parse FETCH_HEAD)"
+    head="$(secrets_git rev-parse HEAD)"
     if [ "$head" != "$tip" ]; then
-        log_error "The commit ${head:0:7} is not the tip of main (${tip:0:7}). Run the task from main after the merge: git switch main && git pull --ff-only"
+        log_error "The commit ${head:0:7} is not the tip of main at $SECRETS_MAIN_URL (${tip:0:7}). Run the task from main after the merge: git switch main && git pull --ff-only"
         exit 1
     fi
 }

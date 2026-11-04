@@ -122,7 +122,7 @@ The task runs these tasks as dependencies, then prints `✓ All linters and chec
 
 `lint:terraform`, `lint:policy`, `lint:actions`, `lint:shell`, `lint:docs`, `lint:records`, `lint:records-test`, `lint:secrets-tasks-test`, `schemas:test`, `schemas:check`.
 
-The `Lint` workflow runs `mise run lint` on each pull request and on each push to `main`. A `lint-*` pre-commit hook runs each `lint:*` task, except `lint:records-test`.
+The `Lint` workflow runs `mise run lint` on each pull request and on each push to `main`. A `lint-*` pre-commit hook runs each `lint:*` task, except `lint:records-test` and `lint:secrets-tasks-test`.
 
 ### `lint:actions`
 
@@ -241,7 +241,7 @@ mise run secrets:rotate <instance> --data-key
 
 | Status | Condition |
 | --- | --- |
-| `0` | The task completed, or the plan has no change. For `secrets:edit`, also no change to the file: `sops edit` exits with `200`, and the task prints `No change`. |
+| `0` | The task completed, or the plan has no change. For `secrets:edit`, also no change to the file: `sops edit` exits with `200`, and the task prints `No change`. For `secrets:rotate`, the task prints `No change` when the file did not change, for example after the answer `n` to `sops updatekeys`. |
 | `1` | A precondition failed, `.sops.yaml` has a placeholder recipient, the key file is missing, the terminal is missing, or the answer to the confirmation was not the expected text. |
 | Other | The status of the `terraform` or `sops` command that failed. |
 

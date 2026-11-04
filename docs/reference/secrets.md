@@ -77,7 +77,7 @@ The `secrets:*` tasks thus give SOPS and Terraform a new, empty `HOME` in their 
 
 | Variable of the tasks | Meaning |
 | --- | --- |
-| `HOMELAB_SOPS_AGE_KEY_FILE` | The path of the scope key file. When it is not set, the tasks use `keys.txt` in the user config folder. The task stops when the file does not exist. |
+| `HOMELAB_SOPS_AGE_KEY_FILE` | The absolute path of the scope key file. When it is not set, the tasks use `keys.txt` in the user config folder. The task stops when the path is not absolute or the file does not exist. |
 
 A SOPS file with production values uses a hardware key through an age plugin, with a touch for each decryption.
 
@@ -178,9 +178,9 @@ The three tasks have the same preconditions. A task stops with a message when on
 
 | Precondition | Check |
 | --- | --- |
-| The working tree is clean. | Git shows no change and no untracked file. |
+| The working tree is clean. | No index entry has the skip-worktree or the assume-unchanged bit, because `git status` does not compare these files. Git shows no change and no untracked file. The task runs `git status` and `git ls-files` with `core.fsmonitor` and `core.untrackedCache` off. |
 | No ignored file can change the Terraform code. | `instances/<instance>/secrets/` and `modules/bootstrap-secret-seeds/` have no ignored file and no ignored folder, except the local state files `terraform.tfstate`, `terraform.tfstate.backup` and `.terraform.tfstate.lock.info`. Terraform loads ignored files, for example `*.tfvars`, `*.auto.tfvars`, `override.tf` and `*_override.tf`. |
-| The commit is the tip of `main`. | The task runs `git fetch origin main`, and the checked-out commit is equal to the fetched commit. A task runs only after the merge, from the merged commit. A failed fetch stops the task. |
+| The commit is the tip of `main`. | The task reads `refs/heads/main` from the fixed URL `https://github.com/gsuquet/homelab.git` with `git ls-remote`, and the checked-out commit is equal to it. Git runs with no environment, no system or global config and outside the clone, and with only the `https` protocol, so the `origin` remote, the refs of the clone and an `insteadOf` rewrite have no effect. A task runs only after the merge, from the merged commit. A failed read stops the task. |
 | The cluster is up. | The task gets a kubeconfig from the cluster with `kind get kubeconfig`, and `/readyz` of the API server answers. The cluster name is the `cluster_name` output of the instance root module. |
 | The kubeconfig is clean. | The file has exactly one cluster. `server` is a loopback address: `https://` and `127.0.0.1`, `localhost` or `[::1]`. The file has only the keys that `kind get kubeconfig` writes: `server` and `certificate-authority-data` for the cluster, `client-certificate-data` and `client-key-data` for the user. Thus no `exec`, `auth-provider`, token, `proxy-url` or `insecure-skip-tls-verify`. |
 | Each seed namespace exists. | The seed namespace of each consumer in the seed map is in the cluster. |
@@ -189,7 +189,7 @@ The three tasks build the same environment:
 
 | Item | Value |
 | --- | --- |
-| Environment | Minimal, with `env -i`: `PATH` (the folder of `terraform`, `/usr/bin` and `/bin`), `HOME` (a new, empty folder in the temporary folder), `SOPS_AGE_KEY_FILE` (the one key file, refer to [Key location](#key-location)), `TF_INPUT=0` and `CHECKPOINT_DISABLE=1`. No other variable of the shell. Standard input of Terraform from `/dev/null`. The task reads the confirmation from the terminal, not Terraform. |
+| Environment | Minimal, with `env -i`: `PATH` (the folder of `terraform`, `/usr/bin` and `/bin`), `HOME` (a new, empty folder in the temporary folder), `TMPDIR` (a folder in the temporary folder), `SOPS_AGE_KEY_FILE` (the one key file, refer to [Key location](#key-location)), `TF_INPUT=0` and `CHECKPOINT_DISABLE=1`. No other variable of the shell. Standard input of Terraform from `/dev/null`. The task reads the confirmation from the terminal, not Terraform. |
 | `TF_CLI_CONFIG_FILE` | `.mise/tasks/secrets/empty.tfrc`, an empty file. No `provider_installation` and no `dev_overrides`. The task stops if the file is not empty. |
 | `TF_DATA_DIR` | A new folder, with `terraform init -lockfile=readonly`. |
 | Kubeconfig | A temporary file from `kind get kubeconfig --name <cluster>`, given with `-var=kubeconfig_path=<file>` on the plan command. |

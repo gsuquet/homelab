@@ -42,7 +42,6 @@ sops_bin="$(secrets_tool sops)" || exit 1
 
 work="$(secrets_workdir edit)"
 secrets_cleanup_on_exit "$work"
-mkdir "$work/tmp"
 
 # SOPS starts the editor with the path of its temporary file as the last argument.
 {
@@ -56,7 +55,6 @@ secrets_clean_env "$work" "$(dirname "$sops_bin")"
 SECRETS_ENV+=(
     "TERM=${TERM:-xterm}"
     "LANG=${LANG:-en_US.UTF-8}"
-    "TMPDIR=$work/tmp"
     "SOPS_EDITOR=$work/editor"
     "EDITOR=$work/editor"
 )
