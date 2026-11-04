@@ -127,7 +127,7 @@ components:
 | --- | --- | --- | --- |
 | `Namespace` in `gitops/` | `pod-security.kubernetes.io/enforce`, `audit` and `warn`, each `privileged`, `baseline` or `restricted` | `argocd.argoproj.io/sync-wave: "-2"` | Namespace checks, `deny` |
 | `Namespace` in `gitops/` | `tenant.<p>/name`, `ownership.<p>/owner` | None | K5, `warn` |
-| `CustomResourceDefinition` in `gitops/` | None | `argocd.argoproj.io/sync-wave: "-1"` | Sync wave check, `deny` |
+| `CustomResourceDefinition` in `gitops/` | None | `argocd.argoproj.io/sync-wave: "-1"`. `manifests:render` sets it. | Sync wave check, `deny` |
 | The pod template of a workload or a `CronJob` | `app.kubernetes.io/name`, `app.kubernetes.io/instance`, `app.kubernetes.io/part-of` | None | K6 or K7, `warn` |
 | The `metadata` block of each object in `gitops/` | `app.kubernetes.io/name`, `app.kubernetes.io/instance`, `app.kubernetes.io/managed-by` | None | K6 or K7, `warn` |
 
