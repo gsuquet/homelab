@@ -20,6 +20,7 @@ See [AGENTS.md](AGENTS.md) for key architectural and design decisions.
 | <a name="provider_helm"></a> [helm](#provider\_helm) | 3.1.1 |
 | <a name="provider_kubectl"></a> [kubectl](#provider\_kubectl) | 2.2.0 |
 | <a name="provider_kubernetes"></a> [kubernetes](#provider\_kubernetes) | 3.1.0 |
+| <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
 
 ## Inputs
 
@@ -47,7 +48,9 @@ See [AGENTS.md](AGENTS.md) for key architectural and design decisions.
 | <a name="input_k8s_service_host"></a> [k8s\_service\_host](#input\_k8s\_service\_host) | Kubernetes API server address, required when kube\_proxy\_replacement is true and the API server isn't otherwise reachable via the in-cluster service (e.g. on kind). Leave empty to let the chart use its own default detection. | `string` | `""` | no |
 | <a name="input_k8s_service_port"></a> [k8s\_service\_port](#input\_k8s\_service\_port) | Kubernetes API server port, paired with k8s\_service\_host. Leave empty to let the chart use its own default detection. | `string` | `""` | no |
 | <a name="input_kube_proxy_replacement"></a> [kube\_proxy\_replacement](#input\_kube\_proxy\_replacement) | Replace kube-proxy with Cilium's eBPF datapath (fewer moving parts, faster L3-L4 enforcement). | `bool` | `true` | no |
+| <a name="input_kubeconfig_path"></a> [kubeconfig\_path](#input\_kubeconfig\_path) | Kubeconfig of the cluster. When set with lb\_ip\_pool, the module runs `kubectl wait` for the CRD of the pool before it makes the pool. Needs the kubectl CLI on the host. Empty means no wait. | `string` | `""` | no |
 | <a name="input_lb_ip_pool"></a> [lb\_ip\_pool](#input\_lb\_ip\_pool) | One CiliumLoadBalancerIPPool with one address range. Null means no pool. L2 announcements stay off, so the addresses are not reachable from outside the cluster. On kind, use a range inside the subnet of the Docker network `kind`, outside the node addresses. | <pre>object({<br/>    name  = optional(string, "default")<br/>    start = string<br/>    stop  = string<br/>  })</pre> | `null` | no |
+| <a name="input_lb_ip_pool_crd_timeout"></a> [lb\_ip\_pool\_crd\_timeout](#input\_lb\_ip\_pool\_crd\_timeout) | Seconds to wait for the CRD ciliumloadbalancerippools.cilium.io. | `number` | `120` | no |
 | <a name="input_namespace"></a> [namespace](#input\_namespace) | Namespace to install Cilium into. Defaults to kube-system, which already exists on every cluster and is therefore not created by this module. Any other value is created automatically. | `string` | `"kube-system"` | no |
 | <a name="input_policy_enforcement_mode"></a> [policy\_enforcement\_mode](#input\_policy\_enforcement\_mode) | Cilium network policy enforcement mode: 'default' (deny only for endpoints selected by a policy), 'always' (deny-by-default for every endpoint), or 'never'. | `string` | `"default"` | no |
 | <a name="input_release_name"></a> [release\_name](#input\_release\_name) | Name of the Helm release. | `string` | `"cilium"` | no |

@@ -54,7 +54,7 @@ observability.
 | `host_firewall_enabled` | Enables eBPF host firewall to protect host/node network namespace. |
 | `egress_gateway_enabled` | Enables egress gateway to redirect/SNAT pod traffic leaving the cluster via dedicated gateway nodes. |
 | `k8s_service_host` / `k8s_service_port` | Set explicitly for kind; leave empty on managed clouds unless proven necessary. |
-| `lb_ip_pool` | Null by default (no pool). Start and stop addresses of the one pool. Keep the range outside the node addresses. |
+| `lb_ip_pool` | Null by default (no pool). Start and stop addresses of the one pool. Keep the range outside the node addresses. `kubeconfig_path` adds a `kubectl wait` for the pool CRD before the pool. |
 | `policy_enforcement_mode` | Allows explicit `CiliumNetworkPolicy` resources per workload without enforcing global default-deny upfront. |
 
 ## Outputs consumed by downstream modules
