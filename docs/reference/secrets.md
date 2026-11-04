@@ -11,7 +11,7 @@ The secrets of the `gitops/` tree are in one SOPS file for each instance, encryp
 | `gitops/infrastructure/external-secrets/` | The ESO component. Refer to [ESO component](#eso-component). |
 | `policy/data/secrets.yaml` | The trusted platform components, the SC7 exception and the SC16 protected namespaces and allowlist. |
 | `.gitleaks.toml` | The gitleaks settings, with the SC3 rule for age keys. |
-| `.mise/tasks/secrets/` | The scripts of the `secrets:*` tasks. `apply.sh` builds the clean environment. |
+| `.mise/tasks/secrets/` | The scripts of the `secrets:*` tasks. `.mise/tasks/_base/secrets.sh` holds their checks and builds the clean environment. |
 
 ## Classes of secrets
 
@@ -60,15 +60,24 @@ SOPS looks for `.sops.yaml` in the working folder, then in each parent folder. I
 
 ### Key location
 
-SOPS reads the scope key from `keys.txt` in `$XDG_CONFIG_HOME/sops/age/`. On macOS, the folder is `$HOME/Library/Application Support/sops/age/`.
+The scope key is in `keys.txt` in the SOPS user config folder: `$XDG_CONFIG_HOME/sops/age/` when `XDG_CONFIG_HOME` is set, else `$HOME/Library/Application Support/sops/age/` on macOS and `$HOME/.config/sops/age/` on other systems.
 
-| Variable | Meaning |
+SOPS 3.13.3 does not choose one source of age keys. It reads each of these sources, and it tries each identity that it finds ([`age/keysource.go`, `loadIdentities` and `loadAgeSSHIdentities`](https://github.com/getsops/sops/blob/v3.13.3/age/keysource.go)):
+
+| Source | Content |
 | --- | --- |
-| `SOPS_AGE_KEY_FILE` | The path of a key file. It overrides `keys.txt`. |
-| `SOPS_AGE_KEY` | The key itself. It overrides `keys.txt`. |
-| `SOPS_AGE_KEY_CMD` | A command that prints the key. It overrides `keys.txt`. |
+| `SOPS_AGE_SSH_PRIVATE_KEY_FILE`, `SOPS_AGE_SSH_PRIVATE_KEY_CMD` | An SSH private key, or a command that prints it. |
+| `~/.ssh/id_ed25519`, `~/.ssh/id_rsa` | The SSH keys of `HOME`, when they exist. |
+| `SOPS_AGE_KEY` | One or more age keys. |
+| `SOPS_AGE_KEY_FILE` | The path of an age key file. |
+| `SOPS_AGE_KEY_CMD` | A command that prints age keys. |
+| `keys.txt` in the user config folder | The age key file, when it exists. |
 
-The `secrets:*` tasks pass each of these variables that is set. When the shell sets `SOPS_AGE_KEY_FILE` for another use, SOPS reads that file and not `keys.txt`.
+The `secrets:*` tasks thus give SOPS and Terraform a new, empty `HOME` in their temporary folder and one key file in `SOPS_AGE_KEY_FILE`. They pass no other `SOPS_AGE_*` variable of the shell, so a variable that the shell sets for another use, for example the age key of mise, has no effect.
+
+| Variable of the tasks | Meaning |
+| --- | --- |
+| `HOMELAB_SOPS_AGE_KEY_FILE` | The path of the scope key file. When it is not set, the tasks use `keys.txt` in the user config folder. The task stops when the file does not exist. |
 
 A SOPS file with production values uses a hardware key through an age plugin, with a touch for each decryption.
 
@@ -79,7 +88,7 @@ A SOPS file with production values uses a hardware key through an age plugin, wi
 | File | Content |
 | --- | --- |
 | `terraform.tf` | The `terraform` block, with `carlpett/sops` and `hashicorp/kubernetes`. |
-| `providers.tf` | `provider "kubernetes"` with `config_path = var.kubeconfig_path` only. The tasks set `TF_VAR_kubeconfig_path` to the kubeconfig that they make. |
+| `providers.tf` | `provider "kubernetes"` with `config_path = var.kubeconfig_path` only. The tasks give the kubeconfig that they make with `-var=kubeconfig_path=<file>` on the plan command. A `-var` option wins over each variable file, and the saved plan keeps it for the apply. |
 | `main.tf` | `ephemeral "sops_file"`, and `module "secret_seeds"` with the seed map in its `seeds` argument. The seed map is a literal map, because the tasks read its keys from the file. |
 | `.terraform.lock.hcl` | The provider checksums. |
 | `secrets.sops.yaml` | The SOPS file. |
@@ -160,29 +169,30 @@ mise run secrets:destroy <instance>
   1. Check the preconditions.
   2. Make the saved plan in a new temporary folder outside the repository.
   3. Print a summary of the plan, with no values: `terraform show -json` of the plan, restricted to `.resource_changes[].address` and `.change.actions`.
-  4. Ask for a typed confirmation on the terminal: `apply <instance>` or `destroy <instance>`. Each other answer stops the task with no change. A plan with no change stops the task before the question.
+  4. Ask for a typed confirmation on the terminal: `apply <instance>` or `destroy <instance>`. Each other answer stops the task with no change, and with the exit status `1`. A plan with no change stops the task before the question, with the exit status `0`.
   5. Apply the saved plan. The `trap` then deletes the temporary folder.
 - Terraform applies a saved plan with no prompt, because it takes the plan file as the approval ([`terraform apply`](https://developer.hashicorp.com/terraform/cli/commands/apply)). The typed confirmation of the task is thus the approval, after the review of the diffs.
-- `secrets:apply` and `secrets:destroy` read the confirmation from `/dev/tty`, and stop when the process has no terminal. This stops a run from a plain tool call, CI or a pipe, for example `yes |`. It does not stop a process that makes a pseudo-terminal, for example `script` or `expect`, and it does not stop a direct `terraform` command. The controls stay the agent rules, a scope key that agents do not get for production values, and a person who runs the task.
+- Each `secrets:*` task stops when the process has no terminal. `secrets:apply` and `secrets:destroy` read the confirmation from `/dev/tty`. This stops a run from a plain tool call, CI or a pipe, for example `yes |`. It does not stop a process that makes a pseudo-terminal, for example `script` or `expect`, and it does not stop a direct `terraform` command. The controls stay the agent rules, a scope key that agents do not get for production values, and a person who runs the task.
 
 The three tasks have the same preconditions. A task stops with a message when one of them fails:
 
 | Precondition | Check |
 | --- | --- |
 | The working tree is clean. | Git shows no change and no untracked file. |
-| The commit is on `main`. | The checked-out commit is on `origin/main`. A task runs only after the merge. |
+| No ignored file can change the Terraform code. | `instances/<instance>/secrets/` and `modules/bootstrap-secret-seeds/` have no ignored file and no ignored folder, except the local state files `terraform.tfstate`, `terraform.tfstate.backup` and `.terraform.tfstate.lock.info`. Terraform loads ignored files, for example `*.tfvars`, `*.auto.tfvars`, `override.tf` and `*_override.tf`. |
+| The commit is the tip of `main`. | The task runs `git fetch origin main`, and the checked-out commit is equal to the fetched commit. A task runs only after the merge, from the merged commit. A failed fetch stops the task. |
 | The cluster is up. | The task gets a kubeconfig from the cluster with `kind get kubeconfig`, and `/readyz` of the API server answers. The cluster name is the `cluster_name` output of the instance root module. |
-| The kubeconfig is clean. | The file has exactly one cluster. `server` is a loopback address: `127.0.0.1`, `localhost` or `[::1]`. The file has no `exec` and no `proxy-url`. |
+| The kubeconfig is clean. | The file has exactly one cluster. `server` is a loopback address: `https://` and `127.0.0.1`, `localhost` or `[::1]`. The file has only the keys that `kind get kubeconfig` writes: `server` and `certificate-authority-data` for the cluster, `client-certificate-data` and `client-key-data` for the user. Thus no `exec`, `auth-provider`, token, `proxy-url` or `insecure-skip-tls-verify`. |
 | Each seed namespace exists. | The seed namespace of each consumer in the seed map is in the cluster. |
 
 The three tasks build the same environment:
 
 | Item | Value |
 | --- | --- |
-| Environment | Minimal, with `env -i`: `PATH` (the folder of `terraform`, `/usr/bin` and `/bin`), `HOME`, `TF_INPUT=0`, and each of `SOPS_AGE_KEY_FILE`, `SOPS_AGE_KEY`, `SOPS_AGE_KEY_CMD` and `XDG_CONFIG_HOME` that is set. Standard input of Terraform from `/dev/null`. The task reads the confirmation from the terminal, not Terraform. |
+| Environment | Minimal, with `env -i`: `PATH` (the folder of `terraform`, `/usr/bin` and `/bin`), `HOME` (a new, empty folder in the temporary folder), `SOPS_AGE_KEY_FILE` (the one key file, refer to [Key location](#key-location)), `TF_INPUT=0` and `CHECKPOINT_DISABLE=1`. No other variable of the shell. Standard input of Terraform from `/dev/null`. The task reads the confirmation from the terminal, not Terraform. |
 | `TF_CLI_CONFIG_FILE` | `.mise/tasks/secrets/empty.tfrc`, an empty file. No `provider_installation` and no `dev_overrides`. The task stops if the file is not empty. |
 | `TF_DATA_DIR` | A new folder, with `terraform init -lockfile=readonly`. |
-| Kubeconfig | A temporary file from `kind get kubeconfig --name <cluster>`, in `TF_VAR_kubeconfig_path`. |
+| Kubeconfig | A temporary file from `kind get kubeconfig --name <cluster>`, given with `-var=kubeconfig_path=<file>` on the plan command. |
 
 Without a key, `terraform plan` stops at the ephemeral resource before any write, with `Error getting data key: 0 successful groups required, got 0`.
 

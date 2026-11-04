@@ -21,6 +21,10 @@ source "$MISE_PROJECT_ROOT/.mise/tasks/_base/instance.sh"
 # shellcheck source=../_base/secrets.sh
 source "$MISE_PROJECT_ROOT/.mise/tasks/_base/secrets.sh"
 
+# The files that the task writes are for this user only.
+umask 077
+
+secrets_require_tty
 secrets_load "${usage_instance:?}"
 
 work="$(secrets_workdir plan-work)"
@@ -32,7 +36,7 @@ secrets_init
 plan_dir="$(secrets_workdir plan)"
 log_info "Plan folder: $plan_dir"
 
-secrets_tf plan -input=false -refresh-only -out="$plan_dir/secrets.tfplan"
+secrets_tf plan -input=false "$(secrets_plan_vars)" -refresh-only -out="$plan_dir/secrets.tfplan"
 secrets_tf show -json "$plan_dir/secrets.tfplan" > "$plan_dir/secrets.tfplan.json"
 
 log_info "✓ Saved the plan and its JSON in $plan_dir. Delete the folder after use: rm -r $plan_dir"

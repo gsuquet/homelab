@@ -8,8 +8,10 @@
 # rotation is secrets:edit, then secrets:apply. After a recipient leaks, run
 # --recipients, then --data-key, in that order.
 #
-# Environment: the age key variable, if set, and XDG_CONFIG_HOME. SOPS gets no other
-# variable.
+# Environment: HOMELAB_SOPS_AGE_KEY_FILE, if set, gives the age key file. SOPS gets an
+# empty HOME and only that key file.
+#
+# Exit status: 0 on success; else the status of sops.
 
 set -euo pipefail
 
@@ -20,6 +22,9 @@ source "$MISE_PROJECT_ROOT/.mise/tasks/_base/instance.sh"
 # shellcheck source=../_base/secrets.sh
 source "$MISE_PROJECT_ROOT/.mise/tasks/_base/secrets.sh"
 
+# The files that the task writes are for this user only.
+umask 077
+
 recipients="${usage_recipients:-false}"
 data_key="${usage_data_key:-false}"
 if [ "$recipients" = "$data_key" ]; then
@@ -27,22 +32,30 @@ if [ "$recipients" = "$data_key" ]; then
     exit 1
 fi
 
+secrets_require_tty
 secrets_load "${usage_instance:?}"
 secrets_require_file
 secrets_check_rules
 
-sops_bin="$(secrets_tool sops)"
-secrets_clean_env "$(dirname "$sops_bin")"
+sops_bin="$(secrets_tool sops)" || exit 1
+work="$(secrets_workdir rotate)"
+secrets_cleanup_on_exit "$work"
+secrets_clean_env "$work" "$(dirname "$sops_bin")"
 
 # sops reads .sops.yaml from the working folder. Refer to edit.sh.
 cd "$MISE_PROJECT_ROOT"
+status=0
 if [ "$recipients" = "true" ]; then
     log_info "Updating the recipients of $SECRETS_FILE_REL from .sops.yaml..."
-    # sops updatekeys shows the change and asks for a confirmation.
-    "${SECRETS_ENV[@]}" "$sops_bin" updatekeys "$SECRETS_FILE_REL"
+    # sops updatekeys shows the change and asks for a confirmation on the terminal.
+    "${SECRETS_ENV[@]}" "$sops_bin" updatekeys "$SECRETS_FILE_REL" < /dev/tty || status=$?
 else
     log_info "Rotating the data key of $SECRETS_FILE_REL..."
-    "${SECRETS_ENV[@]}" "$sops_bin" rotate --in-place "$SECRETS_FILE_REL"
+    "${SECRETS_ENV[@]}" "$sops_bin" rotate --in-place "$SECRETS_FILE_REL" || status=$?
+fi
+if [ "$status" -ne 0 ]; then
+    log_error "sops failed with status $status."
+    exit "$status"
 fi
 
 log_info "✓ Done. Next: mise run lint, then commit .sops.yaml and the SOPS file."

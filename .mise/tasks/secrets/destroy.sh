@@ -8,7 +8,7 @@
 # the repository; print a summary with no values; ask for a typed confirmation on the
 # terminal; apply the saved plan. The EXIT trap deletes the folder.
 #
-# Environment: the same as secrets:apply.
+# Environment and exit status: the same as secrets:apply.
 
 set -euo pipefail
 
@@ -18,6 +18,9 @@ source "$MISE_PROJECT_ROOT/.mise/tasks/_base/log.sh"
 source "$MISE_PROJECT_ROOT/.mise/tasks/_base/instance.sh"
 # shellcheck source=../_base/secrets.sh
 source "$MISE_PROJECT_ROOT/.mise/tasks/_base/secrets.sh"
+
+# The files that the task writes are for this user only.
+umask 077
 
 secrets_require_tty
 secrets_load "${usage_instance:?}"
@@ -30,7 +33,7 @@ secrets_preconditions "$work"
 secrets_init
 
 log_info "Planning the destroy of $SECRETS_REL..."
-secrets_tf plan -input=false -destroy -out="$plan"
+secrets_tf plan -input=false "$(secrets_plan_vars)" -destroy -out="$plan"
 
 if ! secrets_summary "$plan"; then
     log_info "Nothing to destroy."
@@ -39,7 +42,7 @@ fi
 
 if ! secrets_confirm "destroy $usage_instance"; then
     log_warn "Stopped. Nothing destroyed."
-    exit 0
+    exit 1
 fi
 
 log_info "Destroying $SECRETS_REL..."

@@ -28,6 +28,7 @@ The files in `.mise/tasks/_base/` are not executable, so they are not tasks. The
 | `lint:policy` | `lint/policy.sh` | Test the Conftest policies, then check the repository against them. |
 | `lint:records` | `lint/records.sh` | Refuse references to the old proposal and decision record files. |
 | `lint:records-test` | `lint/records-test.sh` | Test the exit status of `lint:records`. |
+| `lint:secrets-tasks-test` | `lint/secrets-tasks-test.sh` | Test the checks of the `secrets:*` tasks against fixtures. |
 | `lint:shell` | `lint/shell.sh` | Check the shell scripts with ShellCheck and shfmt. |
 | `lint:terraform` | `lint/terraform.sh` | Check the format of the Terraform files, and run TFLint. |
 | `manifests:check` | `manifests/check.sh` | Check that the rendered manifests are current. |
@@ -119,7 +120,7 @@ A deleted label goes away from each issue and PR that has it. The `gh` login nee
 
 The task runs these tasks as dependencies, then prints `✓ All linters and checks passed.`:
 
-`lint:terraform`, `lint:policy`, `lint:actions`, `lint:shell`, `lint:docs`, `lint:records`, `lint:records-test`, `schemas:test`, `schemas:check`.
+`lint:terraform`, `lint:policy`, `lint:actions`, `lint:shell`, `lint:docs`, `lint:records`, `lint:records-test`, `lint:secrets-tasks-test`, `schemas:test`, `schemas:check`.
 
 The `Lint` workflow runs `mise run lint` on each pull request and on each push to `main`. A `lint-*` pre-commit hook runs each `lint:*` task, except `lint:records-test`.
 
@@ -162,6 +163,10 @@ The `lint-records` pre-commit hook runs the task on each commit.
 ### `lint:records-test`
 
 The task puts a fake `git` first in `PATH`. The fake `git` exits with `1`, `0`, `2` and then `128`. The test passes when `lint:records` passes only with `1`.
+
+### `lint:secrets-tasks-test`
+
+The task loads `.mise/tasks/_base/secrets.sh` and runs its checks against fixtures in a temporary folder: kubeconfig files, seed maps, a clone of a local Git repository, and a fake `kubectl`. It needs no cluster, no network and no age key. Each case expects a pass or a fail. The task fails when one case gives another result.
 
 ### `lint:shell`
 
@@ -236,8 +241,9 @@ mise run secrets:rotate <instance> --data-key
 
 | Status | Condition |
 | --- | --- |
-| `0` | The task completed, or the plan has no change, or the answer to the confirmation was not the expected text. |
-| `1` | A precondition failed, `.sops.yaml` has a placeholder recipient, the terminal is missing, or a `terraform` or `sops` command failed. |
+| `0` | The task completed, or the plan has no change. For `secrets:edit`, also no change to the file: `sops edit` exits with `200`, and the task prints `No change`. |
+| `1` | A precondition failed, `.sops.yaml` has a placeholder recipient, the key file is missing, the terminal is missing, or the answer to the confirmation was not the expected text. |
+| Other | The status of the `terraform` or `sops` command that failed. |
 
 No hook or workflow runs these tasks.
 

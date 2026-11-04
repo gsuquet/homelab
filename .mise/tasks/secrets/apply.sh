@@ -8,8 +8,12 @@
 # folder outside the repository; print a summary with no values; ask for a typed
 # confirmation on the terminal; apply the saved plan. The EXIT trap deletes the folder.
 #
-# Environment: the age key variable, if set (SOPS_AGE_KEY_FILE, SOPS_AGE_KEY or
-# SOPS_AGE_KEY_CMD), and XDG_CONFIG_HOME. Terraform gets no other variable.
+# Environment: HOMELAB_SOPS_AGE_KEY_FILE, if set, gives the age key file. Terraform
+# gets an empty HOME, SOPS_AGE_KEY_FILE set to that one key file, and no other
+# variable of the shell. The kubeconfig goes to the plan as -var.
+#
+# Exit status: 0 after the apply, or when the plan has no change; 1 when a
+# precondition fails or the confirmation is refused; else the status of terraform.
 
 set -euo pipefail
 
@@ -19,6 +23,9 @@ source "$MISE_PROJECT_ROOT/.mise/tasks/_base/log.sh"
 source "$MISE_PROJECT_ROOT/.mise/tasks/_base/instance.sh"
 # shellcheck source=../_base/secrets.sh
 source "$MISE_PROJECT_ROOT/.mise/tasks/_base/secrets.sh"
+
+# The files that the task writes are for this user only.
+umask 077
 
 secrets_require_tty
 secrets_load "${usage_instance:?}"
@@ -39,7 +46,7 @@ while IFS= read -r address; do
 done <<< "$addresses"
 
 log_info "Planning $SECRETS_REL..."
-secrets_tf plan -input=false ${replace[@]+"${replace[@]}"} -out="$plan"
+secrets_tf plan -input=false "$(secrets_plan_vars)" ${replace[@]+"${replace[@]}"} -out="$plan"
 
 if ! secrets_summary "$plan"; then
     log_info "Nothing to apply."
@@ -48,7 +55,7 @@ fi
 
 if ! secrets_confirm "apply $usage_instance"; then
     log_warn "Stopped. Nothing applied."
-    exit 0
+    exit 1
 fi
 
 # A saved plan applies with no prompt: the plan file is the approval.

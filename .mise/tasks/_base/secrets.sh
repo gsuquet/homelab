@@ -1,15 +1,19 @@
 # shellcheck shell=bash
 # Shared functions of the secrets:* tasks. Source log.sh and instance.sh before this file.
 # Only a person runs these tasks, by hand, with no agent session. Refer to
-# docs/reference/secrets.md.
+# docs/reference/secrets.md. lint:secrets-tasks-test tests the checks.
 
 # The Terraform CLI configuration of the clean environment: an empty file, so no
 # provider_installation, dev_overrides or plugin cache applies.
 SECRETS_EMPTY_TFRC=".mise/tasks/secrets/empty.tfrc"
 
-# The variables that tell SOPS where the age key is. The clean environment keeps
-# only these, and XDG_CONFIG_HOME, which sets the folder of keys.txt.
-SECRETS_KEY_VARS="SOPS_AGE_KEY_FILE SOPS_AGE_KEY SOPS_AGE_KEY_CMD XDG_CONFIG_HOME"
+# The ignored files that can be in a Terraform folder of the secrets: the local state.
+# Terraform loads each other ignored file there (*.tfvars, override.tf), so the tasks
+# refuse them. The state files are relative to the secrets root module.
+SECRETS_STATE_FILES='terraform\.tfstate|terraform\.tfstate\.backup|\.terraform\.tfstate\.lock\.info'
+
+# The child module of the seeds. Its ignored files are refused too.
+SECRETS_SEEDS_MODULE="modules/bootstrap-secret-seeds"
 
 # secrets_load <instance>
 # Loads the instance and sets SECRETS_REL (the secrets root module, relative to the
@@ -86,8 +90,8 @@ secrets_confirm() {
 }
 
 # secrets_workdir <label>
-# Makes a new folder outside the repository, with mode 0700 (umask 077), and prints its
-# path. The caller deletes it.
+# Makes a new folder outside the repository, with mode 0700, and prints its path. The
+# caller deletes it. Each task also sets umask 077 for the files that it writes.
 secrets_workdir() {
     umask 077
     local base="${TMPDIR:-/tmp}"
@@ -113,33 +117,61 @@ secrets_cleanup_on_exit() {
 
 # secrets_tool <name>
 # Prints the absolute path of the mise tool <name>. The clean environment has no
-# mise shims on PATH.
+# mise shims on PATH. The error goes to stderr, because the caller reads stdout.
 secrets_tool() {
     local path
     if ! path="$(mise which "$1" 2> /dev/null)" || [ ! -x "$path" ]; then
-        log_error "Cannot find $1. Run 'mise install' in the repository."
+        log_error "Cannot find $1. Run 'mise install' in the repository." >&2
         exit 1
     fi
     echo "$path"
 }
 
-# secrets_clean_env <PATH folder>
-# Sets SECRETS_ENV: an env -i command prefix with PATH (<PATH folder>, /usr/bin and
-# /bin), HOME, and each variable of SECRETS_KEY_VARS that is set.
-secrets_clean_env() {
-    local var
-    SECRETS_ENV=(env -i "PATH=$1:/usr/bin:/bin" "HOME=$HOME")
-    for var in $SECRETS_KEY_VARS; do
-        if [ -n "${!var+set}" ]; then
-            SECRETS_ENV+=("$var=${!var}")
+# secrets_key_file
+# Prints the path of the one age key file that the tasks give to SOPS:
+# HOMELAB_SOPS_AGE_KEY_FILE if it is set, else keys.txt in the SOPS user config folder
+# (macOS: XDG_CONFIG_HOME, else ~/Library/Application Support; other systems:
+# XDG_CONFIG_HOME, else ~/.config). The inherited SOPS_AGE_* variables do not count.
+# Stops if the file does not exist. The task never reads the file.
+secrets_key_file() {
+    local file config
+
+    if [ -n "${HOMELAB_SOPS_AGE_KEY_FILE:-}" ]; then
+        file="$HOMELAB_SOPS_AGE_KEY_FILE"
+    else
+        if [ -n "${XDG_CONFIG_HOME:-}" ]; then
+            config="$XDG_CONFIG_HOME"
+        elif [ "$(uname -s)" = "Darwin" ]; then
+            config="$HOME/Library/Application Support"
+        else
+            config="$HOME/.config"
         fi
-    done
+        file="$config/sops/age/keys.txt"
+    fi
+    if [ ! -f "$file" ] || [ ! -r "$file" ]; then
+        log_error "No age key file at '$file'. Put the scope key there, or set HOMELAB_SOPS_AGE_KEY_FILE." >&2
+        exit 1
+    fi
+    echo "$file"
+}
+
+# secrets_clean_env <work folder> <PATH folder>
+# Sets SECRETS_ENV: an env -i command prefix with PATH (<PATH folder>, /usr/bin and
+# /bin), an empty HOME in <work folder>, and SOPS_AGE_KEY_FILE set to the key file of
+# secrets_key_file. With the empty HOME, SOPS finds no keys.txt and no SSH key
+# (~/.ssh/id_ed25519, ~/.ssh/id_rsa), and Terraform finds no plugin folder in HOME.
+secrets_clean_env() {
+    local key
+    key="$(secrets_key_file)" || exit 1
+    mkdir -p "$1/home"
+    SECRETS_ENV=(env -i "PATH=$2:/usr/bin:/bin" "HOME=$1/home" "SOPS_AGE_KEY_FILE=$key")
 }
 
 # secrets_terraform_env <work folder> <kubeconfig>
-# Sets TF_BIN and SECRETS_ENV for Terraform: the clean environment, plus TF_INPUT=0,
-# the empty CLI configuration, a new TF_DATA_DIR in <work folder>, and the kubeconfig
-# for the provider (variable kubeconfig_path of the secrets root module).
+# Sets TF_BIN, SECRETS_KUBECONFIG and SECRETS_ENV for Terraform: the clean
+# environment, plus TF_INPUT=0, CHECKPOINT_DISABLE=1, the empty CLI configuration and
+# a new TF_DATA_DIR in <work folder>. The kubeconfig goes to Terraform as -var on the
+# plan command (secrets_plan_vars), which wins over each variable file.
 secrets_terraform_env() {
     local tfrc="$MISE_PROJECT_ROOT/$SECRETS_EMPTY_TFRC"
 
@@ -148,14 +180,21 @@ secrets_terraform_env() {
         exit 1
     fi
 
-    TF_BIN="$(secrets_tool terraform)"
-    secrets_clean_env "$(dirname "$TF_BIN")"
+    TF_BIN="$(secrets_tool terraform)" || exit 1
+    SECRETS_KUBECONFIG="$2"
+    secrets_clean_env "$1" "$(dirname "$TF_BIN")"
     SECRETS_ENV+=(
         "TF_INPUT=0"
+        "CHECKPOINT_DISABLE=1"
         "TF_CLI_CONFIG_FILE=$tfrc"
         "TF_DATA_DIR=$1/tf-data"
-        "TF_VAR_kubeconfig_path=$2"
     )
+}
+
+# secrets_plan_vars
+# Prints the -var flag of the kubeconfig. A saved plan keeps it for the apply.
+secrets_plan_vars() {
+    echo "-var=kubeconfig_path=$SECRETS_KUBECONFIG"
 }
 
 # secrets_tf <terraform args...>
@@ -166,28 +205,49 @@ secrets_tf() {
 }
 
 # secrets_check_tree
-# Stops if the working tree has a change or an untracked file, or if the checked-out
-# commit is not on origin/main. The tasks run only after the merge.
+# Stops if the working tree has a change or an untracked file, if the secrets root
+# module or the seeds module has an ignored file other than the local state, or if the
+# checked-out commit is not the tip of main on GitHub. The tasks run only after the
+# merge, from the merged commit.
 secrets_check_tree() {
-    local changes
+    local root="$MISE_PROJECT_ROOT" changes ignored head tip
 
-    changes="$(git -C "$MISE_PROJECT_ROOT" status --porcelain --untracked-files=all)"
+    changes="$(git -C "$root" status --porcelain --untracked-files=all)"
     if [ -n "$changes" ]; then
         log_error "The working tree is not clean. Commit, stash or remove these files first:"
         echo "$changes" >&2
         exit 1
     fi
-    if ! git -C "$MISE_PROJECT_ROOT" merge-base --is-ancestor HEAD origin/main 2> /dev/null; then
-        log_error "The commit $(git -C "$MISE_PROJECT_ROOT" rev-parse --short HEAD) is not on origin/main. Run the task from main after the merge: git switch main && git pull --ff-only"
+
+    # git status does not show ignored files, but Terraform loads *.tfvars and
+    # override files from the folder.
+    ignored="$(git -C "$root" ls-files --others --ignored --exclude-standard --directory -- "$SECRETS_REL" "$SECRETS_SEEDS_MODULE" |
+        { grep -vxE "$SECRETS_REL/($SECRETS_STATE_FILES)" || true; })"
+    if [ -n "$ignored" ]; then
+        log_error "The Terraform folders of the secrets have ignored files. Remove them first:"
+        echo "$ignored" >&2
+        exit 1
+    fi
+
+    # A local ref can move, so the task fetches main and compares with that commit.
+    if ! git -C "$root" fetch --quiet origin main; then
+        log_error "Cannot fetch main from origin. The task needs the tip of main on GitHub."
+        exit 1
+    fi
+    head="$(git -C "$root" rev-parse HEAD)"
+    tip="$(git -C "$root" rev-parse FETCH_HEAD)"
+    if [ "$head" != "$tip" ]; then
+        log_error "The commit ${head:0:7} is not the tip of main (${tip:0:7}). Run the task from main after the merge: git switch main && git pull --ff-only"
         exit 1
     fi
 }
 
 # secrets_check_kubeconfig <file>
 # Stops if the kubeconfig has more or less than one cluster, a server that is not a
-# loopback address, or an exec or proxy-url key.
+# loopback address, or a key that kind get kubeconfig does not write (for example
+# exec, auth-provider, token, proxy-url or insecure-skip-tls-verify).
 secrets_check_kubeconfig() {
-    local file="$1" count server found
+    local file="$1" count server path allowed extra
 
     count="$(yq '.clusters | length' "$file")"
     if [ "$count" != "1" ]; then
@@ -199,12 +259,28 @@ secrets_check_kubeconfig() {
         log_error "The kubeconfig server '$server' is not a loopback address."
         exit 1
     fi
-    # exec runs a command, and proxy-url sends the API traffic to another host.
-    found="$(yq '[.. | select(tag == "!!map") | select(has("exec") or has("proxy-url"))] | length' "$file")"
-    if [ "$found" != "0" ]; then
-        log_error "The kubeconfig has an exec or a proxy-url key."
-        exit 1
-    fi
+
+    # An allow list of the keys of kind get kubeconfig, for each level.
+    while read -r path allowed; do
+        if ! extra="$(yq "[$path | select(. != null) | keys | .[]] | unique | .[]" "$file" 2> /dev/null)"; then
+            log_error "The kubeconfig has an unexpected structure at '$path'."
+            exit 1
+        fi
+        extra="$(grep -vxE "$allowed" <<< "$extra" || true)"
+        if [ -n "$extra" ]; then
+            log_error "The kubeconfig has a key that kind does not write, at '$path': $(echo "$extra" | tr '\n' ' ')"
+            exit 1
+        fi
+    done << 'ALLOWED'
+. apiVersion|kind|clusters|contexts|users|current-context|preferences
+.preferences
+.clusters[] name|cluster
+.clusters[].cluster server|certificate-authority-data
+.contexts[] name|context
+.contexts[].context cluster|user|namespace
+.users[] name|user
+.users[].user client-certificate-data|client-key-data
+ALLOWED
 }
 
 # secrets_kubeconfig <file>
@@ -223,7 +299,8 @@ secrets_kubeconfig() {
     fi
 
     # The output of the instance root module. No init is necessary for a local state.
-    name="$(TF_CLI_CONFIG_FILE="$MISE_PROJECT_ROOT/$SECRETS_EMPTY_TFRC" TF_INPUT=0 \
+    # The name goes only to kind, and the kubeconfig checks follow.
+    name="$(TF_CLI_CONFIG_FILE="$MISE_PROJECT_ROOT/$SECRETS_EMPTY_TFRC" TF_INPUT=0 CHECKPOINT_DISABLE=1 \
         terraform -chdir="$INSTANCE_DIR" output -raw cluster_name 2> /dev/null < /dev/null || true)"
     if [ -z "$name" ]; then
         log_error "Cannot read the cluster_name output of $INSTANCE_DIR. Run 'mise run instance:up $(basename "$INSTANCE_DIR")' first."
@@ -265,8 +342,8 @@ secrets_seed_consumers() {
 }
 
 # secrets_check_seed_namespaces <kubeconfig>
-# Stops if the seed namespace secret-seeds-<consumer> of a consumer in the seed map is
-# not in the cluster.
+# Stops if a key of the seed map is not a valid namespace name, or if the seed
+# namespace secret-seeds-<consumer> of a consumer is not in the cluster.
 secrets_check_seed_namespaces() {
     local file="$1" consumers consumer missing=0
 
