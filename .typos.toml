@@ -1,6 +1,8 @@
 [default.extend-words]
 aks = "aks"
 mosquitto = "mosquitto"
+# Falco metric prefix: falcosecurity_scap_* (System Capture library).
+scap = "scap"
 
 [default]
 # "ANDed" is upstream wording in CRD descriptions. typos reads it as AND + ed

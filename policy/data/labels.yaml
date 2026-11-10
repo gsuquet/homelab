@@ -1,5 +1,5 @@
 # The reference table of the label and annotation keys: the single source of
-# the checks K1 to K15. `conftest --data policy/data` loads this file, and the policies read it as
+# the checks K1 to K10 and K14 to K16. `conftest --data policy/data` loads this file, and the policies read it as
 # data.labels. Change a rule here, not in the Rego code.
 labels:
   # The prefix of the repository. A key is <subgroup>.<prefix>/<name>.
@@ -186,6 +186,11 @@ labels:
     # K14: the namespaces of apps components that can have a Pod Security
     # level other than restricted or baseline.
     pod_security_apps: []
+    # K16: the namespaces where a pod can have a privileged container. Falco runs
+    # with capabilities, not privileged. The list still names it.
+    pod_security_privileged:
+      - tetragon
+      - falco
     # K15: the namespaces that an apps component cannot use. Glob patterns.
     # These are platform namespaces that Terraform or an infrastructure
     # component creates. K15 applies this list only to apps components.
