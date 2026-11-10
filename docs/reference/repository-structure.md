@@ -1,11 +1,27 @@
 # Repository structure
 
-This page lists the folders and the root files of the repository. It also lists the files of a module and of an instance, the naming rules and the legacy folders.
+This page lists the layers, the folders and the root files of the repository. It also lists the files of a module, an instance and a landing-zone scope, the state rules, the naming rules and the legacy folders.
+
+## Layers
+
+| Layer | Folder | Tool | Content |
+| --- | --- | --- | --- |
+| Landing zone | `landing-zone/<scope>/` | Terraform | One root module for each scope: the provider accounts, the DNS, the identity federation, the repository settings and the home network. |
+| Cluster bootstrap | `instances/<instance>/`, `modules/<layer>-<component>/` | Terraform | One root module for each cluster, and the child modules that it calls. Module layers: `substrate`, `cluster`, `bootstrap`. |
+| Platform | `gitops/infrastructure/<component>/` | Argo CD | The shared components of the clusters. |
+| Tenants | `gitops/apps/<app>/` | Argo CD | The applications of the tenants. |
+
+- `gitops/clusters/<cluster>/` holds the components, the overrides and the rendered manifests of one cluster, for the platform and tenant layers.
+- `README.md` at the root starts with the same layer table.
+- Each of `landing-zone/`, `instances/`, `modules/` and `gitops/` has a `README.md` that names its layer.
+- `mise run lint` fails on a folder at the root that is not in the [tree](#tree).
 
 ## Tree
 
 ```text
 (the root of the repository)
+├── landing-zone/
+│   └── <scope>/                      # One Terraform root module for each scope
 ├── modules/                          # Terraform child modules. A module never runs alone.
 │   ├── _template/                    # Template for a new module
 │   └── <layer>-<component>/          # Layer: substrate, cluster or bootstrap
@@ -48,6 +64,7 @@ This page lists the folders and the root files of the repository. It also lists 
 
 | Folder or file | Content |
 | --- | --- |
+| `landing-zone/` | Terraform root modules, one for each scope. Refer to [Files of a landing-zone scope](#files-of-a-landing-zone-scope). |
 | `modules/` | Terraform child modules. Refer to [Files of a module](#files-of-a-module). |
 | `instances/` | Terraform root modules, one for each instance. Refer to [Files of an instance](#files-of-an-instance). |
 | `gitops/` | The GitOps sources and the rendered manifests of each cluster. Refer to [GitOps layout](gitops-layout.md). |
@@ -118,14 +135,65 @@ Private vulnerability reporting is on in the settings of this repository.
 | `.terraform.lock.hcl` | Yes | The provider checksums. |
 
 - `.gitignore` blocks `*.tfvars`, `*.tfvars.json`, `*.tfstate` and `*.tfstate.*`.
+- An instance reads the values of a landing-zone scope through a data source or an input variable, never through `terraform_remote_state`.
 - An instance that runs Argo CD has a folder with the same name in `gitops/clusters/`.
+
+## Files of a landing-zone scope
+
+| File | Necessary | Content |
+| --- | --- | --- |
+| `README.md` | Yes | Purpose, the manual items of the scope and the generated `terraform-docs` block. |
+| `terraform.tf` | Yes | The `terraform` block. |
+| `providers.tf` | Yes | The `provider` blocks. |
+| `backend.tf` | Yes | The `backend` or `cloud` block. |
+| `main.tf` | Yes | The primary resources. |
+| `variables.tf` | Yes | The input variables. |
+| `outputs.tf` | Yes | The outputs. |
+| `<topic>.tf` | No | A group of related resources, for example `budget.tf`. |
+| `.terraform.lock.hcl` | Yes | The provider checksums. |
+
+- A scope holds its resources directly. It calls no child module.
+- The billing budget is the first resource of a scope at a provider that has a budget resource.
+
+| Scope | Content |
+| --- | --- |
+| `gcp` | The billing budget. The Vertex AI project and its API. The workload identity pool, its provider with the key set of `kind-local`, the service account and its custom role and binding. No service account key. |
+| `cloudflare` | The zones, the DNS records, the Zero Trust Access applications, the Worker, and the tunnels that no instance owns. |
+| `github` | The settings of the repositories of the `gsuquet` account. |
+| `network` | The home network: the router, its address reservations, the networks and the firewall rules. |
+| `aws`, `azure`, `grafana-cloud` | The budget, then the other resources of the account. |
+
+### Which root module owns a resource
+
+| Lifetime of the resource | Root module | Examples |
+| --- | --- | --- |
+| As long as the provider account or the home | `landing-zone/<scope>/` | The zone `gsuquet.com`, the MX records, a budget, the identity federation |
+| As long as one cluster | `instances/<instance>/` | A GKE cluster, a tunnel that only one cluster uses, the DNS record of that tunnel |
+
+## Terraform state
+
+These rules apply to each root module, in `landing-zone/` and in `instances/`:
+
+| ID | Rule |
+| --- | --- |
+| S1 | One state for each root module. Each landing-zone scope has its own state. |
+| S2 | The state is not only on one machine. It has versions, and a person can restore an earlier version. |
+| S3 | Encryption at rest. Access only for the GitHub account `gsuquet` and its machine. No access for agents or CI. |
+| S4 | State locking. |
+| S5 | The backend stays inside a free tier, on a plan that does not end. |
+| S6 | The backend credentials come from the environment, not from a file in Git. |
+
+- A person runs `plan` and `apply` on a landing-zone scope by hand, outside of agent sessions. The plan goes in the PR. No CI job applies a scope.
+- A scope with `local` state holds no resource that writes a secret into the state.
+- A scope applies before each instance that reads its values.
 
 ## Naming rules
 
-The general rule: the base of a folder or file name uses lowercase letters, digits and hyphens. It starts and ends with a letter or a digit. It has a maximum of 63 characters.
+The general rule: the base of a folder or file name uses lowercase letters, digits and hyphens. It starts with a letter and ends with a letter or a digit. It has a maximum of 63 characters.
 
 | Item | Rule | Example | Check |
 | --- | --- | --- | --- |
+| Landing-zone scope folder | DNS-1123 label. The provider name or the part of the home. A second account at one provider gets a suffix. Maximum 63 characters. | `gcp`, `aws-sandbox` | The review |
 | Module folder | `<layer>-<component>`. Layer is `substrate`, `cluster` or `bootstrap`. Maximum 63 characters. | `bootstrap-cilium` | `module.schema.json`. The folder name equals `name`. |
 | Instance folder | DNS-1123 label. Maximum 40 characters. | `kind-local` | `instance.schema.json` |
 | GitOps cluster folder | Equal to the instance name. Maximum 40 characters. | `gitops/clusters/kind-local/` | `gitops-cluster.schema.json`, `instance-checks.sh` |
