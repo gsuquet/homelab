@@ -66,7 +66,7 @@ The `Secret` rule is a guard against accidents, not a security control.
 
 ### Label and annotation checks
 
-The `kubernetes` namespace also has the checks K1 to K10, K14 and K15, and the checks of `policy/data/labels.yaml`. Some are `deny`, and some are `warn`. Each message has the ID of its check. The inputs, the rules, the levels and the allowlists are in [Labels and annotations](labels-and-annotations.md#checks).
+The `kubernetes` namespace also has the checks K1 to K10 and K14 to K17, and the checks of `policy/data/labels.yaml`. Some are `deny`, and some are `warn`. Each message has the ID of its check. The inputs, the rules, the levels and the allowlists are in [Labels and annotations](labels-and-annotations.md#checks).
 
 ## `precommit`
 
