@@ -201,6 +201,8 @@ labels_data_keys := [
 	[["allowlists", "pod_security_apps"], "array", false],
 	# K16 refuses a privileged container outside these namespaces: an empty list permits none.
 	[["allowlists", "pod_security_privileged"], "array", false],
+	# K18 refuses a hostPath on /procHost outside these namespaces: an empty list permits none.
+	[["allowlists", "host_path_procfs"], "array", false],
 	# K15 refuses these namespaces: an empty list refuses none.
 	[["allowlists", "reserved_namespaces"], "array", true],
 	[["allowlists", "upstream_namespaces"], "array", false],
@@ -819,4 +821,82 @@ deny contains msg if {
 	some [path, obj] in tracing_policies
 	count(as_array(object.get(obj, ["spec", "enforcers"], []))) > 0
 	msg := sprintf("%s: K17: TracingPolicy %q is cluster-scoped and has spec.enforcers. Use a TracingPolicyNamespaced.", [path, object_name(obj)])
+}
+
+# K18 hostPath volumes: a pod or a pod template with a hostPath volume on
+# /procHost, or on a parent path (such as /), is permitted only in the namespaces
+# of data.labels.allowlists.host_path_procfs. The procfs magic links
+# (/procHost/<pid>/root, cwd, fd, ns) give access to the whole Docker host, even
+# with a read-only mount. The namespaces are read as in K16. A hostPath on a
+# container runtime Docker socket is refused everywhere (Decision 29 of the
+# runtime security plan): it controls the Docker host. Allowlists per tool for
+# other host paths (KubeArmor, Tracee) come with those components.
+# Operator-created pods are not visible here: the Falco and KubeArmorConfig CRs
+# need a live check.
+procfs_host_path := "/procHost"
+
+docker_socket_paths := {"/var/run/docker.sock", "/run/docker.sock"}
+
+# Normalizes a path: drops empty and "." segments, so //procHost/ and /./procHost
+# give /procHost. A path with a ".." segment is refused (see below), so it is not
+# resolved here.
+normalize_path(p) := path if {
+	segments := [s | some s in split(p, "/"); s != ""; s != "."]
+	path := sprintf("/%s", [concat("/", segments)])
+}
+
+host_paths(spec) := [path |
+	some volume in as_array(object.get(spec, "volumes", []))
+	is_object(volume)
+	p := object.get(volume, ["hostPath", "path"], "")
+	is_string(p)
+	p != ""
+	path := normalize_path(p)
+]
+
+# True if the hostPath is /procHost, a path under it, or a parent of it.
+reaches_procfs(path) if path == "/"
+
+reaches_procfs(path) if path == procfs_host_path
+
+reaches_procfs(path) if startswith(path, concat("", [procfs_host_path, "/"]))
+
+procfs_host_path_objects contains [path, obj, hp] if {
+	some [path, obj] in k8s_objects
+	spec := pod_spec(obj)
+	is_object(spec)
+	some hp in host_paths(spec)
+	reaches_procfs(hp)
+}
+
+deny contains msg if {
+	some [path, obj, hp] in procfs_host_path_objects
+	count(candidate_namespaces(path, obj)) == 0
+	msg := sprintf("%s: K18: %s %q has a hostPath volume on %q, and the namespace is unknown. Set metadata.namespace, in one of the namespaces %v.", [path, obj.kind, object_name(obj), hp, data.labels.allowlists.host_path_procfs])
+}
+
+deny contains msg if {
+	some [path, obj, hp] in procfs_host_path_objects
+	some namespace in candidate_namespaces(path, obj)
+	not namespace in data.labels.allowlists.host_path_procfs
+	msg := sprintf("%s: K18: %s %q in namespace %q has a hostPath volume on %q. Only the namespaces %v permit a hostPath on %s or a parent path.", [path, obj.kind, object_name(obj), namespace, hp, data.labels.allowlists.host_path_procfs, procfs_host_path])
+}
+
+deny contains msg if {
+	some [path, obj] in k8s_objects
+	spec := pod_spec(obj)
+	is_object(spec)
+	some hp in host_paths(spec)
+	hp in docker_socket_paths
+	msg := sprintf("%s: K18: %s %q has a hostPath volume on the Docker socket %q. No namespace permits it: the socket controls the Docker host.", [path, obj.kind, object_name(obj), hp])
+}
+
+# A ".." segment hides the real path from the checks above.
+deny contains msg if {
+	some [path, obj] in k8s_objects
+	spec := pod_spec(obj)
+	is_object(spec)
+	some hp in host_paths(spec)
+	".." in split(hp, "/")
+	msg := sprintf("%s: K18: %s %q has a hostPath volume on %q with a \"..\" segment. Write the resolved path.", [path, obj.kind, object_name(obj), hp])
 }

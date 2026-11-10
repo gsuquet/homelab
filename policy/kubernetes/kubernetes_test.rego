@@ -1159,3 +1159,78 @@ test_k17_set_action_is_denied if {
 test_k17_other_api_group_is_ignored if {
 	count(check(kubernetes.deny, "K17")) == 0 with input as k17_file(object.union(tracing_policy("TracingPolicy", "Sigkill"), {"apiVersion": "example.com/v1"}))
 }
+
+# K18 hostPath volumes
+
+host_path_pod(namespace, host_path) := {
+	"apiVersion": "v1",
+	"kind": "Pod",
+	"metadata": {"name": "agent", "namespace": namespace},
+	"spec": {
+		"containers": [plain_container],
+		"volumes": [{"name": "v", "hostPath": {"path": host_path}}],
+	},
+}
+
+k18_file(contents) := [{"path": "gitops/clusters/kind/rendered/tetragon/pod-agent.yaml", "contents": contents}]
+
+test_k18_proc_host_in_the_tetragon_namespace_is_allowed if {
+	count(check(kubernetes.deny, "K18")) == 0 with input as k18_file(host_path_pod("tetragon", "/procHost"))
+	count(check(kubernetes.deny, "K18")) == 0 with input as k18_file(host_path_pod("tetragon", "/procHost/"))
+}
+
+test_k18_proc_host_outside_the_tetragon_namespace_is_denied if {
+	count(check(kubernetes.deny, "K18")) == 1 with input as k18_file(host_path_pod("web", "/procHost"))
+	count(check(kubernetes.deny, "K18")) == 1 with input as k18_file(host_path_pod("falco", "/procHost"))
+}
+
+test_k18_path_under_proc_host_is_denied if {
+	count(check(kubernetes.deny, "K18")) == 1 with input as k18_file(host_path_pod("web", "/procHost/1/root"))
+}
+
+test_k18_parent_path_is_denied if {
+	count(check(kubernetes.deny, "K18")) == 1 with input as k18_file(host_path_pod("web", "/"))
+	count(check(kubernetes.deny, "K18")) == 1 with input as k18_file(host_path_pod("web", "//"))
+	count(check(kubernetes.deny, "K18")) == 0 with input as k18_file(host_path_pod("tetragon", "/"))
+}
+
+test_k18_unclean_path_is_normalized if {
+	count(check(kubernetes.deny, "K18")) == 1 with input as k18_file(host_path_pod("web", "//procHost//1"))
+	count(check(kubernetes.deny, "K18")) == 1 with input as k18_file(host_path_pod("web", "/./procHost"))
+}
+
+test_k18_dotdot_segment_is_denied if {
+	count(check(kubernetes.deny, "K18")) == 1 with input as k18_file(host_path_pod("web", "/proc/../procHost"))
+	count(check(kubernetes.deny, "K18")) == 1 with input as k18_file(host_path_pod("tetragon", "/procHost/../etc"))
+}
+
+test_k18_unrelated_host_path_is_allowed if {
+	count(check(kubernetes.deny, "K18")) == 0 with input as k18_file(host_path_pod("web", "/proc"))
+	count(check(kubernetes.deny, "K18")) == 0 with input as k18_file(host_path_pod("web", "/procHostile"))
+	count(check(kubernetes.deny, "K18")) == 0 with input as k18_file(host_path_pod("web", "/var/log"))
+}
+
+test_k18_workload_templates_are_checked if {
+	workload := {
+		"apiVersion": "apps/v1",
+		"kind": "DaemonSet",
+		"metadata": {"name": "agent", "namespace": "web"},
+		"spec": {"template": {"spec": {"containers": [plain_container], "volumes": [{"name": "v", "hostPath": {"path": "/procHost"}}]}}},
+	}
+	count(check(kubernetes.deny, "K18")) == 1 with input as k18_file(workload)
+	count(check(kubernetes.deny, "K18")) == 0 with input as k18_file(object.union(workload, {"metadata": {"namespace": "tetragon"}}))
+}
+
+test_k18_docker_socket_is_denied_everywhere if {
+	count(check(kubernetes.deny, "K18")) == 1 with input as k18_file(host_path_pod("web", "/var/run/docker.sock"))
+	count(check(kubernetes.deny, "K18")) == 1 with input as k18_file(host_path_pod("tetragon", "/run/docker.sock"))
+	count(check(kubernetes.deny, "K18")) == 1 with input as k18_file(host_path_pod("tracee", "/var//run/docker.sock"))
+}
+
+test_k18_other_runtime_sockets_are_not_in_this_check if {
+	count(check(kubernetes.deny, "K18")) == 0 with input as k18_file(host_path_pod("web", "/var/run/containerd/containerd.sock"))
+}
+
+test_k18_pod_without_volumes_is_allowed if {
+	count(check(kubernetes.deny, "K18")) == 0 with input as k18_file(daemon_set("web", plain_container))
+}

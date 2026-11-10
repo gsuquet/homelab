@@ -153,8 +153,9 @@ components:
 | K15 Namespace of a component | Each `Namespace` in `rendered/<component>/`, and `cluster.yaml` | The name of the `Namespace` is the `namespace` of the component in `cluster.yaml`. The K15 upstream allowlist permits other names. Two components of one cluster do not have the same namespace. An `apps` component does not use a namespace of the K15 reserved list. | `deny` |
 | K16 Privileged containers | Each `Pod`, and the pod template of each workload and `CronJob`, in `kubernetes/` and `gitops/` | No container, init container or ephemeral container has `securityContext.privileged: true`, except in a namespace of `data.labels.allowlists.pod_security_privileged`. The check reads `metadata.namespace` and the `namespace` of the component in `cluster.yaml`. Each one that exists must be in the allowlist. An object with neither fails. | `deny` |
 | K17 Enforcement scope | Each Tetragon `TracingPolicy` (`cilium.io/v1alpha1`) | No `matchActions` or `matchReturnActions` array in the `spec` has the action `Sigkill`, `Override`, `Signal`, `NotifyEnforcer` or `Set`. The check reads all the hooks and `selectorsMacros`. `spec.enforcers` is empty. A cluster-wide policy acts on every process of the node. Put an enforcement policy in a `TracingPolicyNamespaced`. The action names are in [Tetragon: selectors](https://tetragon.io/docs/concepts/tracing-policy/selectors/). | `deny` |
+| K18 hostPath volumes | Each `Pod`, and the pod template of each workload and `CronJob`, in `kubernetes/` and `gitops/` | No `hostPath` volume is on `/var/run/docker.sock` or `/run/docker.sock`, in any namespace. A `hostPath` on `/procHost`, a path under it, or a parent path (such as `/`) is only in a namespace of `data.labels.allowlists.host_path_procfs`. The check reads the namespaces as K16 does. An object with no known namespace fails. The paths lose their empty and `.` segments before the check. A path with a `..` segment fails. The magic links of procfs (`/procHost/<pid>/root`) reach the file system of the Docker host, also with a read-only mount. The check does not see the pods that an operator creates. | `deny` |
 
-"Workload" is a `Deployment`, a `StatefulSet`, a `DaemonSet`, a `Job` or a `ReplicaSet`. K6 and K7 also read the pod template of a `CronJob`. The legacy files in `kubernetes/` get only K1, K16 and K17.
+"Workload" is a `Deployment`, a `StatefulSet`, a `DaemonSet`, a `Job` or a `ReplicaSet`. K6 and K7 also read the pod template of a `CronJob`. The legacy files in `kubernetes/` get only K1, K16, K17 and K18.
 
 ### Other checks of keys
 
@@ -186,6 +187,7 @@ These checks are `deny`. They check `policy/data/labels.yaml` itself.
 | `allowlists.sync_options_upstream` | K10 | Empty. Each entry: `{component, kind, name, option}`. |
 | `allowlists.pod_security_apps` | K14 | Empty. Each entry: a namespace name. |
 | `allowlists.pod_security_privileged` | K16 | `tetragon`, `falco`. Each entry: a namespace name. |
+| `allowlists.host_path_procfs` | K18 | `tetragon`. Each entry: a namespace name. |
 | `allowlists.reserved_namespaces` | K15 | `default`, `kube-*`, `argocd`, `cert-manager`. Glob patterns. |
 | `allowlists.upstream_namespaces` | K15 | Empty. Each entry: `{component, namespace}`. |
 
