@@ -187,15 +187,16 @@ These rules apply to each landing-zone scope, and to each instance root module w
 | S5 | The backend stays inside a free tier, on a plan that does not end. |
 | S6 | The backend credentials come from the environment, not from a file in Git. |
 
-Two kinds of root module use `local` state, and S1 to S6 do not apply to them:
+Only an instance with `state.backend: local` uses `local` state, together with its secrets root module. S1 to S6 do not apply to them:
 
 | Root module | State | Who applies |
 | --- | --- | --- |
-| An instance with the purpose `test`, for example `kind-local` | `local`, on the laptop that runs it | Agents and persons, with `mise run instance:up` and `mise run instance:down` |
-| `instances/<instance>/secrets/`, for each instance | `local`, on the machine of the person | Only a person, by hand, outside of agent sessions. Refer to [Secrets](secrets.md#secrets-root-module). |
+| An instance with the purpose `test` and `state.backend: local`, for example `kind-local` | `local`, on the laptop that runs it | Agents and persons, with `mise run instance:up` and `mise run instance:down` |
+| `instances/<instance>/secrets/` of an instance with `local` state | `local`, on the machine of the person | Only a person, by hand, outside of agent sessions. Refer to [Secrets](secrets.md#secrets-root-module). |
 
+- A secrets root module gets `purpose` and `state.backend` from its parent instance ([Secrets](secrets.md#secrets-root-module)). Thus the secrets root module of a `production` or `demo` instance has the backend of its parent, and S1 to S6 apply to it.
 - Each landing-zone scope has a `backend.tf` and a remote state.
-- A person runs `plan` and `apply` on a landing-zone scope, and on a `production` or `demo` instance, by hand, outside of agent sessions. Agents have no access to these states (S3). The plan goes in the PR. No CI job applies these root modules.
+- A person runs `plan` and `apply` on a landing-zone scope, and on a `production` or `demo` instance, by hand, outside of agent sessions. Agents have no access to these states (S3). The plan of a scope goes in its PR. No CI job applies these root modules.
 - A scope applies before each instance that reads its values.
 
 ## Naming rules

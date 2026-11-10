@@ -12,7 +12,7 @@ Agents never do the tasks of this guide. Do them by hand.
 
 ## Before you start
 
-- The change is merged, and the checkout is a clean copy of `main` at the merged commit:
+- The change is in `main`, and the checkout is a clean copy of `main` at the merged commit:
 
   ```bash
   git switch main && git pull --ff-only && git status --short
