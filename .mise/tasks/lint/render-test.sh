@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-#MISE description="Test that manifests:render adds the sync wave -1 to each CRD"
+#MISE description="Test that manifests:render adds the sync wave -1 and Prune=false to each CRD"
 
 # The test splits a fixture of helm template output with the function that
 # manifests:render uses. A CRD must get the wave "-1", whatever the chart sets.
-# Other resources must keep their annotations.
+# A CRD must also get Prune=false in its sync options, merged with the options
+# that it already has. Other resources must keep their annotations.
 
 set -euo pipefail
 
@@ -78,6 +79,96 @@ metadata:
 spec:
   group: example.com
 ---
+# Source: demo/charts/crds/crds/options.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: options.example.com
+  annotations:
+    argocd.argoproj.io/sync-options: ServerSideApply=true
+spec:
+  group: example.com
+---
+# Source: demo/charts/crds/crds/has-prune.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: haspruneds.example.com
+  annotations:
+    argocd.argoproj.io/sync-options: "Prune=false, ServerSideApply=true"
+spec:
+  group: example.com
+---
+# Source: demo/charts/crds/crds/prune-true.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: pruneyes.example.com
+  annotations:
+    argocd.argoproj.io/sync-options: "Prune=true,ServerSideApply=true"
+spec:
+  group: example.com
+---
+# Source: demo/charts/crds/crds/empty-options.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: emptyopts.example.com
+  annotations:
+    argocd.argoproj.io/sync-options: ""
+spec:
+  group: example.com
+---
+# Source: demo/charts/crds/crds/dup-prune.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: dupprunes.example.com
+  annotations:
+    argocd.argoproj.io/sync-options: "Prune=false,Prune=false,ServerSideApply=true"
+spec:
+  group: example.com
+---
+# Source: demo/charts/crds/crds/prune-confirm.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: pruneconfirms.example.com
+  annotations:
+    argocd.argoproj.io/sync-options: "Prune=confirm"
+spec:
+  group: example.com
+---
+# Source: demo/charts/crds/crds/null-options.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: nullopts.example.com
+  annotations:
+    argocd.argoproj.io/sync-options: null
+spec:
+  group: example.com
+---
+# Source: demo/charts/crds/crds/messy-options.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: messyopts.example.com
+  annotations:
+    argocd.argoproj.io/sync-options: "Prune=false,Delete=false,,  Replace=true  ,Prune=true"
+spec:
+  group: example.com
+---
+# Source: demo/templates/prune-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pruned-config
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=true
+data:
+  key: value
+---
 # Source: demo/templates/config.yaml
 apiVersion: v1
 kind: ConfigMap
@@ -112,6 +203,20 @@ check "first-party CRD gets the wave" customresourcedefinition-firsts.example.co
 check "first CRD of a chunk with two CRDs gets the wave" upstream--customresourcedefinition-ones.example.com.yaml "$wave" "-1"
 check "CRD with an unquoted wave -1 gets the string" upstream--customresourcedefinition-twos.example.com.yaml "$wave" "-1"
 check "CRD with an unquoted wave -1 gets the string tag" upstream--customresourcedefinition-twos.example.com.yaml "$wave | tag" "!!str"
+options='.metadata.annotations["argocd.argoproj.io/sync-options"]'
+check "CRD without annotations gets Prune=false" upstream--customresourcedefinition-nones.example.com.yaml "$options" "Prune=false"
+check "CRD keeps ServerSideApply=true next to Prune=false" upstream--customresourcedefinition-options.example.com.yaml "$options" "ServerSideApply=true,Prune=false"
+check "CRD with Prune=false gets no duplicate" upstream--customresourcedefinition-haspruneds.example.com.yaml "$options" "Prune=false,ServerSideApply=true"
+check "CRD with Prune=true gets Prune=false" upstream--customresourcedefinition-pruneyes.example.com.yaml "$options" "ServerSideApply=true,Prune=false"
+check "CRD with an empty sync-options string gets Prune=false" upstream--customresourcedefinition-emptyopts.example.com.yaml "$options" "Prune=false"
+check "CRD with a duplicate Prune=false gets one" upstream--customresourcedefinition-dupprunes.example.com.yaml "$options" "Prune=false,ServerSideApply=true"
+check "CRD with Prune=confirm gets Prune=false" upstream--customresourcedefinition-pruneconfirms.example.com.yaml "$options" "Prune=false"
+check "CRD with a null sync-options gets Prune=false" upstream--customresourcedefinition-nullopts.example.com.yaml "$options" "Prune=false"
+check "CRD with empty items and spaces keeps its options" upstream--customresourcedefinition-messyopts.example.com.yaml "$options" "Prune=false,Delete=false,Replace=true"
+check "first-party CRD gets Prune=false" customresourcedefinition-firsts.example.com.yaml "$options" "Prune=false"
+check "first CRD of a chunk with two CRDs gets Prune=false" upstream--customresourcedefinition-ones.example.com.yaml "$options" "Prune=false"
+check "Namespace gets no sync options" namespace-demo.yaml "$options" "null"
+check "ConfigMap keeps its sync options" configmap-pruned-config.yaml "$options" "Prune=true"
 check "Namespace keeps its wave" namespace-demo.yaml "$wave" "-2"
 check "ConfigMap gets no wave" configmap-config.yaml "$wave" "null"
 check "ConfigMap keeps its data" configmap-config.yaml ".data.key" "value"
@@ -120,4 +225,4 @@ if [ "$failures" -ne 0 ]; then
     exit 1
 fi
 
-log_info "✓ manifests:render adds the sync wave -1 to each CRD only."
+log_info "✓ manifests:render adds the sync wave -1 and Prune=false to each CRD only."

@@ -92,6 +92,19 @@ deny contains msg if {
 	msg := sprintf("%s: a %s must have the annotation argocd.argoproj.io/sync-wave: %q", [file.path, file.contents.kind, wave])
 }
 
+# A CRD must have Prune=false in its sync options. An Application prunes, and a
+# chart bump that drops a CRD would delete all its custom resources. The options
+# are a comma-separated list, thus the check splits it.
+# https://argo-cd.readthedocs.io/en/stable/user-guide/sync-options/#no-prune-resources
+deny contains msg if {
+	some file in input
+	startswith(file.path, "gitops/")
+	file.contents.kind == "CustomResourceDefinition"
+	options := object.get(object.get(file.contents.metadata, "annotations", {}), "argocd.argoproj.io/sync-options", "")
+	not "Prune=false" in {trim_space(option) | some option in split(options, ",")}
+	msg := sprintf("%s: a CustomResourceDefinition must have Prune=false in the annotation argocd.argoproj.io/sync-options", [file.path])
+}
+
 # The namespace of a component comes from Git, with its labels. Argo CD must not create it.
 deny contains msg if {
 	some file in input

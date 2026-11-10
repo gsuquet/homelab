@@ -131,15 +131,36 @@ test_namespace_without_wave_is_denied if {
 test_crd_without_wave_is_denied if {
 	count(kubernetes.deny) == 1 with input as [{
 		"path": "gitops/clusters/kind-local/rendered/demo/customresourcedefinition-demos.example.com.yaml",
-		"contents": {"kind": "CustomResourceDefinition", "metadata": {"name": "demos.example.com"}},
+		"contents": {"kind": "CustomResourceDefinition", "metadata": {"name": "demos.example.com", "annotations": {"argocd.argoproj.io/sync-options": "Prune=false"}}},
 	}]
 }
 
 test_crd_with_wave_is_allowed if {
 	count(kubernetes.deny) == 0 with input as [{
 		"path": "gitops/clusters/kind-local/rendered/demo/customresourcedefinition-demos.example.com.yaml",
-		"contents": {"kind": "CustomResourceDefinition", "metadata": {"name": "demos.example.com", "annotations": {"argocd.argoproj.io/sync-wave": "-1"}}},
+		"contents": {"kind": "CustomResourceDefinition", "metadata": {"name": "demos.example.com", "annotations": {"argocd.argoproj.io/sync-wave": "-1", "argocd.argoproj.io/sync-options": "Prune=false"}}},
 	}]
+}
+
+test_crd_without_prune_false_is_denied if {
+	count(kubernetes.deny) == 1 with input as [crd_with({"argocd.argoproj.io/sync-wave": "-1"})]
+}
+
+test_crd_with_prune_true_is_denied if {
+	count(kubernetes.deny) == 1 with input as [crd_with({"argocd.argoproj.io/sync-wave": "-1", "argocd.argoproj.io/sync-options": "Prune=true"})]
+}
+
+test_crd_with_prune_false_among_other_options_is_allowed if {
+	count(kubernetes.deny) == 0 with input as [crd_with({"argocd.argoproj.io/sync-wave": "-1", "argocd.argoproj.io/sync-options": "ServerSideApply=true, Prune=false"})]
+}
+
+test_crd_with_similar_option_is_denied if {
+	count(kubernetes.deny) == 1 with input as [crd_with({"argocd.argoproj.io/sync-wave": "-1", "argocd.argoproj.io/sync-options": "NotPrune=false"})]
+}
+
+crd_with(annotations) := {
+	"path": "gitops/clusters/kind-local/rendered/demo/customresourcedefinition-demos.example.com.yaml",
+	"contents": {"kind": "CustomResourceDefinition", "metadata": {"name": "demos.example.com", "annotations": annotations}},
 }
 
 test_namespace_outside_gitops_is_not_checked if {

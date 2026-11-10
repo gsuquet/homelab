@@ -23,7 +23,15 @@ Render after a change to one of these files:
    git diff -- gitops/clusters/
    ```
 
-   Each CRD in the output has the annotation `argocd.argoproj.io/sync-wave: "-1"`. The task adds it. Do not add it to the chart.
+   Each CRD in the output has the annotation `argocd.argoproj.io/sync-wave: "-1"` and the option `Prune=false` in `argocd.argoproj.io/sync-options`. The task adds both. Do not add them to the chart.
+
+   If a chart bump removes a CRD, the sync does not delete it, because of `Prune=false`. The Application stays `OutOfSync`. Delete the CRD by hand when you are sure that nothing uses its custom resources:
+
+   ```bash
+   kubectl delete crd <name>
+   ```
+
+   Refer to [Argo CD: no prune resources](https://argo-cd.readthedocs.io/en/stable/user-guide/sync-options/#no-prune-resources).
 
 3. Commit the sources and the rendered files together, and open a pull request.
 

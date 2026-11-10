@@ -84,6 +84,10 @@ This makes a mistake in `cluster.yaml` cheap. A line removed by error does not d
 
 The same reason protects Argo CD itself. Argo CD does not prune its own CRDs, because a deleted CRD deletes all the Applications. It does not prune or delete the `argocd` namespace or `argocd-secret`, also when the `argocd` Application goes away.
 
+The render gives every CRD the sync option `Prune=false`, not only the Argo CD CRDs. Many charts have no value for it. A chart bump that drops a CRD would otherwise delete all its custom resources. The cost is that Argo CD keeps the dropped CRD and the Application stays `OutOfSync` ([Argo CD: no prune resources](https://argo-cd.readthedocs.io/en/stable/user-guide/sync-options/#no-prune-resources)). An operator deletes the CRD with `kubectl delete crd`.
+
+`Prune=false` does not protect a CRD when Argo CD deletes its Application. Only `Delete=false` does. The render does not set `Delete=false` on CRDs, because no Application has the resources finalizer, so the deletion of an Application deletes nothing else. The Conftest policies reject that finalizer. If an Application gets the finalizer, add `Delete=false` to the CRDs first.
+
 ## Why these Argo CD settings
 
 Most settings of Argo CD follow from the design above. The others follow from the size of the home cluster and from a small attack surface.
