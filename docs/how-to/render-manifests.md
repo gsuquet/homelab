@@ -23,6 +23,8 @@ Render after a change to one of these files:
    git diff -- gitops/clusters/
    ```
 
+   Each CRD in the output has the annotation `argocd.argoproj.io/sync-wave: "-1"`. The task adds it. Do not add it to the chart.
+
 3. Commit the sources and the rendered files together, and open a pull request.
 
 The `render-manifests` pre-commit hook does step 1 for you. On a commit that changes one of these files, it renders and stages `gitops/**/rendered/`. It does not commit for you or open a pull request. Run the task yourself to examine the output before the commit.

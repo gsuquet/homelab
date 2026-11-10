@@ -6,6 +6,19 @@ module "kind_cluster" {
   worker_count        = 1
 
   extra_ca_certificate_paths = var.extra_ca_certificate_paths
+
+  # /proc of the Docker host (the Colima VM), for Tetragon, which must see the
+  # VM root PID namespace. read_only stops writes to procfs files only. It is not
+  # an isolation boundary: /procHost/<pid>/root reaches the whole VM (refer to #283). Not verified
+  # that Tetragon works with a read-only mount (checked in step 6). A change
+  # replaces the cluster.
+  extra_mounts = [
+    {
+      host_path      = "/proc"
+      container_path = "/procHost"
+      read_only      = true
+    }
+  ]
 }
 
 module "gateway_api" {
