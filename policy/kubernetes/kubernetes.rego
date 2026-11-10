@@ -161,7 +161,7 @@ deny contains msg if {
 }
 
 # ---------------------------------------------------------------------------
-# Label and annotation keys: checks K1 to K10, K14 and K15. K11 to K13 (cloud
+# Label and annotation keys: checks K1 to K10 and K14 to K17. K11 to K13 (cloud
 # labels) come with the first cloud instance. The rules, the allowlists and the required keys
 # come from data.labels, in policy/data/labels.yaml. Each message has the ID
 # of its check.
@@ -199,6 +199,8 @@ labels_data_keys := [
 	[["allowlists", "custom_keys_upstream"], "array", false],
 	[["allowlists", "sync_options_upstream"], "array", false],
 	[["allowlists", "pod_security_apps"], "array", false],
+	# K16 refuses a privileged container outside these namespaces: an empty list permits none.
+	[["allowlists", "pod_security_privileged"], "array", false],
 	# K15 refuses these namespaces: an empty list refuses none.
 	[["allowlists", "reserved_namespaces"], "array", true],
 	[["allowlists", "upstream_namespaces"], "array", false],
@@ -242,7 +244,7 @@ k8s_objects contains [file.path, obj] if {
 	not startswith(obj.apiVersion, "infra.gsuquet.com/")
 }
 
-object_name(obj) := object.get(as_object(obj.metadata), "name", "")
+object_name(obj) := object.get(obj, ["metadata", "name"], "")
 
 is_gitops(path) if startswith(path, "gitops/")
 
@@ -727,4 +729,94 @@ deny contains msg if {
 	some pattern in data.labels.allowlists.reserved_namespaces
 	glob.match(pattern, [], namespace)
 	msg := sprintf("gitops/clusters/%s/cluster.yaml: K15: the apps component %q uses the reserved namespace %q", [cluster, component, namespace])
+}
+
+# K16 Privileged containers: a pod or a pod template with a container that sets
+# securityContext.privileged: true is permitted only in the namespaces of
+# data.labels.allowlists.pod_security_privileged. The object has up to two
+# namespaces: metadata.namespace, and the namespace of its component in
+# cluster.yaml. Each one that is known must be in the allowlist, so a component
+# cannot pass by setting an allowlisted metadata.namespace. An object with
+# neither is refused.
+container_fields := ["initContainers", "containers", "ephemeralContainers"]
+
+privileged_containers(spec) := [c |
+	some field in container_fields
+	some c in as_array(object.get(spec, field, []))
+	is_object(c)
+	object.get(c, ["securityContext", "privileged"], false) == true
+]
+
+# The namespace of the component of a rendered object: empty if unknown.
+component_namespaces(path) := {entry[3] |
+	[cluster, component, _] := rendered_parts(path)
+	some entry in cluster_components
+	entry[0] == cluster
+	entry[2] == component
+	entry[3] != ""
+}
+
+component_namespaces(path) := set() if not rendered_parts(path)
+
+candidate_namespaces(path, obj) := ({object.get(obj, ["metadata", "namespace"], "")} | component_namespaces(path)) - {""}
+
+privileged_objects contains [path, obj, names] if {
+	some [path, obj] in k8s_objects
+	spec := pod_spec(obj)
+	is_object(spec)
+	privileged := privileged_containers(spec)
+	count(privileged) > 0
+	names := [object.get(c, "name", "") | some c in privileged]
+}
+
+deny contains msg if {
+	some [path, obj, names] in privileged_objects
+	count(candidate_namespaces(path, obj)) == 0
+	msg := sprintf("%s: K16: %s %q: the container %v sets privileged: true, and the namespace is unknown. Set metadata.namespace, in one of the namespaces %v.", [path, obj.kind, object_name(obj), names, data.labels.allowlists.pod_security_privileged])
+}
+
+deny contains msg if {
+	some [path, obj, names] in privileged_objects
+	some namespace in candidate_namespaces(path, obj)
+	not namespace in data.labels.allowlists.pod_security_privileged
+	msg := sprintf("%s: K16: %s %q in namespace %q: the container %v sets privileged: true. Only the namespaces %v permit it.", [path, obj.kind, object_name(obj), namespace, names, data.labels.allowlists.pod_security_privileged])
+}
+
+# K17 Enforcement scope: a cluster-scoped Tetragon TracingPolicy acts on every
+# process of the node, so it has no enforcement action. Enforcement belongs in a
+# TracingPolicyNamespaced. The check walks the whole spec for matchActions and
+# matchReturnActions, so it covers kprobes, fentries, tracepoints, uprobes,
+# lsmhooks, usdts and selectorsMacros. It also refuses spec.enforcers, which
+# carries out NotifyEnforcer.
+# Action names: https://tetragon.io/docs/concepts/tracing-policy/selectors/
+enforcement_actions := {"Sigkill", "Override", "Signal", "NotifyEnforcer", "Set"}
+
+action_fields := {"matchActions", "matchReturnActions"}
+
+enforcement_actions_of(obj) := {action |
+	walk(object.get(obj, "spec", {}), [path, value])
+	count(path) > 0
+	path[count(path) - 1] in action_fields
+	some match in as_array(value)
+	action := object.get(match, "action", "")
+	action in enforcement_actions
+}
+
+tracing_policies contains [path, obj] if {
+	some [path, obj] in k8s_objects
+	obj.kind == "TracingPolicy"
+	startswith(obj.apiVersion, "cilium.io/")
+}
+
+deny contains msg if {
+	some [path, obj] in tracing_policies
+	actions := enforcement_actions_of(obj)
+	count(actions) > 0
+	msg := sprintf("%s: K17: TracingPolicy %q is cluster-scoped and has the enforcement actions %v. Use a TracingPolicyNamespaced.", [path, object_name(obj), sort(actions)])
+}
+
+deny contains msg if {
+	some [path, obj] in tracing_policies
+	count(as_array(object.get(obj, ["spec", "enforcers"], []))) > 0
+	msg := sprintf("%s: K17: TracingPolicy %q is cluster-scoped and has spec.enforcers. Use a TracingPolicyNamespaced.", [path, object_name(obj)])
 }
