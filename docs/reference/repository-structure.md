@@ -36,7 +36,7 @@ This page lists the folders and the root files of the repository. It also lists 
 │   └── tasks/                        # Shared shell functions are in tasks/_base/
 ├── .vale/                            # Vale styles
 ├── .vscode/extensions.json           # Recommended editor extensions
-├── .editorconfig, .gitignore, .pre-commit-config.yaml, .shellcheckrc,
+├── .editorconfig, .gitignore, .pre-commit-config.yaml, .shellcheckrc, .sops.yaml,
 │   .terraform-docs.yml, .tflint.hcl, .typos.toml, .vale.ini, .yamllint.yaml
 ├── renovate.json
 ├── README.md, LICENSE, CONTRIBUTING.md, CHANGELOG.md

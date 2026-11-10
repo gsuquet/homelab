@@ -9,27 +9,29 @@ The `mise` policy makes sure that each version is exact and that the lock file s
 | Tool | Version | Purpose | Used by |
 | --- | --- | --- | --- |
 | `actionlint` | 1.7.12 | Linter for GitHub Actions workflows. | `lint:actions` |
+| `age` | 1.3.2 | The `age` and `age-keygen` commands. `age-keygen` makes the age keys of the SOPS files. | No task. A person makes the keys by hand. |
 | `cilium-cli` | 0.19.5 | The `cilium` command: status and tests of Cilium in a cluster. | No task |
 | `cilium-hubble` | 1.19.4 | The `hubble` command: the network flows that Hubble records. | No task |
-| `conftest` | 0.71.1 | Tests files against the Rego policies in `policy/`. | `lint:policy` |
+| `conftest` | 0.71.1 | Tests files against the Rego policies in `policy/`. | `lint:policy`. The `secrets:*` tasks, to read the seed map. |
 | `git-cliff` | 2.8.0 | Changelog generator for Conventional Commits. | `changelog:generate` |
 | `github-cli` | 2.103.0 | The `gh` command: issues, PRs, labels and projects on GitHub. | `labels:sync` |
 | `gitleaks` | 8.30.1 | Scanner for secrets in Git. | No task. The `gitleaks` pre-commit hook uses its hook repository at `v8.30.1`. |
 | `helm` | 4.3.1 | Renders the Helm charts in the `sources/` folders. | `manifests:render` |
-| `kind` | 0.33.0 | Kubernetes clusters in Docker containers. | `instance:up`, to export the kubeconfig |
+| `kind` | 0.33.0 | Kubernetes clusters in Docker containers. | `instance:up`, to export the kubeconfig. The `secrets:*` tasks, to get a temporary kubeconfig. |
 | `kubeconform` | 0.8.0 | Validates Kubernetes manifests against the Kubernetes schemas. | `manifests:validate` |
 | `pipx:check-jsonschema` | 0.38.2 | Validates YAML and JSON files against a JSON schema. mise installs it with uv, from PyPI. | `schemas:check`, `schemas:test` |
 | `pre-commit` | 4.7.0 | Runs the hooks of `.pre-commit-config.yaml`. | The Git hooks |
 | `python` | 3.15.1 | Python runtime. The workflows install it before `pipx:check-jsonschema`. | No task |
 | `shellcheck` | 0.11.0 | Linter for shell scripts. | `lint:shell` |
 | `shfmt` | 3.14.1 | Formatter for shell scripts. | `lint:shell` |
-| `terraform` | 1.17.0 | Applies the Terraform code of `instances/` and `modules/`. | The instance tasks, `lint:terraform`, `tf:lock` |
+| `sops` | 3.13.3 | Encrypts and decrypts the SOPS files with age. | `secrets:edit`, `secrets:rotate` |
+| `terraform` | 1.17.0 | Applies the Terraform code of `instances/` and `modules/`. | The instance tasks, `secrets:plan`, `secrets:apply`, `secrets:destroy`, `lint:terraform`, `tf:lock` |
 | `terraform-docs` | 0.24.0 | Writes the input and output tables of a Terraform module. | `tf:docs`, `doc:generate` |
 | `tflint` | 0.65.0 | Linter for Terraform code. | `lint:terraform` |
 | `typos` | 1.51.1 | Spell checker for source code. | No task. The `typos` pre-commit hook uses its hook repository at `v1.51.1`. |
 | `uv` | 0.13.3 | Python package installer. mise uses it to install the `pipx:` tools ([mise: pypi backend](https://mise.jdx.dev/dev-tools/backends/pypi.html)). | `pipx:check-jsonschema` |
 | `vale` | 3.25.1 | Prose linter. It checks the Markdown files against the styles in `.vale/styles/`. | `lint:docs` |
-| `yq` | 4.54.1 | YAML processor. | The instance tasks, `manifests:render` and `manifests:check` through it, `schemas:check`, `schemas:test`, `labels:sync` |
+| `yq` | 4.54.1 | YAML processor. | The instance tasks, `manifests:render` and `manifests:check` through it, `schemas:check`, `schemas:test`, `labels:sync`, the `secrets:*` tasks |
 | `zizmor` | 1.31.1 | Security linter for GitHub Actions workflows. | `lint:actions` |
 
 ## Tools in CI
@@ -59,7 +61,8 @@ No task reads these variables.
 | --- | --- |
 | `git` | All the tasks that read the files that Git tracks. |
 | `docker` | The instance tasks of a Kind instance. Refer to [Instance tasks](instance-tasks.md#docker-runtime). |
-| `kubectl` | `instance:down`, to remove the kubeconfig context of a Kind cluster. |
+| `kubectl` | `instance:down`, to remove the kubeconfig context of a Kind cluster. `secrets:plan`, `secrets:apply` and `secrets:destroy`, to check the cluster and the seed namespaces. |
+| `vim` | `secrets:edit`, the only editor of the SOPS files. |
 
 ## Related pages
 

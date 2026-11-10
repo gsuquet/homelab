@@ -11,6 +11,7 @@ The files in `.mise/tasks/_base/` are not executable, so they are not tasks. The
 | `_base/log.sh` | `log_info`, `log_warn` and `log_error`. They print `[INFO]`, `[WARN]` or `[ERROR]` before the message. |
 | `_base/instance.sh` | The shared functions of the instance tasks. |
 | `_base/instance-checks.sh` | The checks of the instance folders and of the `gitops/` tree. `schemas:check` and `schemas:test` use them. |
+| `_base/secrets.sh` | The shared functions of the `secrets:*` tasks: the preconditions, the clean environment, the summary and the confirmation. |
 
 `.mise/config.toml` defines no task. It sets the tools, the environment variables and the settings. Refer to [Tools](tools.md).
 
@@ -28,11 +29,13 @@ The files in `.mise/tasks/_base/` are not executable, so they are not tasks. The
 | `lint:records` | `lint/records.sh` | Refuse references to the old proposal and decision record files. |
 | `lint:records-test` | `lint/records-test.sh` | Test the exit status of `lint:records`. |
 | `lint:render-test` | `lint/render-test.sh` | Test that `manifests:render` adds the sync wave `-1` to each CRD. |
+| `lint:secrets-tasks-test` | `lint/secrets-tasks-test.sh` | Test the checks of the `secrets:*` tasks against fixtures. |
 | `lint:shell` | `lint/shell.sh` | Check the shell scripts with ShellCheck and shfmt. |
 | `lint:terraform` | `lint/terraform.sh` | Check the format of the Terraform files, and run TFLint. |
 | `manifests:check` | `manifests/check.sh` | Check that the rendered manifests are current. |
 | `manifests:render` | `manifests/render.sh` | Render the Helm charts to plain manifests. |
 | `manifests:validate` | `manifests/validate.sh` | Validate the rendered manifests against the Kubernetes schemas. |
+| `secrets:edit`, `secrets:plan`, `secrets:apply`, `secrets:destroy`, `secrets:rotate` | `secrets/edit.sh`, `plan.sh`, `apply.sh`, `destroy.sh`, `rotate.sh` | Edit, plan, apply, destroy or rotate the secrets of one instance. Only a person runs them. Refer to [Secrets](secrets.md#tasks). |
 | `schemas:check` | `schemas/check.sh` | Validate the `module.yaml`, `instance.yaml` and `cluster.yaml` files, and the `gitops/` tree. |
 | `schemas:test` | `schemas/test.sh` | Test the JSON schemas and the checks against their fixtures. |
 | `tf:docs` | `tf/docs.sh` | Write the terraform-docs tables into the `README.md` of each module. |
@@ -44,7 +47,7 @@ The files in `.mise/tasks/_base/` are not executable, so they are not tasks. The
 mise run <task> [<flag>...]
 ```
 
-Only `labels:sync` and the instance tasks take arguments. The other tasks take no argument and no flag.
+Only `labels:sync`, the instance tasks and the `secrets:*` tasks take arguments. The other tasks take no argument and no flag.
 
 ## `changelog`
 
@@ -118,9 +121,9 @@ A deleted label goes away from each issue and PR that has it. The `gh` login nee
 
 The task runs these tasks as dependencies, then prints `✓ All linters and checks passed.`:
 
-`lint:terraform`, `lint:policy`, `lint:actions`, `lint:shell`, `lint:docs`, `lint:records`, `lint:records-test`, `lint:render-test`, `schemas:test`, `schemas:check`.
+`lint:terraform`, `lint:policy`, `lint:actions`, `lint:shell`, `lint:docs`, `lint:records`, `lint:records-test`, `lint:render-test`, `lint:secrets-tasks-test`, `schemas:test`, `schemas:check`.
 
-The `Lint` workflow runs `mise run lint` on each pull request and on each push to `main`. A `lint-*` pre-commit hook runs each `lint:*` task, except `lint:records-test` and `lint:render-test`.
+The `Lint` workflow runs `mise run lint` on each pull request and on each push to `main`. A `lint-*` pre-commit hook runs each `lint:*` task, except `lint:records-test`, `lint:render-test` and `lint:secrets-tasks-test`.
 
 ### `lint:actions`
 
@@ -165,6 +168,10 @@ The task puts a fake `git` first in `PATH`. The fake `git` exits with `1`, `0`, 
 ### `lint:render-test`
 
 The task splits a fixture of `helm template` output with the function that `manifests:render` uses. The fixture has a Namespace, a ConfigMap and three CRDs: one with no annotation, one with another annotation, and one with the wave `"5"`. The test passes when each CRD has the wave `"-1"` and keeps its other annotations, and the other resources keep their annotations.
+
+### `lint:secrets-tasks-test`
+
+The task loads `.mise/tasks/_base/secrets.sh` and runs its checks against fixtures in a temporary folder: kubeconfig files, seed maps, a clone of a local Git repository, and a fake `kubectl`. It needs no cluster, no network and no age key. Each case expects a pass or a fail. The task fails when one case gives another result.
 
 ### `lint:shell`
 
@@ -227,6 +234,23 @@ The task runs `manifests:render`. It fails if `kubernetes/**/manifests/**` or `g
 The task runs `kubeconform -summary -ignore-missing-schemas` on each `.yaml` file in a `manifests/` or `rendered/` folder of `kubernetes/` and `gitops/`.
 
 The `Validate Kubernetes Manifests` workflow runs `manifests:check`, then `manifests:validate`. It runs on a pull request that changes `gitops/`, `kubernetes/`, `.mise/tasks/manifests/`, `.mise/config.toml` or the workflow, and on a push to `main` that changes `gitops/` or `kubernetes/`.
+
+## `secrets`
+
+The `secrets:*` tasks take the instance name as their argument. `secrets:rotate` also takes exactly one of `--recipients` and `--data-key`. Agents never run these tasks. The steps, the preconditions and the environment are in [Secrets](secrets.md#tasks).
+
+```bash
+mise run secrets:rotate <instance> --recipients
+mise run secrets:rotate <instance> --data-key
+```
+
+| Status | Condition |
+| --- | --- |
+| `0` | The task completed, or the plan has no change. For `secrets:edit`, also no change to the file: `sops edit` exits with `200`, and the task prints `No change`. For `secrets:rotate`, the task prints `No change` when the file did not change, for example after the answer `n` to `sops updatekeys`. |
+| `1` | A precondition failed, `.sops.yaml` has a placeholder recipient, the key file is missing, the terminal is missing, or the answer to the confirmation was not the expected text. |
+| Other | The status of the `terraform` or `sops` command that failed. |
+
+No hook or workflow runs these tasks.
 
 ## `schemas`
 

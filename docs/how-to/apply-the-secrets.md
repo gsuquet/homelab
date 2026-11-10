@@ -20,7 +20,7 @@ Agents never do the tasks of this guide. Do them by hand.
 
 - The cluster is up, for example after `mise run instance:up kind-local`.
 - Argo CD synced the `external-secrets` component, so each seed namespace of the seed map exists.
-- The scope key of the instance is in `keys.txt`, or in the variable that the task reads.
+- The scope key of the instance is in `keys.txt`, or in the file that `HOMELAB_SOPS_AGE_KEY_FILE` gives. Refer to [Key location](../reference/secrets.md#key-location).
 
 ## Apply the secrets
 
