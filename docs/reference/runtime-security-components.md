@@ -283,7 +283,7 @@ Kind nodes have no allocatable limit below the Colima VM. On `kind-local`, the r
 | No container, init container or ephemeral container has `securityContext.privileged: true`, except when each known namespace of the object, `metadata.namespace` and the component namespace, is in `pod_security_privileged` of `policy/data/labels.yaml` (`tetragon`, `falco`). An object with no known namespace fails. | Conftest (K16) |
 | No `TracingPolicy` (`cilium.io`) has `Sigkill`, `Override`, `Signal`, `NotifyEnforcer` or `Set` in a `matchActions` or `matchReturnActions` array, and `spec.enforcers` is empty. | Conftest (K17) |
 | Each lab pod is in its own file in `tests/runtime-security/`, and its image ends with a `sha256` digest. | Conftest |
-| A `hostPath` volume on `/procHost`, on a path under it, or on a parent path is only in the namespace `tetragon`. No `hostPath` volume is on `/var/run/docker.sock` or `/run/docker.sock`. | Conftest (K18) |
+| A `hostPath` volume on `/procHost`, or on a path under it, is only in the namespace `tetragon`. No `hostPath` volume or `PersistentVolume` host path is on `/var/run/docker.sock`, `/run/docker.sock` or a parent of the socket (`/var/run`, `/run`, `/var`, `/`). | Conftest (K18) |
 | Each rendered CRD has the sync wave `-1`. | Conftest |
 | Each rendered image has an explicit tag that is not `latest`. | Conftest |
 | Each rendered Namespace is the namespace of its component in `cluster.yaml`. | Conftest (K15) |
