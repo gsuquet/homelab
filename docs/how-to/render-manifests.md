@@ -23,7 +23,7 @@ Render after a change to one of these files:
    git diff -- gitops/clusters/
    ```
 
-   Each CRD in the output has the annotation `argocd.argoproj.io/sync-wave: "-1"`. The task adds it. Do not add it to the chart.
+   Each CRD in the output has the annotation `argocd.argoproj.io/sync-wave: "-1"` and the option `Prune=false` in `argocd.argoproj.io/sync-options`. The task adds both. Do not add them to the chart.
 
 3. Commit the sources and the rendered files together, and open a pull request.
 

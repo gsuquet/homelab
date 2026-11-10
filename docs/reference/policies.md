@@ -60,6 +60,7 @@ All the rules in this section are `deny`. A rendered file is a file with `/manif
 | Each `Application` in `gitops/` | No finalizer starts with `resources-finalizer.argocd.argoproj.io`. |
 | Each `Namespace` in `gitops/` | The labels `pod-security.kubernetes.io/enforce`, `audit` and `warn` are `privileged`, `baseline` or `restricted`. |
 | Each `Namespace` and `CustomResourceDefinition` in `gitops/` | The annotation `argocd.argoproj.io/sync-wave` is `"-2"` on a `Namespace` and `"-1"` on a CRD. |
+| Each `CustomResourceDefinition` in `gitops/` | The comma-separated annotation `argocd.argoproj.io/sync-options` has the option `Prune=false`. |
 | Each `Secret`, also in a multi-document file and in the `items` of a `List` | `data` and `stringData` have no values, or SOPS encrypts the `Secret`: a `sops` object with a `version`, and each value starts with `ENC[AES256_GCM,`. |
 
 The `Secret` rule is a guard against accidents, not a security control.

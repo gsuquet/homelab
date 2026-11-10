@@ -284,7 +284,7 @@ Kind nodes have no allocatable limit below the Colima VM. On `kind-local`, the r
 | No `TracingPolicy` (`cilium.io`) has `Sigkill`, `Override`, `Signal`, `NotifyEnforcer` or `Set` in a `matchActions` or `matchReturnActions` array, and `spec.enforcers` is empty. | Conftest (K17) |
 | Each lab pod is in its own file in `tests/runtime-security/`, and its image ends with a `sha256` digest. | Conftest |
 | A `hostPath` volume on `/procHost`, or on a parent path, is only in the namespace `tetragon`. | Conftest |
-| Each rendered CRD has the sync wave `-1`. | Conftest |
+| Each rendered CRD has the sync wave `-1` and `Prune=false`. | Conftest |
 | Each rendered image has an explicit tag that is not `latest`. | Conftest |
 | Each rendered Namespace is the namespace of its component in `cluster.yaml`. | Conftest (K15) |
 

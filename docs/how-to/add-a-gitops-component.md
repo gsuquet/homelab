@@ -34,7 +34,7 @@ This guide shows how to add an infrastructure component or an application to a c
 
    The Namespace needs these labels. For an `infrastructure` component, the tenant is `platform`. For an `apps` component, use the tenant of the component in `policy/data/labels.yaml`. Refer to [Labels and annotations](../reference/labels-and-annotations.md#required-keys).
 
-5. If the chart has CRDs, do nothing. `mise run manifests:render` sets the annotation `argocd.argoproj.io/sync-wave: "-1"` on each CRD that it renders, also on the CRDs of the `crds/` folder and of a subchart.
+5. If the chart has CRDs, do nothing. `mise run manifests:render` sets the annotation `argocd.argoproj.io/sync-wave: "-1"` and the sync option `Prune=false` on each CRD that it renders, also on the CRDs of the `crds/` folder and of a subchart.
 6. Give each container a memory request equal to its memory limit, and a CPU request. Do not set a CPU limit.
 7. Add the component to `gitops/clusters/<cluster>/cluster.yaml`. Use the list of the group: `infrastructure` or `apps`. Add `dependsOn` if the component needs another component first, for example its CRDs:
 
