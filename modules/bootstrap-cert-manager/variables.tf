@@ -153,23 +153,10 @@ variable "enable_cloudflare_dns01_solver" {
   default     = false
 }
 
-variable "cloudflare_api_token" {
-  description = "Cloudflare API token with Zone:DNS:Edit permissions. If non-empty and create_cloudflare_secret is true, a Secret is created automatically."
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
 variable "cloudflare_api_token_secret_name" {
-  description = "Name of the Kubernetes Secret containing the Cloudflare API token (key: 'api-token')."
+  description = "Name of the Secret that holds the Cloudflare API token in the key 'api-token'. It must be in the module namespace (var.namespace), which is the cluster resource namespace of the ClusterIssuers. The module does not create this Secret: External Secrets Operator writes it from a seed. Until it exists, DNS-01 challenges fail; the apply and the issuers do not need it."
   type        = string
   default     = "cloudflare-api-token-secret"
-}
-
-variable "create_cloudflare_secret" {
-  description = "Whether to create the Kubernetes Secret when cloudflare_api_token is provided."
-  type        = bool
-  default     = true
 }
 
 variable "cloudflare_dns01_zones" {
