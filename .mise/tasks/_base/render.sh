@@ -15,7 +15,7 @@
 # drops it (https://argo-cd.readthedocs.io/en/stable/user-guide/sync-options/#no-prune-resources).
 # The options are a comma-separated list: the task keeps the other options, such
 # as ServerSideApply=true, and adds Prune=false once. Another Prune= option is
-# replaced.
+# replaced. The match is case-sensitive, like Argo CD.
 # A resource from an upstream chart gets the prefix upstream--: the second
 # segment of its "# Source:" path is charts, for example
 # argocd/charts/argo-cd/templates/argocd-cm.yaml. The Conftest policies read the
@@ -39,11 +39,11 @@ split_manifest_by_resource() {
 
     mkdir -p "$output_dir"
     # The override is not silent: name each CRD whose chart sets another wave.
-    overridden="$(yq ea 'select(.kind == "CustomResourceDefinition") | select(.metadata.annotations["argocd.argoproj.io/sync-wave"] != null and (.metadata.annotations["argocd.argoproj.io/sync-wave"] | tostring) != "-1") | .metadata.name + " (wave " + (.metadata.annotations["argocd.argoproj.io/sync-wave"] | tostring) + ")"' "$manifest_file")"
+    overridden="$(yq ea --no-doc 'select(.kind == "CustomResourceDefinition") | select(.metadata.annotations["argocd.argoproj.io/sync-wave"] != null and (.metadata.annotations["argocd.argoproj.io/sync-wave"] | tostring) != "-1") | .metadata.name + " (wave " + (.metadata.annotations["argocd.argoproj.io/sync-wave"] | tostring) + ")"' "$manifest_file")"
     if [ -n "$overridden" ]; then
         log_warn "$output_dir: the render sets the sync wave -1 on CRDs that had another wave: ${overridden//$'\n'/, }"
     fi
-    pruned="$(yq ea 'select(.kind == "CustomResourceDefinition") | select((.metadata.annotations["argocd.argoproj.io/sync-options"] // "") | split(",") | map(trim) | map(select(test("^Prune=") and . != "Prune=false")) | length > 0) | .metadata.name' "$manifest_file")"
+    pruned="$(yq ea --no-doc 'select(.kind == "CustomResourceDefinition") | select((.metadata.annotations["argocd.argoproj.io/sync-options"] // "") | split(",") | map(trim) | map(select(test("^Prune=") and . != "Prune=false")) | length > 0) | .metadata.name' "$manifest_file")"
     if [ -n "$pruned" ]; then
         log_warn "$output_dir: the render replaces the Prune option with Prune=false on CRDs: ${pruned//$'\n'/, }"
     fi

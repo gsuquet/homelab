@@ -109,6 +109,56 @@ metadata:
 spec:
   group: example.com
 ---
+# Source: demo/charts/crds/crds/empty-options.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: emptyopts.example.com
+  annotations:
+    argocd.argoproj.io/sync-options: ""
+spec:
+  group: example.com
+---
+# Source: demo/charts/crds/crds/dup-prune.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: dupprunes.example.com
+  annotations:
+    argocd.argoproj.io/sync-options: "Prune=false,Prune=false,ServerSideApply=true"
+spec:
+  group: example.com
+---
+# Source: demo/charts/crds/crds/prune-confirm.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: pruneconfirms.example.com
+  annotations:
+    argocd.argoproj.io/sync-options: "Prune=confirm"
+spec:
+  group: example.com
+---
+# Source: demo/charts/crds/crds/null-options.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: nullopts.example.com
+  annotations:
+    argocd.argoproj.io/sync-options: null
+spec:
+  group: example.com
+---
+# Source: demo/charts/crds/crds/messy-options.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: messyopts.example.com
+  annotations:
+    argocd.argoproj.io/sync-options: "Prune=false,Delete=false,,  Replace=true  ,Prune=true"
+spec:
+  group: example.com
+---
 # Source: demo/templates/prune-config.yaml
 apiVersion: v1
 kind: ConfigMap
@@ -158,6 +208,11 @@ check "CRD without annotations gets Prune=false" upstream--customresourcedefinit
 check "CRD keeps ServerSideApply=true next to Prune=false" upstream--customresourcedefinition-options.example.com.yaml "$options" "ServerSideApply=true,Prune=false"
 check "CRD with Prune=false gets no duplicate" upstream--customresourcedefinition-haspruneds.example.com.yaml "$options" "Prune=false,ServerSideApply=true"
 check "CRD with Prune=true gets Prune=false" upstream--customresourcedefinition-pruneyes.example.com.yaml "$options" "ServerSideApply=true,Prune=false"
+check "CRD with an empty sync-options string gets Prune=false" upstream--customresourcedefinition-emptyopts.example.com.yaml "$options" "Prune=false"
+check "CRD with a duplicate Prune=false gets one" upstream--customresourcedefinition-dupprunes.example.com.yaml "$options" "Prune=false,ServerSideApply=true"
+check "CRD with Prune=confirm gets Prune=false" upstream--customresourcedefinition-pruneconfirms.example.com.yaml "$options" "Prune=false"
+check "CRD with a null sync-options gets Prune=false" upstream--customresourcedefinition-nullopts.example.com.yaml "$options" "Prune=false"
+check "CRD with empty items and spaces keeps its options" upstream--customresourcedefinition-messyopts.example.com.yaml "$options" "Prune=false,Delete=false,Replace=true"
 check "first-party CRD gets Prune=false" customresourcedefinition-firsts.example.com.yaml "$options" "Prune=false"
 check "first CRD of a chunk with two CRDs gets Prune=false" upstream--customresourcedefinition-ones.example.com.yaml "$options" "Prune=false"
 check "Namespace gets no sync options" namespace-demo.yaml "$options" "null"

@@ -164,7 +164,13 @@ The task puts a fake `git` first in `PATH`. The fake `git` exits with `1`, `0`, 
 
 ### `lint:render-test`
 
-The task splits a fixture of `helm template` output with the function that `manifests:render` uses. The fixture has a Namespace, two ConfigMaps and seven CRDs: with no annotation, with another annotation, with the wave `"5"`, with an unquoted wave, with `ServerSideApply=true`, with `Prune=false` already, and with `Prune=true`. The test passes when each CRD has the wave `"-1"` and `Prune=false` in its sync options, keeps its other annotations and options, and has no duplicate option. The other resources keep their annotations.
+The task splits a fixture of `helm template` output with the function that `manifests:render` uses. The fixture has a Namespace, two ConfigMaps and 14 CRDs. The CRDs cover these cases:
+
+- A first-party CRD, and a chunk with two CRDs.
+- No annotation, another annotation, the wave `"5"`, and an unquoted wave.
+- Sync options that are absent, `null`, empty, `ServerSideApply=true`, `Prune=false`, `Prune=false` twice, `Prune=true`, `Prune=confirm`, and a list with empty items and spaces.
+
+The test passes when each CRD has the wave `"-1"` and `Prune=false` in its sync options. Each CRD keeps its other annotations and options, and has no duplicate option. The other resources keep their annotations.
 
 ### `lint:shell`
 
@@ -203,7 +209,7 @@ First, `helm repo update`. A failure prints a warning, and the task continues.
 2. For each item of `infrastructure`, then of `apps`, `gitops/<group>/<component>/sources/Chart.yaml` must exist.
 3. Run `helm dependency update` on the chart. A chart that two clusters use updates one time.
 4. Run `helm template <component> <chart> --include-crds --namespace=<namespace>`, with these values, in this order: `gitops.cluster` set to the content of `cluster.yaml`, then `gitops/clusters/<cluster>/values/<component>.yaml` if it exists. The `values.yaml` of the chart applies first.
-5. Write one file for each resource. The file names are in [GitOps layout](gitops-layout.md#rendered-files). Each `CustomResourceDefinition` gets the annotation `argocd.argoproj.io/sync-wave: "-1"`. The task sets it also when the chart sets another value, and it keeps the other annotations. It also adds `Prune=false` to the annotation `argocd.argoproj.io/sync-options`, so that Argo CD does not delete a CRD, and all its custom resources, when a chart no longer renders it ([Argo CD: no prune resources](https://argo-cd.readthedocs.io/en/stable/user-guide/sync-options/#no-prune-resources)). The annotation is a comma-separated list: the task keeps the other options, for example `ServerSideApply=true`, adds `Prune=false` once, and replaces another `Prune=` option with a warning. The functions are in `.mise/tasks/_base/render.sh`.
+5. Write one file for each resource. The file names are in [GitOps layout](gitops-layout.md#rendered-files). Each `CustomResourceDefinition` gets the annotation `argocd.argoproj.io/sync-wave: "-1"`. The task sets it also when the chart sets another value, and it keeps the other annotations. It also adds `Prune=false` to the annotation `argocd.argoproj.io/sync-options`. Then Argo CD does not delete a CRD, and its custom resources, when a chart no longer renders it ([Argo CD: no prune resources](https://argo-cd.readthedocs.io/en/stable/user-guide/sync-options/#no-prune-resources)). The annotation is a comma-separated list. The task keeps the other options, for example `ServerSideApply=true`, and adds `Prune=false` once. It replaces another `Prune=` option, with a warning. The functions are in `.mise/tasks/_base/render.sh`.
 
 | Status | Condition |
 | --- | --- |
