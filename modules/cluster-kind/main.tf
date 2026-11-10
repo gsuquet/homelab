@@ -41,6 +41,15 @@ resource "kind_cluster" "this" {
             read_only      = true
           }
         }
+
+        dynamic "extra_mounts" {
+          for_each = var.extra_mounts
+          content {
+            host_path      = extra_mounts.value.host_path
+            container_path = extra_mounts.value.container_path
+            read_only      = extra_mounts.value.read_only
+          }
+        }
       }
     }
 
@@ -57,6 +66,15 @@ resource "kind_cluster" "this" {
             host_path      = extra_mounts.value.host_path
             container_path = extra_mounts.value.container_path
             read_only      = true
+          }
+        }
+
+        dynamic "extra_mounts" {
+          for_each = var.extra_mounts
+          content {
+            host_path      = extra_mounts.value.host_path
+            container_path = extra_mounts.value.container_path
+            read_only      = extra_mounts.value.read_only
           }
         }
       }
