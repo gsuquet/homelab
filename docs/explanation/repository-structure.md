@@ -6,32 +6,32 @@ This page tells why the tree has its layers and its folders. It also tells why t
 
 ## Four layers
 
-The platform has four layers. Each layer depends on the layers below it, and it changes at a different speed:
+The platform has four layers. Each layer depends on the layers above it in this table, and each layer has a different lifetime:
 
 | Layer | Folder | Tool | Lifetime |
 | --- | --- | --- | --- |
 | Landing zone | `landing-zone/<scope>/` | Terraform | As long as the provider account or the home |
 | Cluster bootstrap | `instances/<instance>/` and `modules/` | Terraform | As long as one cluster |
-| Platform | `gitops/infrastructure/` | Argo CD | As long as the component is on a cluster |
-| Tenants | `gitops/apps/` | Argo CD | As long as the application of a tenant |
+| Platform | `gitops/infrastructure/` | Argo CD | As long as the cluster |
+| Tenants | `gitops/apps/` | Argo CD | As long as the cluster, or less |
 
-The layers follow the folders of the tools, and the folders keep the names that each tool community uses. A reader who knows Terraform finds `modules/` and the root modules. A reader who knows Argo CD finds the GitOps sources in `gitops/`. The layer table at the top of the root `README.md` and of [Repository structure (reference)](../reference/repository-structure.md#layers) gives the layer of each folder. A `README.md` in each top folder names its layer, and `mise run lint` refuses an unknown top folder. Thus the layers are clear, and no folder needs a layer number or a layer prefix in its name.
+The layers follow the folders of the tools, and the folders keep the names that each tool community uses. A reader who knows Terraform finds `modules/` and the root modules. A reader who knows Argo CD finds the GitOps sources in `gitops/`. The layer table at the top of the root `README.md` and of [Repository structure (reference)](../reference/repository-structure.md#layers) gives the layer of each folder. A `README.md` in each layer folder names its layer, and `mise run lint` refuses an unknown top folder. Thus the layers are clear, and no folder needs a layer number or a layer prefix in its name.
 
 `gitops/clusters/<cluster>/` is not a layer. It holds the list of components, the overrides and the rendered manifests of one cluster, for the platform layer and the tenant layer.
 
-The tenants design decides the final folder and the name of the tenant layer ([#182](https://github.com/gsuquet/homelab/issues/182)). Until a change of that design, the tenant applications are in `gitops/apps/`.
+The tenant applications are in `gitops/apps/`.
 
 ## One tree for Terraform and GitOps
 
 Terraform and Argo CD have different jobs, so the code of each tool stays in its own folders. [GitOps with Argo CD](gitops-with-argo-cd.md) tells why the two tools stay apart.
 
-A landing-zone root module sets up the foundation one time, and it changes rarely. An instance calls the modules. Terraform creates the cluster and installs the minimum that Argo CD needs, one time. Then Argo CD syncs the rendered manifests of the cluster with the same name, all the time. The instance name connects the two halves.
+A landing-zone root module sets up the foundation that the clusters share. An instance calls the modules. Terraform creates the cluster and installs the minimum that Argo CD needs, one time. Then Argo CD syncs the rendered manifests of the cluster with the same name, all the time. The instance name connects the two halves.
 
 The diagram shows these connections. In text: a person applies `landing-zone/<scope>/` before the instances that use it. `instances/<name>/` reads values of the landing zone, calls `modules/` and installs Argo CD on cluster `<name>`. Argo CD then syncs `gitops/clusters/<name>/` all the time.
 
 ```mermaid
 flowchart LR
-    subgraph lz["Landing zone: rare changes"]
+    subgraph lz["Landing zone: shared foundation"]
         L["landing-zone/#lt;scope#gt;/"]
     end
     subgraph terraform["Cluster bootstrap: one time"]
@@ -67,19 +67,19 @@ A scope is one provider account, or one part of the home. One person applies one
 
 A scope folder exists from the PR that adds its first resource. A second account at one provider gets a suffix, for example `landing-zone/aws-sandbox/`.
 
-The workload identity federation is in `landing-zone/gcp/`, not in `instances/kind-local/`. It lives as long as the GCP account. A cluster outside Google Cloud uses it with an uploaded copy of its public keys. "The cluster doesn't need to be accessible over the internet" ([Google: workload identity federation with Kubernetes](https://docs.cloud.google.com/iam/docs/workload-identity-federation-with-kubernetes)). Only the key set follows the cluster, as a file in Git. Agents run `instance:up`, and they get no provider token. Thus a resource that needs a provider token stays out of `instances/kind-local/`.
+The workload identity federation is in `landing-zone/gcp/`, not in `instances/kind-local/`. It lives as long as the GCP account. A cluster outside Google Cloud uses it with an uploaded copy of its public keys. "The cluster doesn't need to be accessible over the internet" ([Google: workload identity federation with Kubernetes](https://docs.cloud.google.com/iam/docs/workload-identity-federation-with-kubernetes)). Only the key set follows the cluster, as files in `landing-zone/gcp/jwks/`. Agents run `instance:up`, and they get no provider token. Thus a resource that needs a provider token stays out of `instances/kind-local/`.
 
 ### The lifecycle rule
 
 The lifetime of a resource selects its root module. A resource that lives as long as the provider account goes into `landing-zone/<scope>/`. A resource that lives as long as one cluster goes into `instances/<instance>/`. For example, the zone `gsuquet.com` is in `landing-zone/cloudflare/`, and a tunnel that only one cluster uses is in the instance of that cluster. Thus the removal of a cluster removes its own resources, and the foundation stays.
 
-An instance reads the values of a landing zone through a data source of the provider or through an input variable. It never uses `terraform_remote_state`. The reader of that data source "must have access to the entire state snapshot, which often includes some sensitive information" ([HashiCorp: remote state data source](https://developer.hashicorp.com/terraform/language/state/remote-state-data)).
+An instance reads the values of a landing zone through a data source of the provider or through an input variable. It never uses `terraform_remote_state`. The reader of that data source "must have access to the entire state snapshot, which often includes some sensitive information" ([HashiCorp: remote state data source](https://developer.hashicorp.com/terraform/language/state/remote-state-data)). Two local reasons add to it. Agents run `instance:up` on `kind-local`, and they have no access to a landing-zone state. Agents also have no provider token, so on `kind-local` only an input variable works, not a provider data source.
 
 ### One state for each scope
 
-Each scope is a root module with its own state. The HashiCorp style guide gives each environment a directory, "so that each one has a separate state file" ([HashiCorp: style guide](https://developer.hashicorp.com/terraform/language/style)). With one state for each scope, an apply needs the credentials of one provider only, and a damaged state affects one scope only. The cost: a change across two scopes needs two applies, in the order of their dependencies.
+Each scope is a root module with its own state. The HashiCorp style guide gives each environment a directory, "so that each one has a separate state file" ([HashiCorp: style guide](https://developer.hashicorp.com/terraform/language/style)). With one state for each scope, an apply needs the credentials of one provider and of the backend only. A damaged state affects one scope only. The cost: a change across two scopes needs two applies, in the order of their dependencies.
 
-The state of a landing zone holds the most sensitive resources: the DNS of the domain, the identity federation and the repository settings. A person applies a scope by hand, outside of agent sessions, and the plan goes in the PR. No CI job applies a scope, and agents get no provider token. A scope holds its resources directly, with no child modules. Each provider has its own resources, so a shared module gives no reuse.
+Each scope has a remote state. The state of a landing zone holds the most sensitive resources: the DNS of the domain, the identity federation and the repository settings. A person applies a scope by hand, outside of agent sessions, and the plan goes in the PR. No CI job applies a scope, and agents get no provider token. A scope holds its resources directly, with no child modules. Each provider has its own resources, so a shared module rarely gives reuse.
 
 ## Modules and instances
 
@@ -105,7 +105,7 @@ The base of a name uses the DNS-1123 label format. It is the format of Kubernete
 
 A landing-zone scope has the name of its provider or of its part of the home, for example `gcp` or `network`. The scope name is short and stable, because it is the name of a state.
 
-No folder name starts with a digit. A numbered prefix such as `00-landing-zone` is not a valid Kubernetes name. Kubernetes requires a DNS-1123 label to "start with an alphabetic character" ([Kubernetes: object names](https://kubernetes.io/docs/concepts/overview/working-with-objects/names/)).
+No folder name starts with a digit. A numbered prefix such as `00-landing-zone` is not a valid RFC 1123 label name, as the Kubernetes names page defines it. Kubernetes requires RFC 1123 and RFC 1035 label names to "start with an alphabetic character" ([Kubernetes: object names](https://kubernetes.io/docs/concepts/overview/working-with-objects/names/)).
 
 Instance names are free DNS-1123 labels, not a fixed pattern such as `rpi-olympus`. The `purpose` field of `instance.yaml` gives the type of the instance. A short name is better, because the instance name is also the cluster name and a part of Argo CD names. A fixed pattern gives longer names, and labels can hold the type ([Why the label scheme has its form](why-the-label-scheme-has-its-form.md)).
 
@@ -143,7 +143,7 @@ Other layouts are possible. Each one is a worse match for one repository with fe
 - **A separate GitOps repository.** The Argo CD best practices separate the manifests from the application source code. This repository holds no application source code, so the split gives no gain.
 - **A tree with no written rule.** A rule that nobody wrote down can change by accident.
 - **A tree by cluster:** `clusters/<cluster>/bootstrap/` and `clusters/<cluster>/rendered/`, with `platform/` and `tenants/` at the root. All the files of one cluster are in one folder. But Terraform and GitOps files then share a folder, against the split by tool. Readers of Terraform and Argo CD do not expect this tree. It also changes each path in the render, the policies, the schemas, the Renovate rules and the labeler.
-- **Numbered layer folders:** `00-landing-zone/`, `10-bootstrap/`, `20-platform/`, `30-tenants/`. The order is clear, but Terraform and Argo CD readers do not expect numbered folders. Numbered stages are a landing-zone convention: the Google foundation blueprint has the stages `0-bootstrap` to `5-app-infra`, which a team implements "sequentially" ([Google: deployment methodology](https://docs.cloud.google.com/architecture/blueprints/security-foundations/deployment-methodology)). These stages are inside one foundation, not across a whole repository. A name with a digit first is also not a Kubernetes name.
+- **Numbered layer folders:** `00-landing-zone/`, `10-bootstrap/`, `20-platform/`, `30-tenants/`. The order is clear, but Terraform and Argo CD readers do not expect numbered folders. Numbered stages are a landing-zone convention: the Google foundation blueprint has the stages `0-bootstrap` to `5-app-infra`, which a team implements "sequentially" ([Google: deployment methodology](https://docs.cloud.google.com/architecture/blueprints/security-foundations/deployment-methodology)). These stages are inside one foundation, not across a whole repository. A name with a digit first is also not a valid RFC 1123 label name in Kubernetes.
 - **A folder for each provider account:** `accounts/<account>/`. It holds the same root modules, but its name tells the provider, not the layer. The home network and the GitHub settings are not provider accounts of the same kind.
 - **The landing zone in `instances/`.** An instance is a cluster. `instance.schema.json` requires the `cluster` and `bootstrap` layers, and a landing zone has neither.
 - **A move of the legacy folders to `legacy/`.** It deletes the production workloads, or it needs a change of the live Argo CD of `olympus` first.

@@ -7,7 +7,7 @@ This page lists the layers, the folders and the root files of the repository. It
 | Layer | Folder | Tool | Content |
 | --- | --- | --- | --- |
 | Landing zone | `landing-zone/<scope>/` | Terraform | One root module for each scope: the provider accounts, the DNS, the identity federation, the repository settings and the home network. |
-| Cluster bootstrap | `instances/<instance>/`, `modules/<layer>-<component>/` | Terraform | One root module for each cluster, and the child modules that it calls. Module layers: `substrate`, `cluster`, `bootstrap`. |
+| Cluster bootstrap | `instances/<instance>/`, `modules/<layer>-<component>/` | Terraform | One root module for each cluster, its secrets root module, and the child modules that they call. Module layers: `substrate`, `cluster`, `bootstrap`. |
 | Platform | `gitops/infrastructure/<component>/` | Argo CD | The shared components of the clusters. |
 | Tenants | `gitops/apps/<app>/` | Argo CD | The applications of the tenants. |
 
@@ -27,6 +27,7 @@ This page lists the layers, the folders and the root files of the repository. It
 │   └── <layer>-<component>/          # Layer: substrate, cluster or bootstrap
 ├── instances/
 │   └── <instance>/                   # One Terraform root module for each instance
+│       └── secrets/                  # The secrets root module of the instance
 ├── gitops/                           # GitOps sources
 │   ├── infrastructure/<component>/sources/
 │   ├── apps/<app>/sources/
@@ -133,6 +134,7 @@ Private vulnerability reporting is on in the settings of this repository.
 | `outputs.tf` | Yes | The outputs. |
 | `backend.tf` | If the state is remote | The `backend` or `cloud` block. |
 | `.terraform.lock.hcl` | Yes | The provider checksums. |
+| `secrets/` | No | The secrets root module, with its own state. Refer to [Secrets](secrets.md#secrets-root-module). |
 
 - `.gitignore` blocks `*.tfvars`, `*.tfvars.json`, `*.tfstate` and `*.tfstate.*`.
 - An instance reads the values of a landing-zone scope through a data source or an input variable, never through `terraform_remote_state`.
@@ -150,6 +152,7 @@ Private vulnerability reporting is on in the settings of this repository.
 | `variables.tf` | Yes | The input variables. |
 | `outputs.tf` | Yes | The outputs. |
 | `<topic>.tf` | No | A group of related resources, for example `budget.tf`. |
+| `<data>/` | No | Data files that the root module reads, for example `jwks/` in `gcp`. |
 | `.terraform.lock.hcl` | Yes | The provider checksums. |
 
 - A scope holds its resources directly. It calls no child module.
@@ -157,11 +160,12 @@ Private vulnerability reporting is on in the settings of this repository.
 
 | Scope | Content |
 | --- | --- |
-| `gcp` | The billing budget. The Vertex AI project and its API. The workload identity pool, its provider with the key set of `kind-local`, the service account and its custom role and binding. No service account key. |
+| `gcp` | The billing budget. The Vertex AI project and its API. The workload identity pool, its provider, the service account and its custom role and binding. No service account key. The key set of `kind-local` is in `landing-zone/gcp/jwks/`: one `<laptop>.json` file for each laptop, and `issuer.txt`. |
 | `cloudflare` | The zones, the DNS records, the Zero Trust Access applications, the Worker, and the tunnels that no instance owns. |
 | `github` | The settings of the repositories of the `gsuquet` account. |
 | `network` | The home network: the router, its address reservations, the networks and the firewall rules. |
-| `aws`, `azure`, `grafana-cloud` | The budget, then the other resources of the account. |
+| `aws`, `azure` | The budget, then the other resources of the account. |
+| `grafana-cloud` | The stack and the access policies. The provider has no budget resource. |
 
 ### Which root module owns a resource
 
@@ -172,7 +176,7 @@ Private vulnerability reporting is on in the settings of this repository.
 
 ## Terraform state
 
-These rules apply to each root module, in `landing-zone/` and in `instances/`:
+These rules apply to each landing-zone scope, and to each instance root module with the purpose `production` or `demo`:
 
 | ID | Rule |
 | --- | --- |
@@ -183,8 +187,15 @@ These rules apply to each root module, in `landing-zone/` and in `instances/`:
 | S5 | The backend stays inside a free tier, on a plan that does not end. |
 | S6 | The backend credentials come from the environment, not from a file in Git. |
 
-- A person runs `plan` and `apply` on a landing-zone scope by hand, outside of agent sessions. The plan goes in the PR. No CI job applies a scope.
-- A scope with `local` state holds no resource that writes a secret into the state.
+Two kinds of root module use `local` state, and S1 to S6 do not apply to them:
+
+| Root module | State | Who applies |
+| --- | --- | --- |
+| An instance with the purpose `test`, for example `kind-local` | `local`, on the laptop that runs it | Agents and persons, with `mise run instance:up` and `mise run instance:down` |
+| `instances/<instance>/secrets/`, for each instance | `local`, on the machine of the person | Only a person, by hand, outside of agent sessions. Refer to [Secrets](secrets.md#secrets-root-module). |
+
+- Each landing-zone scope has a `backend.tf` and a remote state.
+- A person runs `plan` and `apply` on a landing-zone scope, and on a `production` or `demo` instance, by hand, outside of agent sessions. Agents have no access to these states (S3). The plan goes in the PR. No CI job applies these root modules.
 - A scope applies before each instance that reads its values.
 
 ## Naming rules

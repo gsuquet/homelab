@@ -78,7 +78,7 @@ A re-created cluster has no seeds and no consumer Secrets. Each `ExternalSecret`
 1. Wait for the message of the agent that re-created the cluster, or look at the `Ready` condition of each `ExternalSecret`.
 2. Do [Apply the secrets](#apply-the-secrets). Terraform makes each seed again.
 3. Let an agent run `mise run vertex:jwks` and open the pull request with the new public keys.
-4. Review and merge that pull request, then apply `accounts/gcp/`.
+4. Review and merge that pull request, then apply `landing-zone/gcp/`.
 
 ## Check that the state holds no value
 

@@ -1,6 +1,6 @@
 # Repository scope
 
-The platform has code of different kinds: Terraform modules and instances, GitOps sources, checks, documentation and the legacy code of the production cluster `olympus`. Other personal setup exists too, for example the dotfiles of a workstation. Each new item needs a clear answer: does it go into this repository, or into a different one?
+The platform has code of different kinds: Terraform modules, instances and landing-zone scopes, GitOps sources, checks and documentation. It also has the legacy code of the production cluster `olympus`. Other personal setup exists too, for example the dotfiles of a workstation. Each new item needs a clear answer: does it go into this repository, or into a different one?
 
 This page tells what the repository holds, why it holds these items and not others, and why its metadata uses the word `infra`. The tree is in [Repository structure (reference)](../reference/repository-structure.md).
 
@@ -10,19 +10,19 @@ The platform is a free-time project, and one repository is easier to manage than
 
 An item belongs in the repository when three conditions are true:
 
-1. **It changes with the infrastructure.** A change of the item and a change of a cluster often occur in the same PR.
-2. **It deploys to the same targets.** The targets are the clusters of the instances, and the production cluster `olympus`.
+1. **It changes with the infrastructure.** A change of the item and a change of a cluster or of a landing-zone scope often occur in the same PR.
+2. **It deploys to the same targets.** The targets are the clusters of the instances, the production cluster `olympus`, and the provider accounts and the home network of the landing zone.
 3. **It follows the same review flow.** An atomic PR, a review, a plan or a render in the PR, and a manual merge ([How we work](how-we-work.md)).
 
 If one condition is false, the item goes into a different repository.
 
-The diagram shows the scope rule. In text: a new item goes into this repository only when all three answers are yes. It changes with the infrastructure. It deploys to a cluster of the platform. It follows the same review flow. Else it goes into a different repository.
+The diagram shows the scope rule. In text: a new item goes into this repository only when all three answers are yes. It changes with the infrastructure. It deploys to a cluster or to the landing zone of the platform. It follows the same review flow. Else it goes into a different repository.
 
 ```mermaid
 flowchart TD
     A[New item] --> B{Changes with the infrastructure?}
     B -->|no| X[Other repository]
-    B -->|yes| C{Deploys to a cluster of the platform?}
+    B -->|yes| C{Deploys to a cluster or to the landing zone?}
     C -->|no| X
     C -->|yes| D{Same review flow: PR, plan or render, manual merge?}
     D -->|no| X
@@ -37,6 +37,7 @@ The rule gives these answers for the items that exist:
 | --- | --- | --- |
 | The modules, the instances and the GitOps sources, for example `kind-local` | This repository | They make the clusters of the platform. |
 | The Ansible code and the Kubernetes manifests of `olympus`, with the `cloudflared` tunnel in `kubernetes/system/cloudflare/` | This repository | They make the production cluster. The tunnel changes with the cluster that it exposes. |
+| The provider accounts, the DNS, the repository settings and the home network, in `landing-zone/<scope>/` | This repository | They are the foundation of the clusters. A tunnel and its DNS record change with the cluster that it exposes. |
 | The checks, the schemas, the tasks and the documentation | This repository | They check and describe the items above, in the same PRs. |
 | The dotfiles, with the skills and the hooks of the agents | `gsuquet/dotfiles` | They deploy to a workstation, not to a cluster. |
 | The setup of a Windows machine | `gsuquet/choco-setup` | Same reason. |
@@ -45,11 +46,11 @@ The rule gives these answers for the items that exist:
 
 ## Provider accounts
 
-The provider accounts are not code in this repository. The Cloudflare account holds the zone `gsuquet.com`, its DNS records and the tunnel of `olympus`. Changes to them occur in the Cloudflare dashboard, with no PR and no review. [Configure Cloudflare](../how-to/configure-cloudflare.md) gives the manual steps for the tunnel.
+The provider accounts are code in `landing-zone/<scope>/`, one Terraform root module for each account or part of the home. A change goes through a PR with its plan, and a person applies it by hand. Without code, a change in a provider dashboard gets no review and leaves no history. The Cloudflare account holds the zone `gsuquet.com`, its DNS records and the tunnel of `olympus`. A wrong change there can take the mail and the certificates of the domain. The scopes, the lifecycle rule and the state rules are in [Repository structure](repository-structure.md#the-landing-zone).
 
 ## The cost
 
-One repository holds more risk than many: a wrong merge can change a cluster, also the production cluster. The review is the control. Agents use the same GitHub account as the review and the merge, so this control depends on a careful human review of each PR.
+One repository holds more risk than many: a wrong merge can change a cluster, also the production cluster, or a landing-zone scope. The review is the control. Agents use the same GitHub account as the review and the merge, so this control depends on a careful human review of each PR.
 
 ## The name `infra`
 
@@ -69,6 +70,7 @@ Other splits are possible. Each one is a worse match for a free-time project wit
 - **A repository for each cluster.** Each cluster gets its own history and its own access. But the clusters use the same modules and the same GitOps components, so each change of a module needs one PR in each repository.
 - **One repository for all personal setup, with the dotfiles.** One place for all the work. But the dotfiles deploy to a workstation with no plan and no render, so the review flow differs.
 - **A separate repository for the legacy code of `olympus`.** It keeps the old design out of the main tree. But the Argo CD of `olympus` reads `kubernetes/` in this repository, and a move deletes the production workloads ([Repository structure](repository-structure.md#legacy-folders)).
+- **Provider accounts managed by hand, with docs.** No import work. But a dashboard change gets no review, no history and no drift check.
 - **The word `homelab` for the metadata.** It is equal to the repository name. But it does not fit the instances that are not at home.
 
 ## Related pages
