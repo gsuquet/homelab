@@ -191,6 +191,11 @@ labels:
     pod_security_privileged:
       - tetragon
       - falco
+    # K18: the namespaces where a pod can mount /procHost, or a parent path, as a
+    # hostPath. Through the procfs magic links, /procHost reaches the whole Docker
+    # host (#283).
+    host_path_procfs:
+      - tetragon
     # K15: the namespaces that an apps component cannot use. Glob patterns.
     # cert-manager: the default of the Terraform module bootstrap-cert-manager,
     # which creates it. bootstrap-cilium uses kube-system.

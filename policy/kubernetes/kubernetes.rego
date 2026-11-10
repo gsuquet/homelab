@@ -161,7 +161,7 @@ deny contains msg if {
 }
 
 # ---------------------------------------------------------------------------
-# Label and annotation keys: checks K1 to K10 and K14 to K17. K11 to K13 (cloud
+# Label and annotation keys: checks K1 to K10 and K14 to K18. K11 to K13 (cloud
 # labels) come with the first cloud instance. The rules, the allowlists and the required keys
 # come from data.labels, in policy/data/labels.yaml. Each message has the ID
 # of its check.
@@ -201,6 +201,8 @@ labels_data_keys := [
 	[["allowlists", "pod_security_apps"], "array", false],
 	# K16 refuses a privileged container outside these namespaces: an empty list permits none.
 	[["allowlists", "pod_security_privileged"], "array", false],
+	# K18 refuses a hostPath on /procHost outside these namespaces: an empty list permits none.
+	[["allowlists", "host_path_procfs"], "array", false],
 	# K15 refuses these namespaces: an empty list refuses none.
 	[["allowlists", "reserved_namespaces"], "array", true],
 	[["allowlists", "upstream_namespaces"], "array", false],
@@ -819,4 +821,107 @@ deny contains msg if {
 	some [path, obj] in tracing_policies
 	count(as_array(object.get(obj, ["spec", "enforcers"], []))) > 0
 	msg := sprintf("%s: K17: TracingPolicy %q is cluster-scoped and has spec.enforcers. Use a TracingPolicyNamespaced.", [path, object_name(obj)])
+}
+
+# K18 hostPath volumes. Three rules, all on normalized paths:
+# 1. A hostPath on the Docker socket (/var/run/docker.sock, /run/docker.sock) or
+#    on one of its parents (/var/run, /run, /var, /) is refused in every
+#    namespace, also in tetragon: the socket controls the Docker host. A future
+#    tool that needs one of these parents gets its own allowlist then, not a
+#    hole now. Only the two standard socket paths are named: rootless Docker
+#    and the sockets of Colima or Docker Desktop on the host are not.
+# 2. A hostPath on /procHost, or on a path under it, is permitted only in the
+#    namespaces of data.labels.allowlists.host_path_procfs. The procfs magic
+#    links (/procHost/<pid>/root, cwd, fd, ns) give access to the whole Docker
+#    host, even with a read-only mount. The namespaces are read as in K16: each
+#    known one must be in the allowlist, and an object with none fails.
+# 3. A PersistentVolume (spec.hostPath.path, spec.local.path) has no namespace,
+#    so it gets no allowlist: a PV on a procfs path, the socket or a parent of
+#    the socket is refused. spec.csi carries driver attributes, not a host path,
+#    and is not read.
+# A path with a ".." segment is refused. Pods created by an operator are not
+# visible here: the Falco and KubeArmorConfig CRs need a live check. Like K16,
+# the check does not read ReplicationController or PodTemplate.
+procfs_host_path := "/procHost"
+
+docker_socket_paths := {"/var/run/docker.sock", "/run/docker.sock"}
+
+docker_socket_parents := {"/var/run", "/run", "/var", "/"}
+
+# Normalizes a path: drops empty and "." segments, so //procHost/ and /./procHost
+# give /procHost. A path with a ".." segment is refused (see below), so it is not
+# resolved here.
+normalize_path(p) := path if {
+	segments := [s | some s in split(p, "/"); s != ""; s != "."]
+	path := sprintf("/%s", [concat("/", segments)])
+}
+
+normalize_all(raw) := [normalize_path(p) | some p in raw; is_string(p); p != ""]
+
+host_paths(spec) := normalize_all([object.get(volume, ["hostPath", "path"], "") |
+	some volume in as_array(object.get(spec, "volumes", []))
+	is_object(volume)
+])
+
+pv_host_paths(obj) := normalize_all([
+	object.get(obj, ["spec", "hostPath", "path"], ""),
+	object.get(obj, ["spec", "local", "path"], ""),
+])
+
+# [file path, object, normalized host path] of each pod, workload and PV.
+pod_host_path_entries contains [path, obj, hp] if {
+	some [path, obj] in k8s_objects
+	spec := pod_spec(obj)
+	is_object(spec)
+	some hp in host_paths(spec)
+}
+
+pv_host_path_entries contains [path, obj, hp] if {
+	some [path, obj] in k8s_objects
+	obj.kind == "PersistentVolume"
+	some hp in pv_host_paths(obj)
+}
+
+host_path_entries := pod_host_path_entries | pv_host_path_entries
+
+# True if the hostPath is /procHost or a path under it. "/" is a parent of the
+# socket and is refused everywhere by rule 1.
+reaches_procfs(path) if path == procfs_host_path
+
+reaches_procfs(path) if startswith(path, concat("", [procfs_host_path, "/"]))
+
+procfs_pod_entries contains [path, obj, hp] if {
+	some [path, obj, hp] in pod_host_path_entries
+	reaches_procfs(hp)
+}
+
+deny contains msg if {
+	some [path, obj, hp] in procfs_pod_entries
+	count(candidate_namespaces(path, obj)) == 0
+	msg := sprintf("%s: K18: %s %q has a hostPath volume on %q, and the namespace is unknown. Set metadata.namespace, in one of the namespaces %v.", [path, obj.kind, object_name(obj), hp, data.labels.allowlists.host_path_procfs])
+}
+
+deny contains msg if {
+	some [path, obj, hp] in procfs_pod_entries
+	some namespace in candidate_namespaces(path, obj)
+	not namespace in data.labels.allowlists.host_path_procfs
+	msg := sprintf("%s: K18: %s %q in namespace %q has a hostPath volume on %q. Only the namespaces %v permit a hostPath on %s or a path under it.", [path, obj.kind, object_name(obj), namespace, hp, data.labels.allowlists.host_path_procfs, procfs_host_path])
+}
+
+deny contains msg if {
+	some [path, obj, hp] in pv_host_path_entries
+	reaches_procfs(hp)
+	msg := sprintf("%s: K18: PersistentVolume %q has a host path on %q. A PersistentVolume has no namespace, so no namespace permits a host path on %s.", [path, object_name(obj), hp, procfs_host_path])
+}
+
+deny contains msg if {
+	some [path, obj, hp] in host_path_entries
+	hp in (docker_socket_paths | docker_socket_parents)
+	msg := sprintf("%s: K18: %s %q has a host path on %q, which is the Docker socket or one of its parents. No namespace permits it: the socket controls the Docker host.", [path, obj.kind, object_name(obj), hp])
+}
+
+deny contains msg if {
+	some [path, obj, hp] in host_path_entries
+	".." in split(hp, "/")
+	msg := sprintf("%s: K18: %s %q has a host path on %q with a \"..\" segment. Write the resolved path.", [path, obj.kind, object_name(obj), hp])
 }
