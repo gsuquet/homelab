@@ -413,9 +413,9 @@ Agents run as the same OS user as the person who applies the secrets. These rule
 | --- | --- |
 | Agents never run a `secrets:*` task. | The terminal check of `secrets:apply` and `secrets:destroy` stops only a run with no terminal. Also never `sops decrypt`, `sops edit`, `sops exec-env`, `kubectl get secret -o yaml`, or a `terraform` command in `instances/*/secrets/`. |
 | Agents never read or delete a key or a state. | `keys.txt` and each `.tfstate` file. |
-| Agents never apply account changes. | No `terraform` command in `accounts/`, no provider tokens. |
-| Agents never merge. | Also not a pull request that changes `accounts/`. |
-| Agents never use the proxy identity of agentgateway. | No `kubectl create token` for the proxy ServiceAccount of `agentgateway-system`, no read of its token file, no hand edit of `accounts/gcp/jwks/`. Agents can run `vertex:jwks`. |
+| Agents never apply account changes. | No `terraform` command in `landing-zone/`, no provider tokens. |
+| Agents never merge. | Also not a pull request that changes `landing-zone/`. |
+| Agents never use the proxy identity of agentgateway. | No `kubectl create token` for the proxy ServiceAccount of `agentgateway-system`, no read of its token file, no hand edit of `landing-zone/gcp/jwks/`. Agents can run `vertex:jwks`. |
 | Agents can run `instance:up` and `instance:down`. | After a re-create of a cluster with seeds, the agent tells the person who applies the secrets. |
 | No agent session runs during a SOPS edit or a `secrets:apply`. | `secrets:edit`, `secrets:plan`, `secrets:apply`, `secrets:destroy` and `secrets:rotate` run only with no agent session. |
 | Agents write the code around a secret, never the value. | A value in the output of an agent gets a rotation. |
