@@ -1,0 +1,24 @@
+---
+# Source: kgateway/templates/gatewayparameters.yaml
+# Pins the Envoy (data plane) image of the default GatewayClass `kgateway`.
+# The controller makes the Envoy Deployment of each Gateway at run time, so the
+# image is not in Git otherwise. The chart value gatewayClassParametersRefs
+# (see values.yaml) points the GatewayClass to this object.
+apiVersion: gateway.kgateway.dev/v1alpha1
+kind: GatewayParameters
+metadata:
+  name: default
+  namespace: kgateway-system
+  labels:
+    app.kubernetes.io/name: kgateway
+    app.kubernetes.io/instance: kgateway
+    app.kubernetes.io/managed-by: Helm
+spec:
+  kube:
+    envoyContainer:
+      image:
+        registry: cr.kgateway.dev/kgateway-dev
+        repository: envoy-wrapper
+        tag: "v2.5.0"
+        # Multi-arch index (amd64 and arm64) of envoy-wrapper:v2.5.0, read from cr.kgateway.dev.
+        digest: "sha256:2577ea080f4cb07ca0cd79e25136c71d0b044f13aa6b4f47a71cc432537253bc"

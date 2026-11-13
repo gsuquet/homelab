@@ -8,4 +8,8 @@ name: kind-local
 infrastructure:
   - name: argocd
     namespace: argocd
+  # No dependsOn yet. kgateway starts without cert-manager (xDS TLS is off). A
+  # later change adds dependsOn: [cert-manager] for the xDS and Gateway TLS secrets.
+  - name: kgateway
+    namespace: kgateway-system
 apps: []

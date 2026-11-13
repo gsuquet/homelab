@@ -27,6 +27,30 @@
       "matchStrings": [
         "image:\\s*(?:>-\\s*)?(?<depName>[a-zA-Z0-9./_-]+):(?<currentValue>[a-zA-Z0-9._-]+)(?:@(?<currentDigest>sha256:[a-f0-9]{64}))?"
       ]
+    },
+    {
+      "customType": "regex",
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "cr.kgateway.dev/kgateway-dev/kgateway",
+      "description": "kgateway controller image: tag and digest in values.yaml, kept equal to the chart version by the kgateway group",
+      "managerFilePatterns": [
+        "/^gitops/infrastructure/kgateway/sources/values\\.yaml$/"
+      ],
+      "matchStrings": [
+        "tag:\\s*\"(?<currentValue>v[0-9][^\"@]*)@(?<currentDigest>sha256:[a-f0-9]{64})\""
+      ]
+    },
+    {
+      "customType": "regex",
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "cr.kgateway.dev/kgateway-dev/envoy-wrapper",
+      "description": "kgateway Envoy image: tag and digest in the GatewayParameters template",
+      "managerFilePatterns": [
+        "/^gitops/infrastructure/kgateway/sources/templates/gatewayparameters\\.yaml$/"
+      ],
+      "matchStrings": [
+        "tag:\\s*\"(?<currentValue>v[^\"]+)\"\\s*\\n\\s*#[^\\n]*\\n\\s*digest:\\s*\"(?<currentDigest>sha256:[a-f0-9]{64})\""
+      ]
     }
   ],
   "dependencyDashboard": true,
@@ -100,6 +124,15 @@
         "terraform"
       ],
       "semanticCommitScope": "terraform"
+    },
+    {
+      "description": "kgateway: the two charts, the controller image and the Envoy image move together, so the CRDs, the controller and the data plane never differ",
+      "groupName": "kgateway",
+      "groupSlug": "kgateway",
+      "matchFileNames": [
+        "gitops/infrastructure/kgateway/**"
+      ],
+      "semanticCommitScope": "kubernetes"
     },
     {
       "description": "Helm charts and container images that reach the homelab: no automerge until Kind tests exist (Phase 4)",

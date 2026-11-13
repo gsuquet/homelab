@@ -30,6 +30,8 @@
 | Terraform providers and lock files | `*.tf`, `.terraform.lock.hcl` | `terraform` |
 | Helm chart dependencies | `Chart.yaml` | `helmv3` |
 | Container images, with a tag and a digest | `kubernetes/applications/**`, `kubernetes/system/**` | `custom.regex` |
+| The controller image of kgateway, with a tag and a digest | `gitops/infrastructure/kgateway/sources/values.yaml` | `custom.regex` |
+| The Envoy image of kgateway, with a tag and a digest | `gitops/infrastructure/kgateway/sources/templates/gatewayparameters.yaml` | `custom.regex` |
 | Versions with a trailing `# renovate: datasource=<datasource> depName=<name>` comment | `.mise/config.toml`, `*.yaml`, `*.yml`, `*.tf`, `*.sh` | `custom.regex` |
 
 The comment of the second custom manager can also set `versioning=<versioning>`.
@@ -41,6 +43,7 @@ The comment of the second custom manager can also set `versioning=<versioning>`.
 | Major updates | `matchUpdateTypes: major` | `dependencyDashboardApproval: true`: the PR opens only after an approval on the Dependency Dashboard. |
 | Dev tools | One rule. An update must match all three: one of the files `.mise/config.toml`, `.pre-commit-config.yaml` and `.github/workflows/**`, one of the managers `mise`, `pre-commit`, `github-actions` and `custom.regex`, and one of the update types `minor`, `patch`, `digest`, `pin` and `pinDigest`. | One group, `dev tools`. Automerge. Commit scope `tools`. |
 | Terraform providers | `matchManagers: terraform` | One group, `terraform providers`. Commit scope `terraform`. |
+| kgateway | The files `gitops/infrastructure/kgateway/**` | One group, `kgateway`: the two charts and the two images change in one PR. Commit scope `kubernetes`. |
 | Charts and images | The files `gitops/**` and `kubernetes/**` | Commit scope `kubernetes`. |
 | Ansible | Two rules. Each one turns the updates off alone: one for the files `ansible/**`, one for the packages `ansible` and `ansible-creator`. | `enabled: false`: no updates. |
 | Lock file maintenance | `matchUpdateTypes: lockFileMaintenance` | Commit scope `lock`. |
