@@ -150,7 +150,7 @@ components:
 | K9 Argo CD tracking | The `ConfigMap` `argocd-cm` in `gitops/` | `data` has `application.resourceTrackingMethod: annotation`. | `warn` |
 | K10 Sync options | The annotation `argocd.argoproj.io/sync-options` of all objects in `gitops/`, and `spec.syncPolicy.syncOptions` of an `Application` | No option of `data.labels.forbidden_sync_options`: `Replace=true`, `Force=true`. The K10 allowlist permits options of upstream objects. | `deny` |
 | K14 Pod Security of applications | Each `Namespace` of an `apps` component | `pod-security.kubernetes.io/enforce` is in `data.labels.apps_pod_security_levels`: `restricted` or `baseline`. The K14 allowlist permits other levels. | `deny` |
-| K15 Namespace of a component | Each `Namespace` in `rendered/<component>/`, and `cluster.yaml` | The name of the `Namespace` is the `namespace` of the component in `cluster.yaml`. The K15 upstream allowlist permits other names. Two components of one cluster do not have the same namespace. An `apps` component does not use a namespace of the K15 reserved list. | `deny` |
+| K15 Namespace of a component | Each `Namespace` in `rendered/<component>/`, and `cluster.yaml` | The name of the `Namespace` is the `namespace` of the component in `cluster.yaml`. The K15 upstream allowlist permits other names. Two components of one cluster do not have the same namespace. An `apps` component does not use a namespace of the K15 reserved list: the platform namespaces that Terraform or an `infrastructure` component creates. | `deny` |
 | K16 Privileged containers | Each `Pod`, and the pod template of each workload and `CronJob`, in `kubernetes/` and `gitops/` | No container, init container or ephemeral container has `securityContext.privileged: true`, except in a namespace of `data.labels.allowlists.pod_security_privileged`. The check reads `metadata.namespace` and the `namespace` of the component in `cluster.yaml`. Each one that exists must be in the allowlist. An object with neither fails. | `deny` |
 | K17 Enforcement scope | Each Tetragon `TracingPolicy` (`cilium.io/v1alpha1`) | No `matchActions` or `matchReturnActions` array in the `spec` has the action `Sigkill`, `Override`, `Signal`, `NotifyEnforcer` or `Set`. The check reads all the hooks and `selectorsMacros`. `spec.enforcers` is empty. A cluster-wide policy acts on every process of the node. Put an enforcement policy in a `TracingPolicyNamespaced`. The action names are in [Tetragon: selectors](https://tetragon.io/docs/concepts/tracing-policy/selectors/). | `deny` |
 
@@ -186,7 +186,7 @@ These checks are `deny`. They check `policy/data/labels.yaml` itself.
 | `allowlists.sync_options_upstream` | K10 | Empty. Each entry: `{component, kind, name, option}`. |
 | `allowlists.pod_security_apps` | K14 | Empty. Each entry: a namespace name. |
 | `allowlists.pod_security_privileged` | K16 | `tetragon`, `falco`. Each entry: a namespace name. |
-| `allowlists.reserved_namespaces` | K15 | `default`, `kube-*`, `argocd`, `cert-manager`. Glob patterns. |
+| `allowlists.reserved_namespaces` | K15 | `default`, `kube-*`, `argocd`, `cert-manager`. Glob patterns. The platform namespaces that Terraform or an `infrastructure` component creates. K15 applies the list only to `apps` components. |
 | `allowlists.upstream_namespaces` | K15 | Empty. Each entry: `{component, namespace}`. |
 
 The entries of `custom_keys_upstream`, `sync_options_upstream` and `upstream_namespaces` apply only to upstream objects.
