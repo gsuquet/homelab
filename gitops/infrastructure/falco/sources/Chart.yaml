@@ -1,0 +1,10 @@
+apiVersion: v2
+name: falco
+description: Umbrella chart for Falco, the runtime security tool. It detects only and has no alert backend.
+type: application
+version: 1.0.0
+
+dependencies:
+  - name: falco
+    version: "9.2.2"
+    repository: https://falcosecurity.github.io/charts

@@ -1,0 +1,38 @@
+---
+# Source: falco/charts/falco/templates/rules-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: falco-rules
+  namespace: falco
+  labels:
+    helm.sh/chart: falco-9.2.2
+    app.kubernetes.io/name: falco
+    app.kubernetes.io/instance: falco
+    app.kubernetes.io/version: "0.45.2"
+    app.kubernetes.io/managed-by: Helm
+data:
+  rtsec-lab.yaml: |-
+    - rule: Write below etc
+      desc: A process in a container of rtsec-lab opens a file below /etc for a write.
+      condition: >
+        open_write and container and fd.name startswith /etc/
+        and k8s.ns.name = "rtsec-lab"
+      output: >
+        File below /etc opened for writing (file=%fd.name proc=%proc.name cmd=%proc.cmdline ns=%k8s.ns.name pod=%k8s.pod.name container=%container.id)
+      priority: ERROR
+      tags: [rtsec-lab, filesystem]
+
+    # The Cilium socket load balancer rewrites the ClusterIP of the API server
+    # to the node IP, so the connection reaches the node IP on port 6443.
+    - rule: API server endpoint connection from rtsec-lab
+      desc: A process in a container of rtsec-lab connects to any IP on port 6443, the API server endpoint.
+      condition: >
+        evt.type = connect and (evt.rawres >= 0 or evt.res = EINPROGRESS)
+        and container and fd.type in (ipv4, ipv6)
+        and fd.sport = 6443
+        and k8s.ns.name = "rtsec-lab"
+      output: >
+        Connection to the API server endpoint (dest=%fd.sip:%fd.sport proc=%proc.name cmd=%proc.cmdline ns=%k8s.ns.name pod=%k8s.pod.name container=%container.id)
+      priority: WARNING
+      tags: [rtsec-lab, network]
